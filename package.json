@@ -1,0 +1,12 @@
+{
+  "name": "ela-plan-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Безопасный локальный сервер для динамического плана Ela Nov Paketleme",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
