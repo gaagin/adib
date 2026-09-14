@@ -18,6 +18,10 @@ const TODO_DS = cleanId(process.env.TODO_DATA_SOURCE_ID || 'b3d991ebc75b47ab8a88
 const GORULEN_DB = cleanId(process.env.GORULEN_ISLER_DATABASE_ID || '02f39358-ebb4-4d32-b164-249f39ea2949');
 const GORULEN_DS = cleanId(process.env.GORULEN_ISLER_DATA_SOURCE_ID || '3136a23f839c40d3b6387de4d60af7f5');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
+const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
+const LINK_PROPERTY_DEFAULT = 'ADIB link';
+const linkSyncState = { baseUrl: '', at: 0, inFlight: null };
 
 function loadDotEnv(file) {
   if (!fs.existsSync(file)) return;
@@ -189,8 +193,34 @@ function relationIds(page, name) { return (property(page, name)?.relation || [])
 function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
 function person(page, name) { const value = (property(page, name)?.people || [])[0]; return { id: value?.id || '', name: value?.name || value?.person?.email || '' }; }
 function pageUrl(page) { return page.url || ''; }
+function normalizeBaseUrl(value) {
+  let base = String(value || '').trim();
+  if (!base) return '';
+  if (!/^https?:\/\//i.test(base)) base = 'https://' + base;
+  return base.replace(/\/+$/, '');
+}
+function appBaseUrl(request) {
+  const configured = normalizeBaseUrl(PUBLIC_APP_URL);
+  if (configured) return configured;
+  const forwardedProto = String(request?.headers?.['x-forwarded-proto'] || '').split(',')[0].trim();
+  const protocol = forwardedProto || (request?.socket?.encrypted ? 'https' : 'http');
+  const host = request?.headers?.host || `localhost:${PORT}`;
+  return `${protocol}://${host}`.replace(/\/+$/, '');
+}
+function serviceLink(baseUrl, element, id, extra = {}) {
+  const base = normalizeBaseUrl(baseUrl);
+  if (!base || !id) return '';
+  const params = new URLSearchParams({ element, id: String(id), zoom: '2' });
+  for (const [key, value] of Object.entries(extra)) if (value) params.set(key, String(value));
+  return `${base}/ela-nov-paketleme-dynamic.html#${params.toString()}`;
+}
+function linkPropertyName(sourceKey) {
+  if (sourceKey === 'gorulen') return process.env.GORULEN_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+  if (sourceKey === 'todo') return process.env.TODO_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+  return process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+}
 
-function mapPlans(pages) {
+function mapPlans(pages, baseUrl = '') {
   return pages.map(page => ({
     id: page.id,
     name: title(page, 'Plan') || 'Без названия',
@@ -201,11 +231,13 @@ function mapPlans(pages) {
     width: number(page, 'Eni') || 2400,
     height: number(page, 'Uzunluğu') || 1400,
     scale: number(page, 'Scale') || 1,
-    status: select(page, 'Status')
+    status: select(page, 'Status'),
+    notionUrl: pageUrl(page),
+    serviceUrl: serviceLink(baseUrl, 'plan', page.id)
   }));
 }
 
-function mapEquipment(pages, tasks) {
+function mapEquipment(pages, tasks, baseUrl = '') {
   return pages.map(page => ({
     id: page.id,
     name: title(page, 'Makina') || 'Без названия',
@@ -218,6 +250,7 @@ function mapEquipment(pages, tasks) {
     height: number(page, 'Uzunluğu') || 100,
     rotation: number(page, 'Dönmə bucağı') || 0,
     notionUrl: pageUrl(page),
+    serviceUrl: serviceLink(baseUrl, 'equipment', page.id),
     tasks: tasks.get(page.id) || []
   }));
 }
@@ -236,7 +269,8 @@ function taskConfig(sourceKey) {
     periodicProperty: process.env.GORULEN_PERIODIC_PROPERTY || 'Is',
     periodicValue: process.env.GORULEN_PERIODIC_VALUE || 'Periodik',
     database: GORULEN_DB,
-    complete: process.env.GORULEN_COMPLETE_PROPERTY || 'Status'
+    complete: process.env.GORULEN_COMPLETE_PROPERTY || 'Status',
+    linkProperty: linkPropertyName('gorulen')
   };
   return {
     title: process.env.TODO_TITLE_PROPERTY || 'Name',
@@ -251,7 +285,8 @@ function taskConfig(sourceKey) {
     doneWork: process.env.TODO_DONE_WORK_PROPERTY || 'Gorulen is',
     doneWorkType: process.env.TODO_DONE_WORK_TYPE || 'rich_text',
     database: TODO_DB,
-    complete: process.env.TODO_COMPLETE_PROPERTY || 'Status'
+    complete: process.env.TODO_COMPLETE_PROPERTY || 'Status',
+    linkProperty: linkPropertyName('todo')
   };
 }
 
@@ -272,8 +307,8 @@ function taskSources() {
   const sources = [];
   const todo = taskConfig('todo');
   const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, completeName: todo.complete });
-  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete });
+  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, completeName: todo.complete, linkProperty: todo.linkProperty });
+  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
   return sources;
 }
 
@@ -303,7 +338,7 @@ async function queryTaskPages(machineIds = [], since = '', restrictToMachines = 
   return queried;
 }
 
-function buildTaskMap(pageSets, machineIds = []) {
+function buildTaskMap(pageSets, machineIds = [], baseUrl = '') {
   const result = new Map();
   for (const { source, pages } of pageSets) {
     for (const page of pages) {
@@ -315,7 +350,7 @@ function buildTaskMap(pageSets, machineIds = []) {
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page) };
+      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -336,16 +371,17 @@ let snapshotCache = null;
 let snapshotCacheAt = 0;
 let snapshotInFlight = null;
 let snapshotEtag = '';
+let snapshotCacheBaseUrl = '';
 const SNAPSHOT_CACHE_MS = 5000;
 const FULL_RECONCILE_MS = 2 * 60 * 60 * 1000;
 
-function buildSnapshotFromRawCache() {
+function buildSnapshotFromRawCache(baseUrl = '') {
   const machinePages = [...rawCache.machines.values()];
   const machineIds = machinePages.map(page => page.id);
   const taskSets = taskSources().map(source => ({ source, pages: [...(rawCache.tasks.get(source.key) || new Map()).values()] }));
-  const tasks = buildTaskMap(taskSets, machineIds);
-  const mappedPlans = mapPlans([...rawCache.plans.values()]);
-  const mappedEquipment = mapEquipment(machinePages, tasks);
+  const tasks = buildTaskMap(taskSets, machineIds, baseUrl);
+  const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl);
+  const mappedEquipment = mapEquipment(machinePages, tasks, baseUrl);
   attachTaskCounts(mappedPlans, mappedEquipment);
   return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment };
 }
@@ -361,7 +397,7 @@ function mergePages(target, pages) {
   }
 }
 
-async function fullSync(startedAt) {
+async function fullSync(startedAt, baseUrl = '') {
   const [plans, machines] = await Promise.all([queryDatabase(PLAN_DB, PLAN_DS), queryDatabase(MAKINA_DB, MAKINA_DS)]);
   const taskSets = await queryTaskPages(machines.map(page => page.id), '', true);
   rawCache.plans = new Map(plans.map(page => [page.id, page]));
@@ -370,12 +406,12 @@ async function fullSync(startedAt) {
   for (const { source, pages } of taskSets) mergePages(rawCache.tasks.get(source.key), pages);
   rawCache.lastSyncAt = startedAt;
   rawCache.lastFullSyncAt = Date.now();
-  const snapshot = buildSnapshotFromRawCache();
+  const snapshot = buildSnapshotFromRawCache(baseUrl);
   console.log('Full sync:', snapshot.plans.length, 'plans,', snapshot.equipment.length, 'machines');
   return snapshot;
 }
 
-async function incrementalSync(startedAt) {
+async function incrementalSync(startedAt, baseUrl = '') {
   const since = rawCache.lastSyncAt;
   const [plans, machines, taskSets] = await Promise.all([
     queryDatabase(PLAN_DB, PLAN_DS, { filter: editedSinceFilter(since) }),
@@ -386,18 +422,18 @@ async function incrementalSync(startedAt) {
   mergePages(rawCache.machines, machines);
   for (const { source, pages } of taskSets) mergePages(rawCache.tasks.get(source.key), pages);
   rawCache.lastSyncAt = startedAt;
-  const snapshot = buildSnapshotFromRawCache();
+  const snapshot = buildSnapshotFromRawCache(baseUrl);
   console.log('Incremental sync:', plans.length, 'plans,', machines.length, 'machines,', taskSets.reduce((n, item) => n + item.pages.length, 0), 'task changes');
   return snapshot;
 }
 
-async function snapshot(full = false) {
-  if (snapshotCache && !full && Date.now() - snapshotCacheAt < SNAPSHOT_CACHE_MS) return snapshotCache;
+async function snapshot(full = false, baseUrl = '') {
+  if (snapshotCache && !full && snapshotCacheBaseUrl === baseUrl && Date.now() - snapshotCacheAt < SNAPSHOT_CACHE_MS) return snapshotCache;
   if (snapshotInFlight) return snapshotInFlight;
   const startedAt = new Date().toISOString();
   const needsFull = full || !rawCache.lastSyncAt || Date.now() - rawCache.lastFullSyncAt >= FULL_RECONCILE_MS;
-  snapshotInFlight = (needsFull ? fullSync(startedAt) : incrementalSync(startedAt))
-    .then(result => { const payload = JSON.stringify({ plans: result.plans || [], equipment: result.equipment || [] }); snapshotEtag = '"' + crypto.createHash('sha1').update(payload).digest('hex') + '"'; result.etag = snapshotEtag; snapshotCache = result; snapshotCacheAt = Date.now(); return result; })
+  snapshotInFlight = (needsFull ? fullSync(startedAt, baseUrl) : incrementalSync(startedAt, baseUrl))
+    .then(result => { const payload = JSON.stringify({ plans: result.plans || [], equipment: result.equipment || [] }); snapshotEtag = '"' + crypto.createHash('sha1').update(payload).digest('hex') + '"'; result.etag = snapshotEtag; snapshotCache = result; snapshotCacheBaseUrl = baseUrl; snapshotCacheAt = Date.now(); return result; })
     .finally(() => { snapshotInFlight = null; });
   return snapshotInFlight;
 }
@@ -411,6 +447,60 @@ function attachTaskCounts(plans, equipment) {
   for (const plan of plans) { const list = children.get(plan.parentId || '') || []; list.push(plan); children.set(plan.parentId || '', list); }
   const visit = plan => { const counts = own.get(plan.id) || zeroTaskCounts(); for (const child of children.get(plan.id) || []) { const childCounts = visit(child); counts.gorulen += childCounts.gorulen; counts.todo += childCounts.todo; counts.total += childCounts.total; } plan.taskCounts = counts; return counts; };
   for (const plan of plans.filter(p => !p.parentId)) visit(plan);
+}
+
+function isLocalBaseUrl(baseUrl) {
+  try { return /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(new URL(baseUrl).host); }
+  catch { return true; }
+}
+
+async function patchServiceLink(page, propertyName, link) {
+  if (!page || !propertyName || !link) return false;
+  const current = property(page, propertyName)?.url || '';
+  if (current === link) return false;
+  await notion('/pages/' + encodeURIComponent(page.id), {
+    method: 'PATCH',
+    body: JSON.stringify({ properties: { [propertyName]: { url: link } } })
+  });
+  return true;
+}
+
+async function syncServiceLinks(baseUrl, force = false) {
+  const normalized = normalizeBaseUrl(baseUrl);
+  if (!normalized || (isLocalBaseUrl(normalized) && !PUBLIC_APP_URL)) {
+    return { ok: true, skipped: true, reason: 'Нужен публичный PUBLIC_APP_URL' };
+  }
+  if (!force && linkSyncState.baseUrl === normalized && Date.now() - linkSyncState.at < LINK_SYNC_TTL_MS) {
+    return { ok: true, skipped: true, updated: 0 };
+  }
+  if (linkSyncState.inFlight) return linkSyncState.inFlight;
+  linkSyncState.inFlight = (async () => {
+    const targets = [];
+    const machines = await queryDatabase(MAKINA_DB, MAKINA_DS);
+    for (const page of machines) targets.push({ page, propertyName: process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT, link: serviceLink(normalized, 'equipment', page.id) });
+    for (const source of taskSources()) {
+      const pages = await queryDatabase(source.databaseId, source.dataSourceId);
+      for (const page of pages) {
+        const machineId = relationIds(page, source.relationName)[0] || '';
+        targets.push({ page, propertyName: source.linkProperty || LINK_PROPERTY_DEFAULT, link: serviceLink(normalized, 'task', page.id, { machine: machineId }) });
+      }
+    }
+    let updated = 0;
+    let failed = 0;
+    for (let i = 0; i < targets.length; i += 8) {
+      const batch = targets.slice(i, i + 8);
+      const results = await Promise.all(batch.map(async target => {
+        try { return await patchServiceLink(target.page, target.propertyName, target.link); }
+        catch (error) { failed++; console.warn('Service link update failed:', target.page.id, error.message); return false; }
+      }));
+      updated += results.filter(Boolean).length;
+    }
+    linkSyncState.baseUrl = normalized;
+    linkSyncState.at = Date.now();
+    console.log('Service links synced:', updated, 'updated,', failed, 'failed');
+    return { ok: true, updated, failed, total: targets.length, baseUrl: normalized };
+  })().finally(() => { linkSyncState.inFlight = null; });
+  return linkSyncState.inFlight;
 }
 
 const taskCache = new Map();
@@ -512,7 +602,7 @@ async function saveTask(body) {
   return { ok: true, id, sourceKey, savedAt: new Date().toISOString() };
 }
 
-async function createTask(body) {
+async function createTask(body, baseUrl = '') {
   const sourceKey = String(body.sourceKey || 'todo');
   const machineId = String(body.machineId || '').trim();
   const titleValue = String(body.title || '').trim();
@@ -521,7 +611,7 @@ async function createTask(body) {
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: { database_id: config.database }, properties: buildTaskProperties({ ...body, title: titleValue, completed: false }, config, true) }) });
   taskCache.delete(machineId);
   snapshotCache = null;
-  return { ok: true, id: page.id, url: page.url || '', sourceKey, savedAt: new Date().toISOString() };
+  return { ok: true, id: page.id, url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: machineId }), sourceKey, savedAt: new Date().toISOString() };
 }
 
 async function deleteTask(body) {
@@ -577,14 +667,17 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'POST' && url.pathname === '/api/task') {
       const body = await readBody(request);
-      return json(response, 201, await createTask(body));
+      return json(response, 201, await createTask(body, appBaseUrl(request)));
     }
     if (request.method === 'DELETE' && url.pathname === '/api/task') {
       return json(response, 200, await deleteTask({ id: url.searchParams.get('id'), machineId: url.searchParams.get('machineId') }));
     }
     if (request.method === 'GET' && url.pathname === '/api/users') return json(response, 200, { users: await notionUsers() });
+    if (request.method === 'POST' && url.pathname === '/api/sync-links') {
+      return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
+    }
     if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const result = await snapshot(full); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match' }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = await snapshot(full, baseUrl); syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match' }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'));
     return json(response, 404, { error: 'Not found' });
   } catch (error) {
