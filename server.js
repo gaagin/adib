@@ -643,6 +643,16 @@ async function createTask(body, baseUrl = '') {
   return { ok: true, id: page.id, url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: machineId }), sourceKey, savedAt: new Date().toISOString() };
 }
 
+async function archiveElement(body) {
+  const id = String(body.id || '').trim();
+  const kind = body.kind === 'plan' ? 'plan' : 'equipment';
+  if (!id) throw new Error('Не указан ID элемента');
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  if (kind === 'plan') rawCache.plans.delete(id); else rawCache.machines.delete(id);
+  snapshotCache = null;
+  return { ok: true, id, kind, deleted: true, savedAt: new Date().toISOString() };
+}
+
 async function deleteTask(body) {
   const id = String(body.id || '').trim();
   if (!id) throw new Error('Не указан ID задачи');
@@ -705,6 +715,12 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/task') {
       const body = await readBody(request);
       return json(response, 201, await createTask(body, appBaseUrl(request)));
+    }
+    if (request.method === 'DELETE' && url.pathname === '/api/plan') {
+      return json(response, 200, await archiveElement({ id: url.searchParams.get('id'), kind: 'plan' }));
+    }
+    if (request.method === 'DELETE' && url.pathname === '/api/equipment') {
+      return json(response, 200, await archiveElement({ id: url.searchParams.get('id'), kind: 'equipment' }));
     }
     if (request.method === 'DELETE' && url.pathname === '/api/task') {
       return json(response, 200, await deleteTask({ id: url.searchParams.get('id'), machineId: url.searchParams.get('machineId') }));
