@@ -264,6 +264,9 @@ function taskConfig(sourceKey) {
     assignee: process.env.GORULEN_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
     relation: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina',
     tapsirildi: process.env.GORULEN_TAPSIRILDI_PROPERTY || 'Tapsirildi',
+    gtdProperty: process.env.GORULEN_GTD_PROPERTY || 'GTD',
+    workTypeProperty: process.env.GORULEN_WORK_TYPE_PROPERTY || 'Is',
+    tagProperty: process.env.GORULEN_TAG_PROPERTY || 'Tag',
     doneWork: process.env.GORULEN_DONE_WORK_PROPERTY || 'Gorulen is',
     doneWorkType: process.env.GORULEN_DONE_WORK_TYPE || 'rich_text',
     periodicProperty: process.env.GORULEN_PERIODIC_PROPERTY || 'Is',
@@ -279,6 +282,7 @@ function taskConfig(sourceKey) {
     date: process.env.TODO_DUE_PROPERTY || 'Tarix',
     assignee: process.env.TODO_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
     gtdProperty: process.env.TODO_GTD_PROPERTY || 'GTD',
+    isciTagProperty: process.env.TODO_ISCI_TAG_PROPERTY || 'Isci tag',
     gtdValue: process.env.TODO_GTD_VALUE || 'Check list',
     relation: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina',
     tapsirildi: process.env.TODO_TAPSIRILDI_PROPERTY || 'Tapsirildi',
@@ -307,8 +311,8 @@ function taskSources() {
   const sources = [];
   const todo = taskConfig('todo');
   const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, completeName: todo.complete, linkProperty: todo.linkProperty });
-  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
+  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
+  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, gtdName: gorulen.gtdProperty, workTypeName: gorulen.workTypeProperty, tagName: gorulen.tagProperty, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
   return sources;
 }
 
@@ -350,7 +354,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '') {
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
+      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -584,6 +588,10 @@ function buildTaskProperties(body, config, includeMachine = false) {
   if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: String(body.date).slice(0, 10) } : null };
   if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
   if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
+  if (body.gtd !== undefined && config.gtdProperty) properties[config.gtdProperty] = body.gtd ? { status: { name: String(body.gtd).trim() } } : { status: null };
+  if (body.workType !== undefined && config.workTypeProperty) properties[config.workTypeProperty] = body.workType ? { status: { name: String(body.workType).trim() } } : { status: null };
+  if (body.isciTag !== undefined && config.isciTagProperty) properties[config.isciTagProperty] = body.isciTag ? { select: { name: String(body.isciTag).trim() } } : { select: null };
+  if (body.tag !== undefined && config.tagProperty) properties[config.tagProperty] = body.tag ? { select: { name: String(body.tag).trim() } } : { select: null };
   if (body.doneWork !== undefined) properties[config.doneWork] = config.doneWorkType === 'title' ? { title: textBlocks(body.doneWork) } : { rich_text: textBlocks(body.doneWork) };
   if (body.completed !== undefined) properties[config.complete] = { checkbox: Boolean(body.completed) };
   if (includeMachine && body.machineId) properties[config.relation] = { relation: [{ id: String(body.machineId) }] };
