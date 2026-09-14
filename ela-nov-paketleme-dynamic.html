@@ -246,6 +246,16 @@ html.dark .snap-guide-dot{fill:#76b2ff}
   .modal.kanban-modal .kanban-column{min-width:300px;min-height:0}
   .modal.kanban-modal .kanban-column-body{min-height:0;overflow-y:auto}
 }
+</style><style>
+/* Kanban always uses the available viewport; narrow screens scroll columns horizontally. */
+.modal-backdrop:has(.kanban-modal){padding:0!important}
+.modal.kanban-modal{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;border-radius:0!important}
+.modal.kanban-modal .modal-head{flex:0 0 auto}
+.modal.kanban-modal .task-list{height:calc(100vh - 76px)!important;max-height:none!important;overflow:hidden!important;display:flex;flex-direction:column}
+.modal.kanban-modal .kanban-board{flex:1 1 auto;min-height:0;grid-template-columns:repeat(4,minmax(300px,1fr))!important;overflow-x:auto!important;overflow-y:hidden!important;padding-bottom:14px}
+.modal.kanban-modal .kanban-column{min-width:300px;min-height:0}
+.modal.kanban-modal .kanban-column-body{min-height:0;overflow-y:auto}
+@media(max-width:650px){.modal.kanban-modal .kanban-board{grid-auto-flow:column!important;grid-auto-columns:minmax(84vw,1fr)!important;grid-template-columns:none!important;overflow-x:auto!important}.modal.kanban-modal .kanban-column{min-width:84vw!important}.modal.kanban-modal .kanban-column-body{overflow-y:visible!important}}
 </style></head>
 <body>
 <main class="app">
