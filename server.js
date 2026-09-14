@@ -180,7 +180,8 @@ async function queryDatabase(databaseId, dataSourceId = '', query = {}) {
 }
 
 function property(page, name) { return page.properties?.[name] || null; }
-function title(page, name) { return (property(page, name)?.title || []).map(x => x.plain_text || '').join('').trim(); }
+function title(page, name) { return (property(page, name)?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
+function richText(page, name) { const value = property(page, name); return (value?.rich_text || value?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
 function number(page, name) { return property(page, name)?.number ?? null; }
 function select(page, name) { const p = property(page, name); return p?.select?.name || p?.status?.name || ''; }
 function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
@@ -230,6 +231,8 @@ function taskConfig(sourceKey) {
     assignee: process.env.GORULEN_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
     relation: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina',
     tapsirildi: process.env.GORULEN_TAPSIRILDI_PROPERTY || 'Tapsirildi',
+    doneWork: process.env.GORULEN_DONE_WORK_PROPERTY || 'Gorulen is',
+    doneWorkType: process.env.GORULEN_DONE_WORK_TYPE || 'rich_text',
     periodicProperty: process.env.GORULEN_PERIODIC_PROPERTY || 'Is',
     periodicValue: process.env.GORULEN_PERIODIC_VALUE || 'Periodik',
     database: GORULEN_DB,
@@ -245,6 +248,8 @@ function taskConfig(sourceKey) {
     gtdValue: process.env.TODO_GTD_VALUE || 'Check list',
     relation: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina',
     tapsirildi: process.env.TODO_TAPSIRILDI_PROPERTY || 'Tapsirildi',
+    doneWork: process.env.TODO_DONE_WORK_PROPERTY || 'Gorulen is',
+    doneWorkType: process.env.TODO_DONE_WORK_TYPE || 'rich_text',
     database: TODO_DB,
     complete: process.env.TODO_COMPLETE_PROPERTY || 'Status'
   };
@@ -267,8 +272,8 @@ function taskSources() {
   const sources = [];
   const todo = taskConfig('todo');
   const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, completeName: todo.complete });
-  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete });
+  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, completeName: todo.complete });
+  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete });
   return sources;
 }
 
@@ -310,7 +315,7 @@ function buildTaskMap(pageSets, machineIds = []) {
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page) };
+      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -482,12 +487,14 @@ async function saveLayout(body) {
 
 function buildTaskProperties(body, config, includeMachine = false) {
   const properties = {};
+  const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
   if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Задача' } }] };
   if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
   if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
   if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: String(body.date).slice(0, 10) } : null };
   if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
   if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
+  if (body.doneWork !== undefined) properties[config.doneWork] = config.doneWorkType === 'title' ? { title: textBlocks(body.doneWork) } : { rich_text: textBlocks(body.doneWork) };
   if (body.completed !== undefined) properties[config.complete] = { checkbox: Boolean(body.completed) };
   if (includeMachine && body.machineId) properties[config.relation] = { relation: [{ id: String(body.machineId) }] };
   return properties;
