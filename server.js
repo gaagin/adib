@@ -590,6 +590,35 @@ function buildTaskProperties(body, config, includeMachine = false) {
   return properties;
 }
 
+
+function databaseParent(databaseId, dataSourceId) {
+  return databaseId ? { database_id: databaseId } : { data_source_id: dataSourceId };
+}
+function createText(value) {
+  const content=String(value??'').trim().slice(0,2000);
+  return content ? [{type:'text',text:{content}}] : [];
+}
+function createSelect(name,value){const clean=String(value||'').trim();return clean?{[name]:{select:{name:clean}}}:{};}
+function createNumber(name,value,fallback){const n=Number(value);return {[name]:{number:Number.isFinite(n)?n:fallback}};}
+function planCreateProperties(body){
+  const name=String(body.name||'').trim(); if(!name) throw new Error('Нужно название плана');
+  return {Plan:{title:createText(name)},...createSelect('Tip',body.type||'Zona'),...createSelect('Status',body.status||'Aktiv'),...createNumber('X',body.x,0),...createNumber('Y',body.y,0),...createNumber('Eni',body.width,1000),...createNumber('Uzunluğu',body.height,700),...createNumber('Scale',body.scale,1),...(body.object?{Obyekt:{rich_text:createText(body.object)}}:{}),...(body.parentId?{'Parent Plan':{relation:[{id:cleanId(String(body.parentId))}]}}:{})};
+}
+function equipmentCreateProperties(body){
+  const name=String(body.name||'').trim(),planId=cleanId(String(body.planId||'').trim()); if(!name||!planId) throw new Error('Нужны название оборудования и план');
+  return {Makina:{title:createText(name)},...createSelect('Tip',body.type||'Maşın'),...createSelect('Status',body.status||'İşləyir'),...createNumber('X',body.x,80),...createNumber('Y',body.y,80),...createNumber('Eni',body.width,180),...createNumber('Uzunluğu',body.height,120),...createNumber('Dönmə bucağı',body.rotation,0),Plan:{relation:[{id:planId}]},...(body.zone?{Zona:{rich_text:createText(body.zone)}}:{})};
+}
+async function createPlan(body){
+  if(!PLAN_DB&&!PLAN_DS) throw new Error('Не настроена база Plan');
+  const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(PLAN_DB,PLAN_DS),properties:planCreateProperties(body)})}); snapshotCache=null;
+  return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
+}
+async function createEquipment(body){
+  if(!MAKINA_DB&&!MAKINA_DS) throw new Error('Не настроена база Makina');
+  const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(MAKINA_DB,MAKINA_DS),properties:equipmentCreateProperties(body)})}); snapshotCache=null;
+  return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
+}
+
 async function saveTask(body) {
   const id = String(body.id || '').trim();
   const sourceKey = String(body.sourceKey || 'todo');
@@ -660,6 +689,14 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/comment-notifications') {
       const body = await readBody(request);
       return json(response, 200, await listCommentNotifications(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/plan') {
+      const body = await readBody(request);
+      return json(response, 201, await createPlan(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/equipment') {
+      const body = await readBody(request);
+      return json(response, 201, await createEquipment(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
       const body = await readBody(request);

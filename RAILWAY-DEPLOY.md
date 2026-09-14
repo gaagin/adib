@@ -52,6 +52,8 @@ GORULEN_ISLER_DATABASE_ID=02f39358-ebb4-4d32-b164-249f39ea2949
 GORULEN_ISLER_DATA_SOURCE_ID=3136a23f839c40d3b6387de4d60af7f5
 NOTION_VERSION=2025-09-03
 CORS_ORIGIN=*
+PUBLIC_APP_URL=https://adib-production-eba3.up.railway.app
+LINK_SYNC_TTL_MS=900000
 ```
 
 `PORT` вручную добавлять не нужно — Railway передаёт его приложению автоматически.
@@ -104,3 +106,8 @@ Railway предоставляет пробный кредит на ограни
 - Не добавляйте `.env` в GitHub.
 - Не вставляйте `NOTION_TOKEN` в HTML.
 - Предоставьте Notion Integration доступ к базам Plan, Makina, ToDo и Gorulen isler.
+
+
+## Ссылки на элементы
+
+Добавьте `PUBLIC_APP_URL` с фактическим HTTPS-доменом Railway. При первом открытии приложения сервер автоматически заполнит новые свойства `ADIB link` в базах `Makina`, `ToDo` и `Gorulen isler`. Для повторной синхронизации вызовите `POST /api/sync-links`. Ссылки открывают соответствующий план, станок или задачу с масштабом 200%; ссылка на задачу также открывает редактор задачи.
