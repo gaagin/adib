@@ -195,6 +195,8 @@ function select(page, name) { const p = property(page, name); return p?.select?.
 function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
 function relationIds(page, name) { return (property(page, name)?.relation || []).map(x => x.id); }
 function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
+function pomodoroModeDuration(mode) { const value=String(mode||''); if(value.includes('Короткий')) return 5; if(value.includes('Длинный')) return 15; return 25; }
+function pomodoroModeName(mode,duration) { if(mode==='break') return Number(duration)===15?'Длинный перерыв — 15 мин':'Короткий перерыв — 5 мин'; return Number(duration)===25?'Работа — 25 мин':'Работа — 25 мин'; }
 function person(page, name) { const value = (property(page, name)?.people || [])[0]; return { id: value?.id || '', name: value?.name || value?.person?.email || '' }; }
 function pageUrl(page) { return page.url || ''; }
 function normalizeBaseUrl(value) {
@@ -710,6 +712,13 @@ function mapPersonalTask(page) {
     date: dateStart(page, 'Tarix'),
     assignees: multiSelect(page, 'Tapsirildi'),
     tags: multiSelect(page, 'Tag'),
+    pomodoroCount: number(page, 'Pomodoro количество') ?? 0,
+    pomodoroMinutes: number(page, 'Pomodoro всего минут') ?? 0,
+    pomodoroRunning: checkbox(page, 'Отчет запущен'),
+    pomodoroStartedAt: dateStart(page, 'Начало отчета'),
+    pomodoroEndedAt: dateStart(page, 'Конец отчета'),
+    pomodoroMode: select(page, 'Pomodoro режим'),
+    pomodoroDuration: number(page, 'Pomodoro текущая длительность') ?? pomodoroModeDuration(select(page, 'Pomodoro режим')) ,
     updatedAt: page.last_edited_time || ''
   };
 }
@@ -828,6 +837,43 @@ async function savePersonalTask(body) {
   return { ok: true, id, savedAt: new Date().toISOString() };
 }
 
+async function savePersonalPomodoro(body) {
+  const id=cleanId(String(body.id||'').trim());
+  const action=String(body.action||'').trim();
+  if(!id) throw new Error('Не указан ID задачи Tasks');
+  if(!['start','finish','break-finish','reset'].includes(action)) throw new Error('Неизвестное действие Pomodoro');
+  const page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});
+  const currentCount=Number(number(page,'Pomodoro количество')||0);
+  const currentMinutes=Number(number(page,'Pomodoro всего минут')||0);
+  const mode=body.mode==='break'?'break':'work';
+  const duration=Math.max(1,Math.min(mode==='break'?60:180,Number(body.duration)||pomodoroModeDuration(select(page,'Pomodoro режим'))));
+  const now=new Date().toISOString();
+  const properties={};
+  if(action==='start'){
+    properties['Отчет запущен']={checkbox:true};
+    properties['Начало отчета']={date:{start:now}};
+    properties['Конец отчета']={date:null};
+    properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};
+    properties['Pomodoro текущая длительность']={number:duration};
+  }else if(action==='finish'){
+    properties['Отчет запущен']={checkbox:false};
+    properties['Конец отчета']={date:{start:now}};
+    properties['Pomodoro количество']={number:currentCount+1};
+    properties['Pomodoro всего минут']={number:currentMinutes+duration};
+  }else if(action==='break-finish'){
+    properties['Отчет запущен']={checkbox:false};
+    properties['Конец отчета']={date:{start:now}};
+  }else{
+    properties['Отчет запущен']={checkbox:false};
+    properties['Начало отчета']={date:null};
+    properties['Конец отчета']={date:null};
+    properties['Pomodoro текущая длительность']={number:null};
+  }
+  await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});
+  personalTasksCache=null;
+  return {ok:true,id,action,pomodoroCount:action==='finish'?currentCount+1:currentCount,pomodoroMinutes:action==='finish'?currentMinutes+duration:currentMinutes,startedAt:action==='start'?now:'',savedAt:now};
+}
+
 async function notionUsers(force = false) {
   if (!force && userCache.value && Date.now() - userCache.at < 300000) return userCache.value;
   const users = [];
@@ -890,6 +936,10 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'PATCH' && url.pathname === '/api/personal-task') {
       const body = await readBody(request);
       return json(response, 200, await savePersonalTask(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/personal-pomodoro') {
+      const body = await readBody(request);
+      return json(response, 200, await savePersonalPomodoro(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
       const body = await readBody(request);
