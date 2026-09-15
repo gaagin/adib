@@ -259,6 +259,11 @@ function mapEquipment(pages, tasks, baseUrl = '') {
   }));
 }
 
+function todoMachineRelationProperty() {
+  // The ToDo schema has a relation named Makina. Ignore stale Railway values such as "ToDo".
+  return 'Makina';
+}
+
 function taskConfig(sourceKey) {
   if (sourceKey === 'gorulen') return {
     title: process.env.GORULEN_TITLE_PROPERTY || 'Gorulmeli isler',
@@ -288,7 +293,7 @@ function taskConfig(sourceKey) {
     gtdProperty: process.env.TODO_GTD_PROPERTY || 'GTD',
     isciTagProperty: process.env.TODO_ISCI_TAG_PROPERTY || 'Isci tag',
     gtdValue: process.env.TODO_GTD_VALUE || 'Check list',
-    relation: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina',
+    relation: todoMachineRelationProperty(),
     tapsirildi: process.env.TODO_TAPSIRILDI_PROPERTY || 'Tapsirildi',
     doneWork: process.env.TODO_DONE_WORK_PROPERTY || 'Gorulen is',
     doneWorkType: process.env.TODO_DONE_WORK_TYPE || 'rich_text',
@@ -315,7 +320,7 @@ function taskSources() {
   const sources = [];
   const todo = taskConfig('todo');
   const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: process.env.TODO_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
+  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: todoMachineRelationProperty(), titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
   if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: process.env.GORULEN_MACHINE_RELATION_PROPERTY || 'Makina', titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, gtdName: gorulen.gtdProperty, workTypeName: gorulen.workTypeProperty, tagName: gorulen.tagProperty, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
   return sources;
 }
