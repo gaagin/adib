@@ -709,6 +709,7 @@ function mapPersonalTask(page) {
     link: property(page, 'Link')?.url || '',
     date: dateStart(page, 'Tarix'),
     assignees: multiSelect(page, 'Tapsirildi'),
+    tags: multiSelect(page, 'Tag'),
     updatedAt: page.last_edited_time || ''
   };
 }
