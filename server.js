@@ -17,6 +17,10 @@ const TODO_DB = cleanId(process.env.TODO_DATABASE_ID || '0ac3a96e-4687-4194-84cd
 const TODO_DS = cleanId(process.env.TODO_DATA_SOURCE_ID || 'b3d991ebc75b47ab8a88d2c723bc56db');
 const GORULEN_DB = cleanId(process.env.GORULEN_ISLER_DATABASE_ID || '02f39358-ebb4-4d32-b164-249f39ea2949');
 const GORULEN_DS = cleanId(process.env.GORULEN_ISLER_DATA_SOURCE_ID || '3136a23f839c40d3b6387de4d60af7f5');
+const TASKS_DB = cleanId(process.env.TASKS_DATABASE_ID || '275e0789-d560-8063-8af3-efcbf4729097');
+const TASKS_DS = cleanId(process.env.TASKS_DATA_SOURCE_ID || '');
+const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_ID || '73df6f961625407d89c202bc1c3b749c');
+const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
@@ -671,6 +675,153 @@ async function deleteTask(body) {
   return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
 }
 
+let personalTasksCache = null;
+let personalTasksCacheAt = 0;
+let personalTasksInFlight = null;
+
+function checkbox(page, name) { return property(page, name)?.checkbox === true; }
+
+function mapPersonalTask(page) {
+  const parent = relationIds(page, 'Parent item')[0] || '';
+  const children = relationIds(page, 'Sub-item');
+  const status = select(page, 'Status') || 'Not started';
+  return {
+    id: page.id,
+    title: title(page, 'Adi') || 'Без названия',
+    status,
+    completed: checkbox(page, 'Status 1'),
+    parentId: parent,
+    childIds: children,
+    containerId: relationIds(page, 'Personal Container')[0] || '',
+    x: number(page, 'Personal X'),
+    y: number(page, 'Personal Y'),
+    width: number(page, 'Personal Width'),
+    height: number(page, 'Personal Height'),
+    order: number(page, 'Personal Order'),
+    priority: select(page, 'Priority'),
+    category: select(page, 'Kateqoriya'),
+    url: page.url || '',
+    link: property(page, 'Link')?.url || '',
+    date: dateStart(page, 'Tarix'),
+    assignees: multiSelect(page, 'Tapsirildi'),
+    updatedAt: page.last_edited_time || ''
+  };
+}
+
+function mapPersonalContainer(page) {
+  return {
+    id: page.id,
+    name: title(page, 'Name') || 'Контейнер',
+    parentId: relationIds(page, 'Parent Container')[0] || null,
+    x: number(page, 'X') ?? 60,
+    y: number(page, 'Y') ?? 60,
+    width: number(page, 'Width') ?? 340,
+    height: number(page, 'Height') ?? 220,
+    order: number(page, 'Order') ?? 0,
+    color: select(page, 'Color') || 'Yellow',
+    url: page.url || ''
+  };
+}
+
+function personalNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+async function personalSnapshot(force = false) {
+  if (!force && personalTasksCache && Date.now() - personalTasksCacheAt < 5000) return personalTasksCache;
+  if (personalTasksInFlight) return personalTasksInFlight;
+  personalTasksInFlight = Promise.all([
+    queryDatabase(TASKS_DB, TASKS_DS),
+    queryDatabase(PERSONAL_CONTAINERS_DB, PERSONAL_CONTAINERS_DS)
+  ]).then(([taskPages, containerPages]) => {
+    const tasks = taskPages.map(mapPersonalTask).filter(task => !task.completed);
+    const containers = containerPages.map(mapPersonalContainer);
+    const result = { tasks, containers, fetchedAt: new Date().toISOString(), database: TASKS_DB, containersDatabase: PERSONAL_CONTAINERS_DB };
+    personalTasksCache = result;
+    personalTasksCacheAt = Date.now();
+    return result;
+  }).finally(() => { personalTasksInFlight = null; });
+  return personalTasksInFlight;
+}
+
+function personalContainerProperties(body, includeName = false) {
+  const properties = {
+    X: { number: personalNumber(body.x, 60) },
+    Y: { number: personalNumber(body.y, 60) },
+    Width: { number: personalNumber(body.width, 340) },
+    Height: { number: personalNumber(body.height, 220) },
+    Order: { number: personalNumber(body.order, 0) }
+  };
+  if (includeName) properties.Name = { title: [{ type: 'text', text: { content: String(body.name || 'Контейнер').trim().slice(0, 2000) || 'Контейнер' } }] };
+  if (body.parentId !== undefined) properties['Parent Container'] = { relation: body.parentId ? [{ id: cleanId(String(body.parentId)) }] : [] };
+  if (body.color !== undefined) properties.Color = body.color ? { select: { name: String(body.color) } } : { select: null };
+  return properties;
+}
+
+async function createPersonalContainer(body) {
+  if (!PERSONAL_CONTAINERS_DB && !PERSONAL_CONTAINERS_DS) throw new Error('Не настроена база Personal Containers');
+  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(PERSONAL_CONTAINERS_DB, PERSONAL_CONTAINERS_DS), properties: personalContainerProperties(body, true) }) });
+  personalTasksCache = null;
+  return { ok: true, container: mapPersonalContainer(page), savedAt: new Date().toISOString() };
+}
+
+async function savePersonalLayout(body) {
+  const kind = body.kind === 'container' ? 'container' : 'task';
+  const id = cleanId(String(body.id || '').trim());
+  if (!id) throw new Error('Не указан ID личного элемента');
+  let properties;
+  if (kind === 'container') {
+    properties = personalContainerProperties(body, false);
+  } else {
+    properties = {
+      'Personal X': { number: personalNumber(body.x, 0) },
+      'Personal Y': { number: personalNumber(body.y, 0) },
+      'Personal Width': { number: personalNumber(body.width, 220) },
+      'Personal Height': { number: personalNumber(body.height, 105) },
+      'Personal Order': { number: personalNumber(body.order, 0) }
+    };
+    if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+  }
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  personalTasksCache = null;
+  return { ok: true, kind, id, savedAt: new Date().toISOString() };
+}
+
+async function deletePersonalContainer(id) {
+  const containerId = cleanId(String(id || '').trim());
+  if (!containerId) throw new Error('Не указан ID контейнера');
+  try {
+    const taskPages = await queryDatabase(TASKS_DB, TASKS_DS);
+    const linked = taskPages.filter(page => relationIds(page, 'Personal Container').includes(containerId));
+    for (const page of linked) {
+      await notion('/pages/' + encodeURIComponent(page.id), { method: 'PATCH', body: JSON.stringify({ properties: { 'Personal Container': { relation: [] } } }) });
+    }
+  } catch (error) {
+    console.warn('Could not clear container task links:', error.message);
+  }
+  await notion('/pages/' + encodeURIComponent(containerId), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  personalTasksCache = null;
+  return { ok: true, id: containerId, deleted: true, savedAt: new Date().toISOString() };
+}
+
+async function savePersonalTask(body) {
+  const id = cleanId(String(body.id || '').trim());
+  if (!id) throw new Error('Не указан ID задачи Tasks');
+  const properties = {};
+  if (body.status !== undefined && String(body.status).trim()) properties.Status = { status: { name: String(body.status).trim() } };
+  if (body.completed !== undefined) properties['Status 1'] = { checkbox: Boolean(body.completed) };
+  if (body.parentId !== undefined) {
+    const parentId = cleanId(String(body.parentId || '').trim());
+    properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
+  }
+  if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+  if (!Object.keys(properties).length) throw new Error('Нет изменений задачи');
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  personalTasksCache = null;
+  return { ok: true, id, savedAt: new Date().toISOString() };
+}
+
 async function notionUsers(force = false) {
   if (!force && userCache.value && Date.now() - userCache.at < 300000) return userCache.value;
   const users = [];
@@ -715,6 +866,24 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/equipment') {
       const body = await readBody(request);
       return json(response, 201, await createEquipment(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/personal-container') {
+      const body = await readBody(request);
+      return json(response, 201, await createPersonalContainer(body));
+    }
+    if (request.method === 'PATCH' && url.pathname === '/api/personal-layout') {
+      const body = await readBody(request);
+      return json(response, 200, await savePersonalLayout(body));
+    }
+    if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
+      return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
+    }
+    if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
+      return json(response, 200, await personalSnapshot(url.searchParams.get('force') === '1'));
+    }
+    if (request.method === 'PATCH' && url.pathname === '/api/personal-task') {
+      const body = await readBody(request);
+      return json(response, 200, await savePersonalTask(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
       const body = await readBody(request);
