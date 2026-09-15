@@ -632,7 +632,7 @@ async function saveTask(body) {
   const sourceKey = String(body.sourceKey || 'todo');
   if (!id) throw new Error('Не указан ID задачи');
   const config = taskConfig(sourceKey);
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config) }) });
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, Boolean(body.machineId)) }) });
   if (body.machineId) taskCache.delete(String(body.machineId));
   snapshotCache = null;
   console.log('Task saved:', id, sourceKey);
