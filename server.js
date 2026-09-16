@@ -365,7 +365,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '') {
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: select(page, source.priorityName), assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
+      const taskPriority = select(page, source.priorityName); const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -453,11 +453,11 @@ async function snapshot(full = false, baseUrl = '') {
   return snapshotInFlight;
 }
 
-function zeroTaskCounts() { return { gorulen: 0, todo: 0, total: 0 }; }
-function countTasks(tasks) { const counts = zeroTaskCounts(); for (const task of tasks || []) { if (task.sourceKey === 'gorulen') counts.gorulen++; else counts.todo++; counts.total++; } return counts; }
+function zeroTaskCounts() { return { gorulen: 0, todo: 0, total: 0, urgent: 0 }; }
+function countTasks(tasks) { const counts = zeroTaskCounts(); for (const task of tasks || []) { if (task.sourceKey === 'gorulen') counts.gorulen++; else counts.todo++; counts.total++; if (task.urgent || String(task.priority || '').trim() === '!!!') counts.urgent++; } return counts; }
 function attachTaskCounts(plans, equipment) {
   const own = new Map();
-  for (const machine of equipment) { machine.taskCounts = countTasks(machine.tasks); const current = own.get(machine.planId) || zeroTaskCounts(); current.gorulen += machine.taskCounts.gorulen; current.todo += machine.taskCounts.todo; current.total += machine.taskCounts.total; own.set(machine.planId, current); }
+  for (const machine of equipment) { machine.taskCounts = countTasks(machine.tasks); const current = own.get(machine.planId) || zeroTaskCounts(); current.gorulen += machine.taskCounts.gorulen; current.todo += machine.taskCounts.todo; current.total += machine.taskCounts.total; current.urgent += machine.taskCounts.urgent || 0; own.set(machine.planId, current); }
   const children = new Map();
   for (const plan of plans) { const list = children.get(plan.parentId || '') || []; list.push(plan); children.set(plan.parentId || '', list); }
   const visit = plan => { const counts = own.get(plan.id) || zeroTaskCounts(); for (const child of children.get(plan.id) || []) { const childCounts = visit(child); counts.gorulen += childCounts.gorulen; counts.todo += childCounts.todo; counts.total += childCounts.total; } plan.taskCounts = counts; return counts; };
@@ -692,6 +692,8 @@ function mapPersonalTask(page) {
   const parent = relationIds(page, 'Parent item')[0] || '';
   const children = relationIds(page, 'Sub-item');
   const status = select(page, 'Status') || 'Not started';
+  const priority = select(page, 'Priority');
+  const prioritet = select(page, 'Prioritet');
   return {
     id: page.id,
     title: title(page, 'Adi') || 'Без названия',
@@ -705,7 +707,9 @@ function mapPersonalTask(page) {
     width: number(page, 'Personal Width'),
     height: number(page, 'Personal Height'),
     order: number(page, 'Personal Order'),
-    priority: select(page, 'Priority'),
+    priority,
+    prioritet,
+    urgent: priority === '!!!' || prioritet === '!!!',
     category: select(page, 'Kateqoriya'),
     url: page.url || '',
     link: property(page, 'Link')?.url || '',
