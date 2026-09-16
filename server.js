@@ -848,7 +848,20 @@ async function savePersonalTask(body) {
   return { ok: true, id, savedAt: new Date().toISOString() };
 }
 
+const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
+  const id = cleanId(String(body.id || '').trim());
+  if (!id) throw new Error('Не указан ID задачи Tasks');
+  const previous = personalPomodoroLocks.get(id) || Promise.resolve();
+  let release;
+  const current = new Promise(resolve => { release = resolve; });
+  personalPomodoroLocks.set(id, current);
+  await previous;
+  try { return await savePersonalPomodoroUnlocked(body); }
+  finally { release(); if (personalPomodoroLocks.get(id) === current) personalPomodoroLocks.delete(id); }
+}
+
+async function savePersonalPomodoroUnlocked(body) {
   const id=cleanId(String(body.id||'').trim());
   const action=String(body.action||'').trim();
   if(!id) throw new Error('Не указан ID задачи Tasks');
@@ -856,6 +869,10 @@ async function savePersonalPomodoro(body) {
   const page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});
   const currentCount=Number(number(page,'Pomodoro количество')||0);
   const currentMinutes=Number(number(page,'Pomodoro всего минут')||0);
+  const alreadyRunning=checkbox(page,'Отчет запущен');
+  const existingStartedAt=dateStart(page,'Начало отчета');
+  if(action==='start' && alreadyRunning && existingStartedAt) return {ok:true,id,action,duplicate:true,pomodoroCount:currentCount,pomodoroMinutes:currentMinutes,startedAt:existingStartedAt,savedAt:new Date().toISOString()};
+  if((action==='finish'||action==='break-finish') && !alreadyRunning) return {ok:true,id,action,duplicate:true,pomodoroCount:currentCount,pomodoroMinutes:currentMinutes,startedAt:'',savedAt:new Date().toISOString()};
   const mode=body.mode==='break'?'break':'work';
   const duration=Math.max(1,Math.min(mode==='break'?60:180,Number(body.duration)||pomodoroModeDuration(select(page,'Pomodoro режим'))));
   const now=new Date().toISOString();
