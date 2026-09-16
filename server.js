@@ -824,6 +824,28 @@ async function deletePersonalContainer(id) {
   return { ok: true, id: containerId, deleted: true, savedAt: new Date().toISOString() };
 }
 
+async function createPersonalTask(body) {
+  const titleValue = String(body.title || '').trim().slice(0, 2000);
+  if (!titleValue) throw new Error('Введите название задачи');
+  const properties = {
+    Adi: { title: createText(titleValue) },
+    Status: { status: { name: String(body.status || 'Not started').trim() || 'Not started' } },
+    'Status 1': { checkbox: Boolean(body.completed) }
+  };
+  if (body.priority) properties.Priority = { select: { name: String(body.priority).trim() } };
+  if (body.prioritet) properties.Prioritet = { status: { name: String(body.prioritet).trim() } };
+  if (body.category) properties.Kateqoriya = { select: { name: String(body.category).trim() } };
+  if (body.date) properties.Tarix = { date: { start: String(body.date).slice(0, 10) } };
+  if (Array.isArray(body.tags) && body.tags.length) properties.Tag = { multi_select: body.tags.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
+  if (Array.isArray(body.assignees) && body.assignees.length) properties.Tapsirildi = { multi_select: body.assignees.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
+  if (body.parentId) properties['Parent item'] = { relation: [{ id: cleanId(String(body.parentId)) }] };
+  if (body.containerId) properties['Personal Container'] = { relation: [{ id: cleanId(String(body.containerId)) }] };
+  const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
+  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
+  personalTasksCache = null;
+  return { ok: true, id: page.id, url: page.url || '', savedAt: new Date().toISOString() };
+}
+
 async function savePersonalTask(body) {
   const id = cleanId(String(body.id || '').trim());
   if (!id) throw new Error('Не указан ID задачи Tasks');
@@ -960,6 +982,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       return json(response, 200, await personalSnapshot(url.searchParams.get('force') === '1'));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/personal-task') {
+      const body = await readBody(request);
+      return json(response, 201, await createPersonalTask(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/personal-task') {
       const body = await readBody(request);
