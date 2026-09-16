@@ -846,6 +846,14 @@ async function createPersonalTask(body) {
   return { ok: true, id: page.id, url: page.url || '', savedAt: new Date().toISOString() };
 }
 
+async function deletePersonalTask(idValue) {
+  const id = cleanId(String(idValue || '').trim());
+  if (!id) throw new Error('Не указан ID задачи Tasks');
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  personalTasksCache = null;
+  return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
+}
+
 async function savePersonalTask(body) {
   const id = cleanId(String(body.id || '').trim());
   if (!id) throw new Error('Не указан ID задачи Tasks');
@@ -986,6 +994,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/personal-task') {
       const body = await readBody(request);
       return json(response, 201, await createPersonalTask(body));
+    }
+    if (request.method === 'DELETE' && url.pathname === '/api/personal-task') {
+      return json(response, 200, await deletePersonalTask(url.searchParams.get('id')));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/personal-task') {
       const body = await readBody(request);
