@@ -824,6 +824,93 @@ async function deletePersonalContainer(id) {
   return { ok: true, id: containerId, deleted: true, savedAt: new Date().toISOString() };
 }
 
+async function listPageBlocks(pageId) {
+  const blocks = [];
+  let cursor = '';
+  do {
+    const suffix = cursor ? '&start_cursor=' + encodeURIComponent(cursor) : '';
+    const result = await notion('/blocks/' + encodeURIComponent(pageId) + '/children?page_size=100' + suffix, { method: 'GET' });
+    blocks.push(...(result.results || []));
+    cursor = result.has_more ? result.next_cursor : '';
+  } while (cursor);
+  return blocks;
+}
+function blockRichText(block) { const value = block?.[block?.type] || {}; return (value.rich_text || []).map(part => part.plain_text || part.text?.content || '').join(''); }
+async function blockContentText(block) {
+  const type = block?.type || '';
+  if (type === 'table_row') return (block.table_row?.cells || []).map(cell => (cell || []).map(part => part.plain_text || part.text?.content || '').join('')).join('\t');
+  let text = blockRichText(block);
+  if (type === 'to_do') text = (block.to_do?.checked ? '[x] ' : '[ ] ') + text;
+  if (type === 'bulleted_list_item') text = '- ' + text;
+  if (type === 'numbered_list_item') text = '1. ' + text;
+  if (type === 'code' && block.code?.language) text = '```' + block.code.language + '\n' + text + '\n```';
+  if (block.has_children) { const children = await listPageBlocks(block.id); const childText = (await Promise.all(children.map(blockContentText))).filter(Boolean).join('\n'); if (childText) text = text ? text + '\n' + childText : childText; }
+  return text;
+}
+async function getPersonalTaskContent(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); const blocks = await listPageBlocks(id); return { ok: true, id, content: (await Promise.all(blocks.map(blockContentText))).join('\n') }; }
+function contentBlocks(value) { return String(value ?? '').replace(/\r\n/g, '\n').split('\n').map(line => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: line ? [{ type: 'text', text: { content: line.slice(0, 2000) } }] : [] } })); }
+async function replacePersonalTaskContent(idValue, value) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); const oldBlocks = await listPageBlocks(id); for (const block of oldBlocks) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' }); const children = contentBlocks(value); for (let index = 0; index < children.length; index += 100) await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: children.slice(index, index + 100) }) }); return { ok: true, id }; }
+
+async function listStructuredPageBlocks(pageId) {
+  const result = [];
+  let cursor = '';
+  do {
+    const suffix = cursor ? '&start_cursor=' + encodeURIComponent(cursor) : '';
+    const page = await notion('/blocks/' + encodeURIComponent(pageId) + '/children?page_size=100' + suffix, { method: 'GET' });
+    result.push(...(page.results || []));
+    cursor = page.has_more ? page.next_cursor : '';
+  } while (cursor);
+  return result;
+}
+async function loadStructuredBlockTree(pageId) {
+  const blocks = await listStructuredPageBlocks(pageId);
+  for (const block of blocks) if (block.has_children) block.children = await loadStructuredBlockTree(block.id);
+  return blocks;
+}
+function decodeHtmlText(value) { return String(value || '').replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
+function htmlToNotionRichText(html) {
+  const runs = [], stack = [];
+  const source = String(html || '').replace(/<div>/gi, '').replace(/<\/div>/gi, '\n');
+  for (const token of source.split(/(<[^>]+>)/g).filter(Boolean)) {
+    if (token[0] === '<') {
+      const tag = token.match(/^<\/?\s*([a-z0-9]+)/i)?.[1]?.toLowerCase() || '';
+      if (token[1] === '/') { const index = stack.lastIndexOf(tag); if (index >= 0) stack.splice(index, 1); continue; }
+      if (tag === 'br') { runs.push({ type: 'text', text: { content: '\n' } }); continue; }
+      if (['strong','b','em','i','u','s','strike','code','a','span'].includes(tag)) stack.push(tag);
+      continue;
+    }
+    const text = decodeHtmlText(token); if (!text) continue;
+    const annotations = { bold: stack.some(x => x === 'strong' || x === 'b'), italic: stack.some(x => x === 'em' || x === 'i'), underline: stack.includes('u'), strikethrough: stack.some(x => x === 's' || x === 'strike'), code: stack.includes('code'), color: 'default' };
+    const item = { type: 'text', text: { content: text }, annotations };
+    runs.push(item);
+  }
+  return runs.length ? runs : [];
+}
+function structuredTableRows(dto) { return (dto.rows || []).map(row => ({ object: 'block', type: 'table_row', table_row: { cells: (row || []).map(cell => htmlToNotionRichText(cell)) } })); }
+function structuredSimpleBlock(dto) {
+  const type = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','callout','code','to_do'].includes(dto.type) ? dto.type : 'paragraph';
+  const value = { rich_text: htmlToNotionRichText(dto.html || '') };
+  if (type === 'to_do') value.checked = Boolean(dto.checked);
+  if (type === 'code') value.language = String(dto.language || 'plain text');
+  if (type === 'callout') value.icon = { type: 'emoji', emoji: String(dto.icon || '💡') };
+  return { object: 'block', type, [type]: value };
+}
+async function getPersonalTaskBlocks(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); return { ok: true, id, blocks: await loadStructuredBlockTree(id) }; }
+async function replacePersonalTaskBlocks(idValue, blocks) {
+  const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks');
+  for (const block of await listStructuredPageBlocks(id)) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' });
+  const items = Array.isArray(blocks) && blocks.length ? blocks : [{ type: 'paragraph', html: '' }];
+  for (const dto of items) {
+    if (dto.type === 'table') {
+      const width = Math.max(1, Math.min(20, Number(dto.width) || Math.max(1, ...((dto.rows || []).map(row => row.length)))));
+      const created = await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: [{ object: 'block', type: 'table', table: { table_width: width, has_column_header: Boolean(dto.hasColumnHeader), has_row_header: false } }] }) });
+      const tableId = created.results?.[0]?.id;
+      if (tableId) { const rows = structuredTableRows(dto); if (rows.length) await notion('/blocks/' + encodeURIComponent(tableId) + '/children', { method: 'PATCH', body: JSON.stringify({ children: rows }) }); }
+    } else await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: [structuredSimpleBlock(dto)] }) });
+  }
+  return { ok: true, id };
+}
+
 async function createPersonalTask(body) {
   const titleValue = String(body.title || '').trim().slice(0, 2000);
   if (!titleValue) throw new Error('Введите название задачи');
@@ -842,6 +929,8 @@ async function createPersonalTask(body) {
   if (body.containerId) properties['Personal Container'] = { relation: [{ id: cleanId(String(body.containerId)) }] };
   const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
+  if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(page.id, body.pageBlocks);
+  else if (body.pageContent !== undefined) await replacePersonalTaskContent(page.id, body.pageContent);
   personalTasksCache = null;
   return { ok: true, id: page.id, url: page.url || '', savedAt: new Date().toISOString() };
 }
@@ -874,6 +963,8 @@ async function savePersonalTask(body) {
   if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
   if (!Object.keys(properties).length) throw new Error('Нет изменений задачи');
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
+  else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
   personalTasksCache = null;
   return { ok: true, id, savedAt: new Date().toISOString() };
 }
@@ -990,6 +1081,16 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       return json(response, 200, await personalSnapshot(url.searchParams.get('force') === '1'));
+    }
+    if (request.method === 'GET' && url.pathname === '/api/personal-task-content') {
+      return json(response, 200, await getPersonalTaskContent(url.searchParams.get('id')));
+    }
+    if (request.method === 'GET' && url.pathname === '/api/personal-task-blocks') {
+      return json(response, 200, await getPersonalTaskBlocks(url.searchParams.get('id')));
+    }
+    if (request.method === 'PATCH' && url.pathname === '/api/personal-task-blocks') {
+      const body = await readBody(request);
+      return json(response, 200, await replacePersonalTaskBlocks(body.id, body.blocks));
     }
     if (request.method === 'POST' && url.pathname === '/api/personal-task') {
       const body = await readBody(request);
