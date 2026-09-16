@@ -828,8 +828,15 @@ async function savePersonalTask(body) {
   const id = cleanId(String(body.id || '').trim());
   if (!id) throw new Error('Не указан ID задачи Tasks');
   const properties = {};
+  if (body.title !== undefined) properties.Adi = { title: [{ type: 'text', text: { content: String(body.title || '').trim().slice(0, 2000) } }] };
   if (body.status !== undefined && String(body.status).trim()) properties.Status = { status: { name: String(body.status).trim() } };
   if (body.completed !== undefined) properties['Status 1'] = { checkbox: Boolean(body.completed) };
+  if (body.priority !== undefined) properties.Priority = body.priority ? { select: { name: String(body.priority).trim() } } : { select: null };
+  if (body.prioritet !== undefined) properties.Prioritet = body.prioritet ? { status: { name: String(body.prioritet).trim() } } : { status: null };
+  if (body.category !== undefined) properties.Kateqoriya = body.category ? { select: { name: String(body.category).trim() } } : { select: null };
+  if (body.date !== undefined) properties.Tarix = body.date ? { date: { start: String(body.date).slice(0, 10) } } : { date: null };
+  if (body.tags !== undefined) properties.Tag = { multi_select: (Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
+  if (body.assignees !== undefined) properties.Tapsirildi = { multi_select: (Array.isArray(body.assignees) ? body.assignees : String(body.assignees || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
   if (body.parentId !== undefined) {
     const parentId = cleanId(String(body.parentId || '').trim());
     properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
