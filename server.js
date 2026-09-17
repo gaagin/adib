@@ -559,6 +559,7 @@ function updateLayoutCaches(id, values) {
     for (const [name, value] of Object.entries({ X: values.x, Y: values.y, Eni: values.width, Uzunluğu: values.height })) {
       page.properties[name] = { ...(page.properties[name] || {}), type: 'number', number: value };
     }
+    if (Object.prototype.hasOwnProperty.call(values, 'parentId')) page.properties['Parent Plan'] = { type: 'relation', relation: values.parentId ? [{ id: values.parentId }] : [] };
     page.last_edited_time = new Date().toISOString();
   }
   if (snapshotCache) {
@@ -581,6 +582,12 @@ async function saveLayout(body) {
     Eni: { number: values.width },
     Uzunluğu: { number: values.height }
   };
+  if (body.parentId !== undefined) {
+    const parentId = body.parentId ? cleanId(String(body.parentId)) : '';
+    if (parentId === id) throw new Error('План нельзя вложить сам в себя');
+    properties['Parent Plan'] = { relation: parentId ? [{ id: parentId }] : [] };
+    values.parentId = parentId || null;
+  }
   await notion('/pages/' + encodeURIComponent(id), {
     method: 'PATCH',
     body: JSON.stringify({ properties })
