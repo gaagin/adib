@@ -454,7 +454,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:650px){
   /* The plan canvas uses the full space between the mobile toolbar and bottom nav. */
   .layout.mobile-canvas-mode{
-    height:calc(100dvh - 220px)!important;
+    /* Reserve the fixed bottom navigation so the lowest plan is not hidden behind it. */
+    height:calc(100dvh - 292px - env(safe-area-inset-bottom))!important;
     min-height:0!important;
     overflow:hidden!important;
   }
@@ -494,6 +495,48 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     touch-action:pan-x!important;
   }
   .layout.mobile-canvas-mode .canvas-wrap #syncError{display:none!important}
+}
+</style>
+
+<style class="desktop-full-board-style">
+@media(min-width:651px){
+  /* Keep the collapsed side rails usable while giving the canvas almost the full width. */
+  html,body{overflow-x:hidden!important;overflow-y:auto!important}
+  .app{height:auto!important;min-height:100vh!important}
+  .layout:has(#treePanel.collapsed):has(#inspector.collapsed){
+    grid-template-columns:52px minmax(0,1fr) 52px!important;
+    height:calc(100vh - 150px)!important;
+    min-height:520px!important;
+  }
+  .layout:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-card{
+    width:100%!important;
+    min-width:0!important;
+    height:100%!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .layout:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-wrap{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    display:block!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    padding:8px!important;
+    overscroll-behavior-y:contain!important;
+  }
+  .layout:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-wrap #plan{
+    display:block!important;
+    width:100%!important;
+    height:max(720px,58.333vw)!important;
+    min-height:720px!important;
+    max-height:none!important;
+    flex:none!important;
+  }
+  .layout:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-wrap #syncError{
+    min-height:18px!important;
+  }
 }
 </style>
 </head>
