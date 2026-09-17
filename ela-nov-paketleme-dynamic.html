@@ -449,7 +449,54 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:650px){.kanban-task-editor-layer{align-items:stretch;padding:0}.kanban-task-editor-panel{width:100%;height:100%;max-height:none;border-radius:0}.kanban-task-editor-head{padding:10px 12px}.kanban-task-editor-panel>.task-list{padding:10px 12px 90px!important}}
 </style></style><style class="plan-nesting-drop-style">
 .plan-drop-target>rect:first-child{stroke:var(--notion-blue)!important;stroke-width:5!important;stroke-dasharray:14 8!important;filter:drop-shadow(0 0 8px #2383e288)!important}
-</style></head>
+</style>
+<style class="mobile-plan-board-fullscreen-style">
+@media(max-width:650px){
+  /* The plan canvas uses the full space between the mobile toolbar and bottom nav. */
+  .layout.mobile-canvas-mode{
+    height:calc(100dvh - 220px)!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .layout.mobile-canvas-mode .canvas-card{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .layout.mobile-canvas-mode .canvas-toolbar{
+    flex:0 0 42px!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap{
+    display:block!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    overscroll-behavior-x:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x!important;
+    padding:0!important;
+    white-space:nowrap!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap #plan{
+    display:block!important;
+    width:1100px!important;
+    min-width:1100px!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    flex:none!important;
+    border-radius:0!important;
+    touch-action:pan-x!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap #syncError{display:none!important}
+}
+</style>
+</head>
 <body>
 <main class="app">
 <header class="top compact-top"><div class="brandline"><span class="brand-mark">A</span><h1>ADIB</h1><span class="brand-context">Makina · Ela Nov Paketleme</span></div><section class="toolbar top-toolbar"><div class="search-wrap"><div class="search-control"><input id="search" class="search" placeholder="Поиск плана, машины, статуса или задачи…" aria-label="Поиск"><button id="clearSearch" class="search-clear" type="button" title="Очистить поиск" aria-label="Очистить поиск">×</button><button id="searchPrev" class="search-nav" type="button" title="Предыдущий результат" aria-label="Предыдущий р��зультат">↑</button><button id="searchNext" class="search-nav" type="button" title="Следующий результат" aria-label="Следующий результат">↓</button></div><div id="searchResults" class="search-results" hidden></div></div><div class="filter-wrap"><button id="taskFiltersButton" type="button" title="Фильтры задач">Фильтры<span id="taskFilterCount" class="filter-count"></span></button><div id="taskFiltersPanel" class="task-filters-panel" hidden></div></div><button class="primary" id="refresh">⟳ Обновить изменения</button><button id="fullRefresh">Полная проверка</button><button id="personalModeButton" class="personal-mode-button" type="button">Мои задачи</button><button id="themeToggle" class="theme-toggle" type="button" title="Тёмная тема" aria-label="Тёмная тема" aria-pressed="false">☾</button><select id="currentUser" class="user-picker" title="Кто пишет комментарий" aria-label="Кто пишет комментарий"><option value="">Автор комментария…</option></select><button id="notificationsButton" class="notify-button" type="button" title="Новые комментарии" aria-label="Новые комментарии"><span aria-hidden="true">🔔</span><span id="notificationCount" class="notification-count">0</span></button><button id="expandAll">Развернуть всё</button><button id="collapseAll">Свернуть всё</button><label class="live"><input id="live" type="checkbox" checked> Синхронизация 5 мин</label><span id="syncTime" class="sync-time">ещё не обновлялось</span></section><div id="syncBadge" class="sync-badge"><span class="dot"></span><span id="syncState">Демо-режим</span></div></header><div id="notificationPanel" class="notification-panel" hidden></div>
@@ -702,7 +749,7 @@ function pointerDistance(points){return Math.hypot(points[1].x-points[0].x,point
 function beginPinch(){const points=pointerList();if(points.length<2)return;const middle=pointerMidpoint(points),startSvg=point(middle.x,middle.y),startScale=state.scale;pinchState={startDistance:Math.max(1,pointerDistance(points)),startScale,worldX:(startSvg.x-state.ox)/startScale,worldY:(startSvg.y-state.oy)/startScale};state.drag={kind:'canvas',mode:'pinch'};state.last=null;svg.classList.add('panning')}
 function updatePinch(){const points=pointerList();if(points.length<2||!pinchState)return;const middle=pointerMidpoint(points),distance=pointerDistance(points);if(distance<1)return;const currentSvg=point(middle.x,middle.y);state.scale=Math.max(.35,Math.min(3,pinchState.startScale*(distance/pinchState.startDistance)));state.ox=currentSvg.x-pinchState.worldX*state.scale;state.oy=currentSvg.y-pinchState.worldY*state.scale;apply()}
 function releaseCanvasPointer(e){try{if(e&&svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId)}catch(error){}}
-svg.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('.machine,.plan-box,.icon,.resize-handle'))return;e.preventDefault();activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{svg.setPointerCapture(e.pointerId)}catch(error){}if(activePointers.size>=2){beginPinch();return}state.drag={kind:'canvas',mode:'pan',pointerId:e.pointerId};state.last=point(e.clientX,e.clientY);state.snapGuides={x:null,y:null};svg.classList.add('panning')});
+svg.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('.machine,.plan-box,.icon,.resize-handle'))return;if(isMobileTouch(e))return;e.preventDefault();activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{svg.setPointerCapture(e.pointerId)}catch(error){}if(activePointers.size>=2){beginPinch();return}state.drag={kind:'canvas',mode:'pan',pointerId:e.pointerId};state.last=point(e.clientX,e.clientY);state.snapGuides={x:null,y:null};svg.classList.add('panning')});
 svg.addEventListener('pointermove',e=>{if(activePointers.has(e.pointerId))activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size>=2){if(!pinchState)beginPinch();updatePinch();return}if(!state.drag)return;if(state.drag.kind!=='canvas'){const item=state.equipment.find(x=>x.id===state.drag.id)||state.plans.find(x=>x.id===state.drag.id);if(!item)return;const p=point(e.clientX,e.clientY);if(state.drag.mode==='move'){const next=snapMove(item,state.drag.baseX+p.x-state.drag.startPoint.x,state.drag.baseY+p.y-state.drag.startPoint.y,e.altKey);item.x=next.x;item.y=next.y;state.snapGuides={x:next.guideX,y:next.guideY};if(state.drag.kind==='plan'){const target=planDropTargetAt(e.clientX,e.clientY,state.drag.id);state.drag.dropPlanId=target?.id||''}}else if(state.drag.mode==='resize'){const next=snapResize(item,state.drag.baseWidth+p.x-state.drag.startPoint.x,state.drag.baseHeight+p.y-state.drag.startPoint.y,e.altKey);item.width=next.width;item.height=next.height;state.snapGuides={x:next.guideX,y:next.guideY}}renderCanvas();renderInspector();return}if(state.drag.mode!=='pan'||!state.last)return;const p=point(e.clientX,e.clientY),dx=p.x-state.last.x,dy=p.y-state.last.y;state.ox+=dx;state.oy+=dy;state.last=p;apply()});
 function stopDrag(e){const drag=state.drag;if(drag?.mode!=='pan'&&drag?.mode!=='pinch'&&drag){const a=state.equipment.find(x=>x.id===drag.id)||state.plans.find(x=>x.id===drag.id);const before=drag.startValues;let reparented=false;if(a&&drag.kind==='plan'&&drag.dropPlanId&&canNestPlan(a.id,drag.dropPlanId)&&String(a.parentId||'')!==String(drag.dropPlanId)){a.parentId=drag.dropPlanId;reparented=true}const changed=a&&before&&(['x','y','width','height'].some(key=>Math.abs(Number(a[key])-Number(before[key]))>0.25)||String(a.parentId||'')!==String(before.parentId||''));if(changed)saveLocalPosition(a);state.snapGuides={x:null,y:null};state.drag=null;state.last=null;pinchState=null;svg.classList.remove('panning');releaseCanvasPointer(e);if(reparented)renderAll();else renderCanvas();return}state.snapGuides={x:null,y:null};state.drag=null;state.last=null;pinchState=null;svg.classList.remove('panning');releaseCanvasPointer(e)}
 function finishPointer(e){const wasPinching=Boolean(pinchState);activePointers.delete(e.pointerId);releaseCanvasPointer(e);if(wasPinching){if(activePointers.size>=1){pinchState=null;state.drag={kind:'canvas',mode:'pan',pointerId:pointerList()[0]&&pointerList()[0].pointerId};const remaining=pointerList()[0];state.last=remaining?point(remaining.x,remaining.y):null;return}state.drag=null;pinchState=null;state.last=null;state.snapGuides={x:null,y:null};svg.classList.remove('panning');return}if(state.drag?.kind==='canvas'){if(activePointers.size===0){state.drag=null;state.last=null;state.snapGuides={x:null,y:null};svg.classList.remove('panning')}return}stopDrag(e)}
