@@ -590,13 +590,19 @@ async function saveLayout(body) {
   return { ok: true, id, values, savedAt: new Date().toISOString() };
 }
 
+function notionDateStart(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) ? text + ':00' : text;
+}
+
 function buildTaskProperties(body, config, includeMachine = false) {
   const properties = {};
   const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
   if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Задача' } }] };
   if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
   if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
-  if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: String(body.date).slice(0, 10) } : null };
+  if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: notionDateStart(body.date) } : null };
   if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
   if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
   if (body.gtd !== undefined && config.gtdProperty) properties[config.gtdProperty] = body.gtd ? { status: { name: String(body.gtd).trim() } } : { status: null };
@@ -922,7 +928,7 @@ async function createPersonalTask(body) {
   if (body.priority) properties.Priority = { select: { name: String(body.priority).trim() } };
   if (body.prioritet) properties.Prioritet = { status: { name: String(body.prioritet).trim() } };
   if (body.category) properties.Kateqoriya = { select: { name: String(body.category).trim() } };
-  if (body.date) properties.Tarix = { date: { start: String(body.date).slice(0, 10) } };
+  if (body.date) properties.Tarix = { date: { start: notionDateStart(body.date) } };
   if (Array.isArray(body.tags) && body.tags.length) properties.Tag = { multi_select: body.tags.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
   if (Array.isArray(body.assignees) && body.assignees.length) properties.Tapsirildi = { multi_select: body.assignees.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
   if (body.parentId) properties['Parent item'] = { relation: [{ id: cleanId(String(body.parentId)) }] };
@@ -953,7 +959,7 @@ async function savePersonalTask(body) {
   if (body.priority !== undefined) properties.Priority = body.priority ? { select: { name: String(body.priority).trim() } } : { select: null };
   if (body.prioritet !== undefined) properties.Prioritet = body.prioritet ? { status: { name: String(body.prioritet).trim() } } : { status: null };
   if (body.category !== undefined) properties.Kateqoriya = body.category ? { select: { name: String(body.category).trim() } } : { select: null };
-  if (body.date !== undefined) properties.Tarix = body.date ? { date: { start: String(body.date).slice(0, 10) } } : { date: null };
+  if (body.date !== undefined) properties.Tarix = body.date ? { date: { start: notionDateStart(body.date) } } : { date: null };
   if (body.tags !== undefined) properties.Tag = { multi_select: (Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
   if (body.assignees !== undefined) properties.Tapsirildi = { multi_select: (Array.isArray(body.assignees) ? body.assignees : String(body.assignees || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
   if (body.parentId !== undefined) {
