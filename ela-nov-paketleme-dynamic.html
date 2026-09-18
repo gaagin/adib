@@ -640,6 +640,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <style class="personal-container-nesting-style">
 .personal-container-add-container-button{flex:0 0 auto!important;width:24px;height:24px;padding:0!important;border:1px solid #c9a634!important;border-radius:5px;background:#fff8d8!important;color:#846c22!important;font-size:15px!important;line-height:1!important}.personal-container-add-container-button:hover{background:#ffe995!important}.personal-container.personal-drop-target{outline:3px dashed #c99416!important;outline-offset:3px!important;box-shadow:0 0 0 5px #c9941633,0 4px 16px #0002!important}
 </style>
+
+<style class="desktop-ui-overlap-final-style">
+@media(min-width:651px){
+  /* Keep desktop chrome in normal flow so it cannot cover board information. */
+  html,body{height:100%!important;overflow:hidden!important}
+  .app{height:100vh!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+  .compact-top{position:relative!important;z-index:100!important;flex:0 0 auto!important;isolation:isolate!important;overflow:visible!important}
+  .top-toolbar{overflow:visible!important;min-height:44px!important}
+  .layout.desktop-stable-canvas{flex:1 1 auto!important;height:auto!important;min-height:0!important;overflow:visible!important}
+  .layout.desktop-stable-canvas .canvas-card{height:100%!important;min-height:0!important;overflow:hidden!important}
+  .layout.desktop-stable-canvas .canvas-toolbar{position:relative!important;z-index:8!important;flex:0 0 auto!important;min-height:45px!important;background:var(--notion-bg)!important;overflow:visible!important}
+  .layout.desktop-stable-canvas .canvas-wrap{position:relative!important;z-index:1!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scroll-padding-top:12px!important}
+  .layout.desktop-stable-canvas .canvas-wrap #plan{position:relative!important;z-index:1!important}
+  #notificationPanel{z-index:110!important}
+}
+@media(min-width:651px) and (max-width:1100px){
+  /* Installed desktop windows can be narrow: put the toolbar below the brand row. */
+  .compact-top{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important}
+  .compact-top .brandline{flex:1 1 100%!important;width:100%!important}
+  .compact-top .top-toolbar{order:3!important;flex:1 1 100%!important;width:100%!important;max-width:none!important}
+  .compact-top>.sync-badge{order:4!important;margin-left:auto!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
