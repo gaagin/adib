@@ -826,6 +826,12 @@ html.dark .personal-open-pomodoro{background:#3b2d12!important;color:#ffd36b!imp
   .compact-top{padding-right:180px!important}
 }
 </style>
+
+<style class="task-modal-z-index-final-style">
+/* Task properties must be above the desktop header and every dropdown. */
+.modal-backdrop.open{z-index:220!important}
+.modal-backdrop.open>.modal{position:relative;z-index:221!important}
+</style>
 </head>
 <body>
 <main class="app">
