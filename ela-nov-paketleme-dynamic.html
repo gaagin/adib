@@ -814,6 +814,18 @@ html.dark .personal-open-pomodoro{background:#3b2d12!important;color:#ffd36b!imp
   }
 }
 </style>
+
+<style class="desktop-window-controls-width-rollback-style">
+@media(min-width:651px){
+  /* titlebar-area-width is the overlay width, not a page inset; never squeeze the app with it. */
+  .app{padding-right:0!important}
+  .compact-top{padding-right:0!important}
+}
+@media (display-mode: window-controls-overlay) and (min-width:651px){
+  /* Reserve only a modest header area for the OS window buttons. */
+  .compact-top{padding-right:180px!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
