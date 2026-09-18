@@ -663,6 +663,89 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .compact-top>.sync-badge{order:4!important;margin-left:auto!important}
 }
 </style>
+
+<style class="mobile-board-full-height-final-style">
+@media(max-width:650px){
+  /* Use the full viewport between the top chrome and the fixed bottom nav. */
+  html,body{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+  }
+  body{padding-bottom:72px!important}
+  .app{
+    display:flex!important;
+    flex-direction:column!important;
+    width:100%!important;
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    padding:8px 10px 72px!important;
+  }
+  .compact-top{
+    position:relative!important;
+    top:auto!important;
+    flex:0 0 auto!important;
+    height:auto!important;
+    min-height:0!important;
+  }
+  .layout.mobile-canvas-mode{
+    display:grid!important;
+    flex:1 1 auto!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+  }
+  .layout.mobile-canvas-mode .canvas-card{
+    display:flex!important;
+    grid-column:1!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+  }
+  .layout.mobile-canvas-mode .canvas-toolbar{
+    flex:0 0 42px!important;
+    min-height:42px!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap{
+    display:block!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    touch-action:pan-x!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    padding:0!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap #plan{
+    display:block!important;
+    width:1100px!important;
+    min-width:1100px!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+    flex:none!important;
+    border-radius:0!important;
+    touch-action:pan-x!important;
+  }
+  .layout.mobile-canvas-mode .canvas-wrap #syncError{display:none!important}
+  .layout.mobile-canvas-mode .legend{display:none!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
