@@ -876,6 +876,64 @@ html.dark .personal-open-pomodoro{background:#3b2d12!important;color:#ffd36b!imp
   .compact-top .top-toolbar>*{flex:0 0 auto!important}
 }
 </style>
+
+<style class="desktop-titlebar-toolbar-final-style">
+@media(min-width:651px){
+  /* Always keep the application below the installed window titlebar. */
+  .app{
+    padding-top:max(30px,env(titlebar-area-height,0px))!important;
+    box-sizing:border-box!important;
+  }
+  /* Use two normal-flow rows so no action is hidden behind the window controls. */
+  .compact-top{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    height:auto!important;
+    min-height:88px!important;
+    gap:6px!important;
+    align-items:center!important;
+  }
+  .compact-top .brandline{
+    flex:1 1 100%!important;
+    width:100%!important;
+    height:38px!important;
+    min-height:38px!important;
+  }
+  .compact-top .top-toolbar{
+    order:3!important;
+    flex:1 1 100%!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:44px!important;
+    flex-wrap:wrap!important;
+    overflow:visible!important;
+    justify-content:flex-start!important;
+  }
+  .compact-top .top-toolbar>*{flex:0 0 auto!important}
+}
+</style>
+
+<style class="personal-kanban-overlay-above-header-style">
+@media(min-width:651px){
+  /* The personal Kanban is a full-screen mode; it must cover the app header, not sit behind it. */
+  .personal-kanban-modal{
+    z-index:230!important;
+    inset:0!important;
+    padding-top:max(30px,env(titlebar-area-height,0px))!important;
+    box-sizing:border-box!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+  }
+  .personal-kanban-dialog{
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    border-radius:0!important;
+  }
+}
+</style>
 </head>
 <body>
 <main class="app">
