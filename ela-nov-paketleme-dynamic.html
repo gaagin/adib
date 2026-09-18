@@ -844,6 +844,38 @@ html.dark .personal-open-pomodoro{background:#3b2d12!important;color:#ffd36b!imp
 <style class="personal-canvas-exit-clarity-style">
 .personal-kanban-board-exit,.personal-editor-board-button{font-weight:700!important;color:var(--notion-blue)!important;white-space:nowrap!important}
 </style>
+
+<style class="desktop-top-toolbar-all-buttons-style">
+@media (display-mode: window-controls-overlay) and (min-width:651px){
+  /* Give the installed app's toolbar a second row instead of hiding actions. */
+  .compact-top{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    height:auto!important;
+    min-height:calc(88px + env(titlebar-area-height,0px))!important;
+    gap:6px!important;
+    align-items:center!important;
+  }
+  .compact-top .brandline{
+    flex:1 1 100%!important;
+    width:100%!important;
+    height:38px!important;
+    min-height:38px!important;
+  }
+  .compact-top .top-toolbar{
+    order:3!important;
+    flex:1 1 100%!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:44px!important;
+    height:auto!important;
+    flex-wrap:wrap!important;
+    overflow:visible!important;
+    justify-content:flex-start!important;
+  }
+  .compact-top .top-toolbar>*{flex:0 0 auto!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
