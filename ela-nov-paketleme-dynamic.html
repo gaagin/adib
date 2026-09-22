@@ -1735,10 +1735,10 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
       const key=eisenhowerQuadrantForTask(task),group=groups[key];if(!group)return;
       const row=document.createElement('div');row.className='eisenhower-task';row.tabIndex=0;row.draggable=true;row.dataset.eisenhowerTaskId=task.id;
       const due=String(task.date||'').trim(),meta=[due,task.priority||task.prioritet||'',task.category||''].filter(Boolean).join(' · ');
-      row.innerHTML='<button type="button" class="eisenhower-check" title="Завершить задачу" aria-label="Завершить задачу">□</button><span class="eisenhower-task-text"><strong>'+escapeHtml(task.title||'Без названия')+'</strong>'+(meta?'<small>'+escapeHtml(meta)+'</small>':'')+'</span><select class="eisenhower-move-select" title="Переместить в квадрант" aria-label="Переместить в квадрант"><option value="">Переместить</option><option value="urgent-important">I · Срочно и важно</option><option value="not-urgent-important">II · Несрочно и важно</option><option value="urgent-unimportant">III · Срочно и неважно</option><option value="not-urgent-unimportant">IV · Несрочно и неважно</option></select><button type="button" class="eisenhower-open" title="Открыть задачу" aria-label="Открыть задачу">↗</button>';
-      const open=()=>{modal.remove();openPersonalTaskEditor(task.id,false,{})};row.querySelector('.eisenhower-open').onclick=open;row.querySelector('.eisenhower-task-text').onclick=open;row.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();open()}});
+      row.innerHTML='<button type="button" class="eisenhower-check" title="Завершить задачу" aria-label="Завершить задачу">□</button><span class="eisenhower-task-text"><strong>'+escapeHtml(task.title||'Без названия')+'</strong>'+(meta?'<small>'+escapeHtml(meta)+'</small>':'')+'</span>';
+      const open=()=>{modal.remove();openPersonalTaskEditor(task.id,false,{})};row.querySelector('.eisenhower-task-text').onclick=open;row.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();open()}});
       row.querySelector('.eisenhower-check').onclick=event=>{event.stopPropagation();updatePersonalTask(task.id,{completed:true,status:'Done'},()=>renderPersonalEisenhowerMatrix(modal))};
-      row.querySelector('.eisenhower-move-select').onchange=event=>{const target=event.target.value;if(target)movePersonalTaskToEisenhowerQuadrant(task.id,target,modal);event.target.value=''};
+      
       row.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(task.id));row.classList.add('is-dragging')});row.addEventListener('dragend',()=>{row.classList.remove('is-dragging');modal.querySelectorAll('.eisenhower-quadrant').forEach(zone=>zone.classList.remove('drag-over'))});
       group.appendChild(row);
     });
@@ -2124,6 +2124,10 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 <style class="personal-eisenhower-drag-runtime">
 .eisenhower-task[draggable="true"]{cursor:grab}.eisenhower-task.is-dragging{opacity:.45}.eisenhower-quadrant.drag-over{outline:3px dashed var(--notion-focus,#2383e2);outline-offset:-5px;background:var(--notion-selected)!important}.eisenhower-move-select{flex:0 0 auto;max-width:116px;height:30px;padding:2px 4px;border:1px solid var(--notion-border);border-radius:7px;background:var(--notion-bg);color:var(--notion-muted);font-size:10px}.eisenhower-move-select:focus{border-color:var(--notion-focus,#2383e2);color:var(--notion-text)}
 @media(max-width:650px){.eisenhower-move-select{max-width:30px;width:30px;color:transparent;font-size:0;padding:0;background:var(--notion-bg)}.eisenhower-move-select option{color:var(--notion-text);font-size:13px}}
+</style>
+
+<style class="personal-eisenhower-clean-controls">
+.eisenhower-task{gap:6px!important}.eisenhower-task-text{display:block!important;flex:1 1 auto!important;width:100%!important;min-width:0!important}.eisenhower-task-text strong{width:100%!important;overflow:visible!important;text-overflow:clip!important;white-space:normal!important;overflow-wrap:anywhere!important}.eisenhower-move-select,.eisenhower-open{display:none!important}
 </style>
 </body>
 </html>
