@@ -2017,5 +2017,14 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .personal-kanban-modal .personal-kanban-actions .personal-kanban-close{grid-column:4!important;grid-row:1!important;width:40px!important;min-width:40px!important;height:40px!important;margin:0!important;justify-self:end!important;padding:0!important}
 }
 </style>
+
+<style class="desktop-kanban-layer-above-header-fix">
+@media(min-width:651px){
+  /* Equipment Kanban is fullscreen; keep its controls above the workspace header. */
+  .modal-backdrop.open.kanban-modal{z-index:240!important}
+  .modal-backdrop.open.kanban-modal>.modal{position:relative!important;z-index:241!important}
+  .modal-backdrop.open.kanban-modal .kanban-controls{position:relative!important;z-index:3!important}
+}
+</style>
 </body>
 </html>
