@@ -1631,7 +1631,7 @@ adibHistoryInit();
 
 /* Extend Android Back navigation to My Tasks and its nested views. */
 let adibHistorySequence=Date.now();
-function adibHistoryUniqueUrl(label){try{const url=new URL(location.href);url.searchParams.set('adibBack',String(label||'view')+'-'+(++adibHistorySequence));return url.href}catch(error){return location.href}}
+function adibHistoryUniqueUrl(label){try{const token=String(label||'view')+'-'+(++adibHistorySequence);const url=new URL(location.href);url.searchParams.set('adibBack',token);url.hash='adib-back='+encodeURIComponent(token);return url.href}catch(error){return location.href}}
 function adibPushPersonalHistory(level,id=''){
   if(adibHistoryHandling)return;
   if(!adibHistoryReady)adibHistoryInit();
@@ -1658,6 +1658,12 @@ function adibHandleAndroidBackAll(event){
   adibHandleAndroidBack(event)
 }
 window.addEventListener('popstate',adibHandleAndroidBackAll);
+/* Android standalone PWAs may report a back traversal as hashchange; use one guarded handler. */
+window.removeEventListener('popstate',adibHandleAndroidBackAll);
+let adibBackEventTime=0;
+function adibHandleAndroidBackOnce(event){const now=Date.now();if(now-adibBackEventTime<140)return;adibBackEventTime=now;adibHandleAndroidBackAll(event)}
+window.addEventListener('popstate',adibHandleAndroidBackOnce);
+window.addEventListener('hashchange',()=>adibHandleAndroidBackOnce({state:history.state}));
 
 })();
 </script><script>
