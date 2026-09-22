@@ -1075,6 +1075,25 @@ button,input,select,textarea{font:inherit!important}button{transition:background
 #globalContextMenu .context-menu-icon{width:18px;text-align:center;font-size:15px;flex:0 0 18px}#globalContextMenu .context-menu-separator{height:1px;background:var(--notion-border,#e6e5e2);margin:5px 3px}
 @media(max-width:650px){#globalContextMenu{min-width:0;width:min(330px,calc(100vw - 16px));padding:7px;border-radius:12px}#globalContextMenu button{min-height:43px;padding:10px 11px;font-size:14px}.context-menu-title{font-size:11px!important}}
 </style>
+
+<style class="canvas-actions-dropdown-style">
+.canvas-toolbar{position:relative!important;overflow:visible!important}
+.canvas-actions-menu{position:relative;display:flex;align-items:center;flex:0 0 auto;z-index:20}
+#canvasActionsButton{height:32px!important;min-width:36px!important;padding:4px 10px!important;border:1px solid var(--notion-border)!important;border-radius:8px!important;background:var(--notion-surface)!important;color:var(--notion-text)!important;font-size:19px!important;line-height:1!important;cursor:pointer}
+#canvasActionsButton:hover{background:var(--notion-hover)!important;border-color:var(--notion-blue)!important}
+#canvasActionsPanel{position:absolute;right:0;top:calc(100% + 6px);display:grid;grid-template-columns:1fr;gap:3px;min-width:210px;max-width:260px;padding:6px;border:1px solid var(--notion-border);border-radius:10px;background:var(--notion-surface);box-shadow:0 14px 32px rgba(15,15,15,.18);z-index:1000}
+#canvasActionsPanel[hidden]{display:none!important}
+#canvasActionsPanel>button{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:100%!important;min-width:0!important;height:34px!important;padding:6px 9px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:var(--notion-text)!important;font-size:13px!important;text-align:left!important;white-space:nowrap!important}
+#canvasActionsPanel>button:hover{background:var(--notion-hover)!important;color:var(--notion-text)!important;transform:none!important;box-shadow:none!important}
+#canvasActionsPanel>button:disabled{opacity:.42!important;cursor:not-allowed!important}
+@media(max-width:650px){
+  .canvas-toolbar{gap:5px!important;min-height:42px!important;padding:5px 7px!important}
+  .canvas-toolbar .crumbs{flex:1 1 auto!important;min-width:0!important;max-width:none!important}
+  #canvasActionsButton{width:36px!important;height:32px!important;padding:3px!important;font-size:20px!important}
+  #canvasActionsPanel{position:fixed;right:8px;top:auto;bottom:66px;min-width:220px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 100px);overflow:auto;border-radius:12px}
+  #canvasActionsPanel>button{min-height:42px!important;height:auto!important;font-size:14px!important;padding:9px 11px!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
@@ -1664,6 +1683,21 @@ let adibBackEventTime=0;
 function adibHandleAndroidBackOnce(event){const now=Date.now();if(now-adibBackEventTime<140)return;adibBackEventTime=now;adibHandleAndroidBackAll(event)}
 window.addEventListener('popstate',adibHandleAndroidBackOnce);
 window.addEventListener('hashchange',()=>adibHandleAndroidBackOnce({state:history.state}));
+
+
+function setupCanvasActionsDropdown(){
+  const toolbar=document.querySelector('.canvas-toolbar');if(!toolbar||document.getElementById('canvasActionsButton'))return;
+  const actionButtons=[...toolbar.querySelectorAll(':scope > button')];
+  const wrap=document.createElement('div');wrap.className='canvas-actions-menu';wrap.innerHTML='<button type="button" id="canvasActionsButton" aria-label="Действия холста" aria-expanded="false" title="Действия холста">⋯</button><div id="canvasActionsPanel" hidden role="menu"></div>';
+  const panel=wrap.querySelector('#canvasActionsPanel');actionButtons.forEach(button=>{button.setAttribute('role','menuitem');panel.appendChild(button)});toolbar.appendChild(wrap);
+  const toggle=wrap.querySelector('#canvasActionsButton');
+  toggle.onclick=event=>{event.stopPropagation();const opened=!panel.hidden;panel.hidden=opened;toggle.setAttribute('aria-expanded',String(!opened))};
+  panel.addEventListener('click',()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false')});
+  document.addEventListener('click',event=>{if(!wrap.contains(event.target)){panel.hidden=true;toggle.setAttribute('aria-expanded','false')}});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'){panel.hidden=true;toggle.setAttribute('aria-expanded','false')}});
+}
+setupCanvasActionsDropdown();
+setTimeout(setupCanvasActionsDropdown,0);
 
 })();
 </script><script>
