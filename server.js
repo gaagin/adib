@@ -22,6 +22,9 @@ const TASKS_DS = cleanId(process.env.TASKS_DATA_SOURCE_ID || '275e0789-d560-80ea
 const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_ID || '73df6f961625407d89c202bc1c3b749c');
 const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
+const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+const GEMINI_API_URL = String(process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
 const LINK_PROPERTY_DEFAULT = 'ADIB link';
@@ -560,6 +563,7 @@ function updateLayoutCaches(id, values) {
       page.properties[name] = { ...(page.properties[name] || {}), type: 'number', number: value };
     }
     if (Object.prototype.hasOwnProperty.call(values, 'parentId')) page.properties['Parent Plan'] = { type: 'relation', relation: values.parentId ? [{ id: values.parentId }] : [] };
+    if (Object.prototype.hasOwnProperty.call(values, 'planId')) page.properties.Plan = { type: 'relation', relation: values.planId ? [{ id: values.planId }] : [] };
     page.last_edited_time = new Date().toISOString();
   }
   if (snapshotCache) {
@@ -573,6 +577,7 @@ function updateLayoutCaches(id, values) {
 async function saveLayout(body) {
   const id = String(body.id || '').trim();
   const values = { x: Number(body.x), y: Number(body.y), width: Number(body.width), height: Number(body.height) };
+  if (body.planId !== undefined) values.planId = body.planId ? cleanId(String(body.planId)) : null;
   if (!id || Object.values(values).some(value => !Number.isFinite(value))) {
     throw new Error('Нужны id, x, y, width и height');
   }
@@ -588,6 +593,7 @@ async function saveLayout(body) {
     properties['Parent Plan'] = { relation: parentId ? [{ id: parentId }] : [] };
     values.parentId = parentId || null;
   }
+  if (body.planId !== undefined) properties.Plan = { relation: values.planId ? [{ id: values.planId }] : [] };
   await notion('/pages/' + encodeURIComponent(id), {
     method: 'PATCH',
     body: JSON.stringify({ properties })
@@ -1036,6 +1042,22 @@ async function savePersonalPomodoroUnlocked(body) {
   return {ok:true,id,action,pomodoroCount:action==='finish'?currentCount+1:currentCount,pomodoroMinutes:action==='finish'?currentMinutes+duration:currentMinutes,startedAt:action==='start'?now:'',savedAt:now};
 }
 
+async function aiChat(body) {
+  const message=String(body?.message||'').trim();
+  if(!message) throw new Error('Введите сообщение для Gemini');
+  if(!GEMINI_API_KEY){const error=new Error('Gemini не настроен. Добавьте GEMINI_API_KEY и GEMINI_MODEL в файл .env на сервере.');error.statusCode=503;throw error}
+  const context=body?.context&&typeof body.context==='object'?body.context:{};
+  const safeContext=JSON.stringify(context).slice(0,24000);
+  const system='Ты AI-помощник сервиса ADIB для ведения задач и оборудования. Отвечай на языке пользователя, кратко и практично. Анализируй переданный контекст, но не выдумывай данные. В этой версии ты только консультируешь: не утверждай, что изменил задачу или базу.';
+  const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(GEMINI_MODEL)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
+  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
+  const text=await response.text();let data;try{data=JSON.parse(text)}catch{data={error:{message:text}}}
+  if(!response.ok)throw new Error('Gemini API '+response.status+': '+(data.error?.message||data.message||text));
+  const reply=(data.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
+  if(!reply)throw new Error('Gemini не вернул ответ');
+  return {reply,model:GEMINI_MODEL,provider:'gemini'};
+}
+
 async function notionUsers(force = false) {
   if (!force && userCache.value && Date.now() - userCache.at < 300000) return userCache.value;
   const users = [];
@@ -1058,6 +1080,12 @@ const server = http.createServer(async (request, response) => {
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
+    if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
+      const body = await readBody(request);
+      try { return json(response, 200, await aiChat(body)); }
+      catch (error) { return json(response, error.statusCode || 502, { error: error.message }); }
+    }
+    if (request.method === 'GET' && url.pathname === '/api/ai/status') return json(response, 200, { configured: Boolean(GEMINI_API_KEY), model: GEMINI_MODEL, provider: 'gemini' });
     if (request.method === 'PATCH' && url.pathname === '/api/layout') {
       const body = await readBody(request);
       return json(response, 200, await saveLayout(body));
