@@ -1725,6 +1725,31 @@ adibContextRun=async function(action,target){
   return adibOriginalContextRunForCanvas(action,target)
 };
 
+
+/* Long press on an empty My Tasks canvas: creation/actions menu. */
+const adibOriginalContextDescriptorForPersonalCanvas=adibContextDescriptor;
+adibContextDescriptor=function(event){
+  const existing=adibOriginalContextDescriptorForPersonalCanvas(event);if(existing)return existing;
+  const board=event.target?.closest?.('#personalBoard');
+  if(board&&!event.target.closest?.('[data-personal-task],[data-personal-container],[data-personal-kanban-task],button,a,select,.personal-resize-handle'))return{kind:'empty-personal-canvas',id:'empty-personal-canvas',element:board,title:'Мои задачи'};
+  return null
+};
+const adibOriginalContextMenuHtmlForPersonalCanvas=adibContextMenuHtml;
+adibContextMenuHtml=function(target){
+  if(target.kind==='empty-personal-canvas')return '<div class="context-menu-title">Мои задачи · пустой холст</div>'+adibContextItem('new-personal-canvas-task','Новая задача','✓')+adibContextItem('new-personal-canvas-container','Новый контейнер','▦')+adibContextItem('open-personal-canvas-kanban','Канбан режим','☷');
+  return adibOriginalContextMenuHtmlForPersonalCanvas(target)
+};
+const adibOriginalContextRunForPersonalCanvas=adibContextRun;
+adibContextRun=async function(action,target){
+  if(target.kind==='empty-personal-canvas'){
+    if(action==='new-personal-canvas-task'){document.getElementById('personalAddTask')?.click();return}
+    if(action==='new-personal-canvas-container'){const parent=personalFocusContainerId?containerById(personalFocusContainerId):null;createPersonalContainerFromPrompt(parent);return}
+    if(action==='open-personal-canvas-kanban'){if(personalFocusContainerId){const container=containerById(personalFocusContainerId);if(container)openPersonalKanban(container.name,personalTasksForContainer(container.id).filter(task=>!task.completed),'',container.id)}else openPersonalKanban('Мои задачи',personalTasks.filter(task=>!task.completed));return}
+    return
+  }
+  return adibOriginalContextRunForPersonalCanvas(action,target)
+};
+
 })();
 </script><script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PWA service worker:', error)));
