@@ -1323,7 +1323,21 @@ let searchCursor=0;
 function getSearchResults(){const q=search.value.trim().toLowerCase();if(!q)return[];const results=[];const add=(kind,id,title,subtitle,text,extra={})=>{const hay=String(text||'').toLowerCase();if(!hay.includes(q))return;const starts=hay.indexOf(q)===0||String(title).toLowerCase().startsWith(q);results.push({kind,id,title,subtitle,score:starts?0:1,...extra})};for(const plan of state.plans)add('plan',plan.id,plan.name,plan.parentId?(state.plans.find(p=>p.id===plan.parentId)?.name||'План'): 'Корневой план',[plan.name,plan.type,plan.status,plan.note].join(' '));for(const machine of state.equipment){const plan=state.plans.find(p=>p.id===machine.planId);add('equipment',machine.id,machine.name,[plan?.name||'План',machine.type,machine.status].filter(Boolean).join(' · '),[machine.name,machine.type,machine.status,machine.note,plan?.name].join(' '),{machine});for(const task of machine.tasks||[]){if(!taskMatchesFilters(task))continue;add('task',task.id,task.title||'Без названия',[machine.name,plan?.name,task.source||'Задача'].filter(Boolean).join(' · '),[task.title,task.doneWork,task.source,task.status,task.process,task.priority,machine.name,plan?.name].join(' '),{task,machine})}}return results.sort((a,b)=>a.score-b.score||String(a.title).localeCompare(String(b.title),'ru')).slice(0,14)}
 function renderSearchResults(){const panel=document.getElementById('searchResults');if(!panel)return;const query=search.value.trim();if(!query){panel.hidden=true;panel.innerHTML='';return}const items=getSearchResults();searchCursor=Math.min(searchCursor,Math.max(0,items.length-1));if(!items.length){panel.innerHTML='<div class="search-empty">Ничего не найдено</div><div class="search-hint">Попробуйте название плана, машины или задачи</div>';panel.hidden=false;return}panel.innerHTML='<div class="search-results-head">Результаты поиска</div>'+items.map((item,index)=>'<div class="search-result '+(index===searchCursor?'active ':'')+(item.kind==='task'&&taskPriorityIsUrgent(item.task)?'urgent-task-card':'')+'" role="button" tabindex="0" data-search-index="'+index+'" data-kind="'+item.kind+'"><span class="search-result-icon">'+(item.kind==='equipment'?'⚙':item.kind==='task'?'✓':'▦')+'</span><span><strong>'+escapeHtml(item.title)+'</strong><small>'+escapeHtml(item.subtitle||'')+'</small></span>'+(item.kind==='equipment'?'<span class="search-result-actions"><button type="button" class="search-quick-task" data-search-task-index="'+index+'">+ Задача</button></span>':'')+'</div>').join('')+'<div class="search-hint">↑ ↓ выбрать · Enter открыть · «+ Задача» сразу открыть новую задачу</div>';panel.hidden=false;panel.querySelectorAll('[data-search-index]').forEach(row=>{row.onclick=event=>{if(event.target.closest('[data-search-task-index]'))return;const item=items[Number(row.dataset.searchIndex)];if(item)focusSearchResult(item)};row.onkeydown=event=>{if((event.key==='Enter'||event.key===' ')&&!event.target.closest('[data-search-task-index]')){event.preventDefault();const item=items[Number(row.dataset.searchIndex)];if(item)focusSearchResult(item)}}});panel.querySelectorAll('[data-search-task-index]').forEach(button=>{const openFromButton=event=>{event.preventDefault();event.stopPropagation();const item=items[Number(button.dataset.searchTaskIndex)];if(!item||item.kind!=='equipment')return;openNewTaskForMachine(item.machine)};button.onclick=openFromButton;button.ontouchend=openFromButton})}
 function expandPlanPath(id){let current=state.plans.find(p=>p.id===id);while(current){state.expanded.add(current.id);current=state.plans.find(p=>p.id===current.parentId)}}
-function focusOnCanvasObject(object,requestedScale){if(!object)return;state.scale=Number.isFinite(requestedScale)?requestedScale:(window.matchMedia('(max-width:650px)').matches?2.35:1.28);const centerX=Number(object.x||0)+Number(object.width||0)/2,centerY=Number(object.y||0)+Number(object.height||0)/2;state.ox=CANVAS_WIDTH/2-centerX*state.scale;state.oy=CANVAS_HEIGHT/2-centerY*state.scale;apply()}
+function focusOnCanvasObject(object,requestedScale){
+  if(!object)return;
+  const mobile=window.matchMedia('(max-width:650px)').matches;
+  state.scale=Number.isFinite(requestedScale)?requestedScale:(mobile?2.35:1.28);
+  const centerX=Number(object.x||0)+Number(object.width||0)/2,centerY=Number(object.y||0)+Number(object.height||0)/2;
+  const rect=svg?.getBoundingClientRect?.();
+  const matrix=svg?.getScreenCTM?.();
+  if(rect&&matrix&&Number.isFinite(matrix.a)&&Number.isFinite(matrix.d)&&Math.abs(matrix.a)>0.0001&&Math.abs(matrix.d)>0.0001){
+    /* Convert the actual CSS viewport center back into SVG viewBox units. This also handles mobile letterboxing and browser zoom. */
+    const targetX=rect.left+rect.width/2,targetY=rect.top+rect.height/2;
+    const viewCenterX=(targetX-matrix.e)/matrix.a,viewCenterY=(targetY-matrix.f)/matrix.d;
+    state.ox=viewCenterX-centerX*state.scale;state.oy=viewCenterY-centerY*state.scale;
+  }else{state.ox=CANVAS_WIDTH/2-centerX*state.scale;state.oy=CANVAS_HEIGHT/2-centerY*state.scale}
+  apply();
+}
 function buildAppLink(element,id,extra={}){if(!id)return '';const params=new URLSearchParams({element,id:String(id),zoom:'2'});Object.entries(extra).forEach(([key,value])=>{if(value)params.set(key,String(value))});return location.origin==='null'?location.href.split('#')[0]+'#'+params.toString():location.origin+location.pathname+'#'+params.toString()}
 function objectServiceLink(object,kind){return object?.serviceUrl||buildAppLink(kind,object?.id)}
 async function copyText(value){if(!value)return false;try{await navigator.clipboard.writeText(value);return true}catch(error){const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();return ok}}
@@ -2026,5 +2040,8 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .modal-backdrop.open.kanban-modal .kanban-controls{position:relative!important;z-index:3!important}
 }
 </style>
+
+<style class="mobile-search-center-fix">
+@media(max-width:650px){#plan{scroll-margin-top:0!important;scroll-margin-bottom:0!important}.layout.mobile-canvas-mode .canvas-wrap{scroll-padding:0!important}}</style>
 </body>
 </html>
