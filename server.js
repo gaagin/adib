@@ -23,7 +23,8 @@ const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_
 const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
-const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
+const GEMINI_MODEL_FALLBACK = 'gemini-3.6-flash';
 const GEMINI_API_URL = String(process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
@@ -1049,13 +1050,18 @@ async function aiChat(body) {
   const context=body?.context&&typeof body.context==='object'?body.context:{};
   const safeContext=JSON.stringify(context).slice(0,24000);
   const system='Ты AI-помощник сервиса ADIB для ведения задач и оборудования. Отвечай на языке пользователя, кратко и практично. Анализируй переданный контекст, но не выдумывай данные. В этой версии ты только консультируешь: не утверждай, что изменил задачу или базу.';
-  const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(GEMINI_MODEL)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
-  const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
-  const text=await response.text();let data;try{data=JSON.parse(text)}catch{data={error:{message:text}}}
-  if(!response.ok)throw new Error('Gemini API '+response.status+': '+(data.error?.message||data.message||text));
-  const reply=(data.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
-  if(!reply)throw new Error('Gemini не вернул ответ');
-  return {reply,model:GEMINI_MODEL,provider:'gemini'};
+  const models=[...new Set([GEMINI_MODEL,GEMINI_MODEL_FALLBACK])];let data=null,usedModel=GEMINI_MODEL,lastStatus=0,lastError='';
+  for(const model of models){
+    const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
+    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
+    const text=await response.text();try{data=JSON.parse(text)}catch{data={error:{message:text}}}
+    if(response.ok){usedModel=model;break}
+    lastStatus=response.status;lastError=data.error?.message||data.message||text;
+    if(response.status!==404||model===models.at(-1))throw new Error('Gemini API '+response.status+': '+lastError);
+  }
+  const reply=(data?.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
+  if(!reply)throw new Error('Gemini не вернул ответ'+(lastStatus?' ('+lastStatus+')':''));
+  return {reply,model:usedModel,provider:'gemini'};
 }
 
 async function notionUsers(force = false) {
