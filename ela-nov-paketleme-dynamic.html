@@ -1598,6 +1598,36 @@ document.addEventListener('pointercancel',()=>{if(adibContextLongPress){clearTim
 document.addEventListener('pointerdown',event=>{if(!event.target.closest?.('#globalContextMenu'))adibContextClose()},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape')adibContextClose()});window.addEventListener('resize',adibContextClose);window.addEventListener('scroll',adibContextClose,true);
 
+
+/* Make Android system Back move up the plan hierarchy instead of closing the PWA. */
+let adibHistoryReady=false,adibHistoryHandling=false,adibHistoryInitTimer=null;
+function adibHistoryInit(){
+  if(!state.currentPlan||!state.plans.length){if(!adibHistoryInitTimer)adibHistoryInitTimer=setTimeout(()=>{adibHistoryInitTimer=null;adibHistoryInit()},250);return}
+  if(adibHistoryReady)return;
+  try{const existing=history.state&&typeof history.state==='object'?history.state:{};history.replaceState({...existing,adibNavigation:true,adibPlanId:String(state.currentPlan),adibRoot:true},'',location.href)}catch(error){}
+  adibHistoryReady=true
+}
+function adibNavigatePlan(id,push=true){
+  const next=state.plans.find(item=>String(item.id)===String(id));if(!next)return;
+  const currentId=state.currentPlan;if(String(currentId)===String(next.id)){renderAll();return}
+  if(push&&adibHistoryReady&&!adibHistoryHandling){try{history.pushState({adibNavigation:true,adibPlanId:String(next.id),adibFrom:String(currentId||'')},'',location.href)}catch(error){}}
+  state.currentPlan=next.id;state.selected=null;fit();renderAll()
+}
+const adibOriginalOpenPlan=openPlan;
+openPlan=function(id){adibNavigatePlan(id,true)};
+const adibOriginalRenderCrumbs=renderCrumbs;
+renderCrumbs=function(){adibOriginalRenderCrumbs();document.querySelectorAll('[data-crumb]').forEach(item=>{item.onclick=()=>adibNavigatePlan(item.dataset.crumb,true)})};
+function adibHandleAndroidBack(event){
+  const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(!current)return;
+  const target=event.state?.adibNavigation?event.state.adibPlanId:current.parentId;
+  if(target&&String(target)!==String(current.id)){adibHistoryHandling=true;adibNavigatePlan(target,false);adibHistoryHandling=false;return}
+  if(current.parentId){adibHistoryHandling=true;adibNavigatePlan(current.parentId,false);adibHistoryHandling=false;try{history.replaceState({adibNavigation:true,adibPlanId:String(current.parentId)},'',location.href)}catch(error){}}
+}
+window.addEventListener('popstate',adibHandleAndroidBack);
+const adibDesktopBackButton=document.getElementById('backHierarchy');
+if(adibDesktopBackButton)adibDesktopBackButton.onclick=()=>{const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(!current?.parentId)return;if(adibHistoryReady&&!adibHistoryHandling)history.back();else adibNavigatePlan(current.parentId,false)};
+adibHistoryInit();
+
 })();
 </script><script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PWA service worker:', error)));
