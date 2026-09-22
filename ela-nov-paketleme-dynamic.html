@@ -1655,7 +1655,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     const candidates=parentId?personalTasks.filter(task=>!task.completed&&!blocked.has(task.id)&&!personalKanbanTasks.some(item=>item.id===task.id)).sort((a,b)=>String(a.title).localeCompare(String(b.title),'ru')):[];
     const modal=document.createElement('div');modal.className='personal-kanban-modal';
     const addControl=parentId?'<div class="personal-subtask-add"><select id="personalSubtaskChoice"><option value="">Добавить подзадачу…</option>'+candidates.map(task=>'<option value="'+escapeHtml(task.id)+'">'+escapeHtml(task.title)+'</option>').join('')+'</select><button type="button" id="personalAddSubtask">Добавить</button></div>':'';
-    const newTaskControl='<button type="button" id="personalKanbanNewTask" class="primary personal-kanban-new-task">+ Задача</button>';
+    const newTaskControl='<button type="button" id="personalKanbanNewTask" class="primary personal-kanban-new-task">Новая задача</button>';
     const focusControl=containerId?'<button type="button" id="personalKanbanFocus" title="Вернуться к доске контейнера">↗ Доска</button>':'';
     const groupOptions='<option value="status">Статус</option><option value="priority">Priority</option><option value="category">Категория</option><option value="tag">Tags</option><option value="container">Контейнер</option><option value="assignee">Ответственный</option>';
     modal.innerHTML='<section class="personal-kanban-dialog"><header class="personal-kanban-head"><div class="personal-kanban-title"><strong>Канбан: '+escapeHtml(title)+'</strong><small>незавершенные задачи</small></div><div class="personal-kanban-actions">'+newTaskControl+addControl+focusControl+'<button type="button" class="personal-kanban-board-exit" title="Вернуться на холст Моих задач">← Холст Моих задач</button><button type="button" id="personalKanbanViewModeButton" class="personal-kanban-view-mode-button">☷ Список</button><button type="button" class="personal-kanban-close" title="Закрыть">×</button></div><div class="personal-kanban-viewbar"><label>Группировка <select id="personalKanbanGroupBy">'+groupOptions+'</select></label><input id="personalKanbanSearch" type="search" placeholder="Поиск задач…" aria-label="Поиск задач в канбане"><select id="personalKanbanFilterField"><option value="all">Фильтр: все задачи</option><option value="status">Статус</option><option value="priority">Priority</option><option value="category">Категория</option><option value="tag">Tags</option><option value="container">Контейнер</option><option value="assignee">Ответственный</option></select><select id="personalKanbanFilterValue"><option value="all">Все значения</option></select></div></header><div class="personal-kanban-board"></div></section>';
@@ -1984,6 +1984,16 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .personal-kanban-modal .personal-kanban-actions .personal-kanban-view-mode-button{grid-column:2!important;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:6px 8px!important;white-space:nowrap!important}
   .personal-kanban-modal .personal-kanban-actions .personal-kanban-close{grid-column:3!important;width:40px!important;min-width:40px!important;height:40px!important;margin:0!important;justify-self:end!important;padding:0!important}
   .personal-kanban-modal .personal-kanban-viewbar{order:3!important;width:100%!important}
+}
+</style>
+
+<style class="personal-kanban-new-task-visible-fix">
+@media(max-width:650px){
+  .personal-kanban-modal .personal-kanban-actions{grid-template-rows:40px 40px!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-new-task{display:inline-flex!important;grid-column:1 / -1!important;grid-row:2!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:6px 10px!important;white-space:nowrap!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-board-exit{grid-row:1!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-view-mode-button{grid-row:1!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-close{grid-row:1!important}
 }
 </style>
 </body>
