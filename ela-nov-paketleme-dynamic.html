@@ -1699,6 +1699,32 @@ function setupCanvasActionsDropdown(){
 setupCanvasActionsDropdown();
 setTimeout(setupCanvasActionsDropdown,0);
 
+
+/* Long press on empty canvas: quick creation/actions menu. */
+const adibOriginalContextDescriptorForCanvas=adibContextDescriptor;
+adibContextDescriptor=function(event){
+  const existing=adibOriginalContextDescriptorForCanvas(event);if(existing)return existing;
+  const svg=event.target?.closest?.('#plan');
+  if(svg&&!event.target.closest?.('.machine,.plan-box,.icon,.resize-handle'))return{kind:'empty-canvas',id:'empty-canvas',element:svg,title:'Холст'};
+  return null
+};
+const adibOriginalContextMenuHtmlForCanvas=adibContextMenuHtml;
+adibContextMenuHtml=function(target){
+  if(target.kind==='empty-canvas')return '<div class="context-menu-title">Холст · '+escapeHtml(state.plans.find(item=>String(item.id)===String(state.currentPlan))?.name||'Текущий план')+'</div>'+adibContextItem('new-canvas-task','Новая задача','✓')+adibContextItem('new-canvas-equipment','Новое оборудование','⚙')+adibContextItem('new-canvas-plan','Новый план','▦')+adibContextItem('open-canvas-kanban','Канбан режим','☷');
+  return adibOriginalContextMenuHtmlForCanvas(target)
+};
+const adibOriginalContextRunForCanvas=adibContextRun;
+adibContextRun=async function(action,target){
+  if(target.kind==='empty-canvas'){
+    if(action==='new-canvas-task'){document.getElementById('newCanvasTaskButton')?.click();return}
+    if(action==='new-canvas-equipment'){document.getElementById('newEquipmentButton')?.click();return}
+    if(action==='new-canvas-plan'){document.getElementById('newPlanButton')?.click();return}
+    if(action==='open-canvas-kanban'){document.getElementById('planTasksButton')?.click();return}
+    return
+  }
+  return adibOriginalContextRunForCanvas(action,target)
+};
+
 })();
 </script><script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PWA service worker:', error)));
