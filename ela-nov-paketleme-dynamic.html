@@ -1610,7 +1610,7 @@ function adibHistoryInit(){
 function adibNavigatePlan(id,push=true){
   const next=state.plans.find(item=>String(item.id)===String(id));if(!next)return;
   const currentId=state.currentPlan;if(String(currentId)===String(next.id)){renderAll();return}
-  if(push&&adibHistoryReady&&!adibHistoryHandling){try{history.pushState({adibNavigation:true,adibPlanId:String(next.id),adibFrom:String(currentId||'')},'',location.href)}catch(error){}}
+  if(push&&adibHistoryReady&&!adibHistoryHandling){try{history.pushState({adibNavigation:true,adibPlanId:String(next.id),adibFrom:String(currentId||'')},'',adibHistoryUniqueUrl('plan'))}catch(error){}}
   state.currentPlan=next.id;state.selected=null;fit();renderAll()
 }
 const adibOriginalOpenPlan=openPlan;
@@ -1630,9 +1630,13 @@ adibHistoryInit();
 
 
 /* Extend Android Back navigation to My Tasks and its nested views. */
+let adibHistorySequence=Date.now();
+function adibHistoryUniqueUrl(label){try{const url=new URL(location.href);url.searchParams.set('adibBack',String(label||'view')+'-'+(++adibHistorySequence));return url.href}catch(error){return location.href}}
 function adibPushPersonalHistory(level,id=''){
-  if(!adibHistoryReady||adibHistoryHandling)return;
-  try{history.pushState({adibNavigation:true,adibPersonal:true,adibPersonalLevel:level,adibPersonalId:String(id||'')},'',location.href)}catch(error){}
+  if(adibHistoryHandling)return;
+  if(!adibHistoryReady)adibHistoryInit();
+  if(!adibHistoryReady||!state.currentPlan)return;
+  try{history.pushState({adibNavigation:true,adibPersonal:true,adibPersonalLevel:level,adibPersonalId:String(id||'')},'',adibHistoryUniqueUrl('personal-'+level))}catch(error){}
 }
 const adibOriginalSetPersonalMode=setPersonalMode;
 setPersonalMode=function(active){const mode=document.getElementById('personalMode'),wasActive=Boolean(mode&&!mode.hidden);if(active&&!wasActive)adibPushPersonalHistory('root');adibOriginalSetPersonalMode(active)};
