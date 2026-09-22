@@ -1628,6 +1628,33 @@ const adibDesktopBackButton=document.getElementById('backHierarchy');
 if(adibDesktopBackButton)adibDesktopBackButton.onclick=()=>{const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(!current?.parentId)return;if(adibHistoryReady&&!adibHistoryHandling)history.back();else adibNavigatePlan(current.parentId,false)};
 adibHistoryInit();
 
+
+/* Extend Android Back navigation to My Tasks and its nested views. */
+function adibPushPersonalHistory(level,id=''){
+  if(!adibHistoryReady||adibHistoryHandling)return;
+  try{history.pushState({adibNavigation:true,adibPersonal:true,adibPersonalLevel:level,adibPersonalId:String(id||'')},'',location.href)}catch(error){}
+}
+const adibOriginalSetPersonalMode=setPersonalMode;
+setPersonalMode=function(active){const mode=document.getElementById('personalMode'),wasActive=Boolean(mode&&!mode.hidden);if(active&&!wasActive)adibPushPersonalHistory('root');adibOriginalSetPersonalMode(active)};
+const adibOriginalSetPersonalFocus=setPersonalFocus;
+setPersonalFocus=function(id){if(id&&!personalFocusContainerId)adibPushPersonalHistory('container',id);adibOriginalSetPersonalFocus(id)};
+const adibOriginalOpenPersonalKanban=openPersonalKanban;
+openPersonalKanban=function(...args){adibPushPersonalHistory('kanban');return adibOriginalOpenPersonalKanban(...args)};
+window.removeEventListener('popstate',adibHandleAndroidBack);
+function adibHandleAndroidBackAll(event){
+  const personalMode=document.getElementById('personalMode'),isPersonal=Boolean(personalMode&&!personalMode.hidden);
+  if(isPersonal){
+    const personalKanban=document.querySelector('.personal-kanban-modal');
+    if(personalKanban){personalKanban.remove();renderPersonalBoard();return}
+    if(personalFocusContainerId){adibHistoryHandling=true;clearPersonalFocus();adibHistoryHandling=false;return}
+    adibHistoryHandling=true;adibOriginalSetPersonalMode(false);adibHistoryHandling=false;
+    if(event.state?.adibNavigation&&!event.state?.adibPersonal)adibHandleAndroidBack(event);
+    return
+  }
+  adibHandleAndroidBack(event)
+}
+window.addEventListener('popstate',adibHandleAndroidBackAll);
+
 })();
 </script><script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PWA service worker:', error)));
