@@ -1996,5 +1996,26 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .personal-kanban-modal .personal-kanban-actions .personal-kanban-close{grid-row:1!important}
 }
 </style>
+
+<script class="longtap-nav-highlight-fix">
+(function(){document.addEventListener('click',function(event){if(Date.now()>=window.adibContextSuppressUntil||event.target.closest?.('#globalContextMenu'))return;event.preventDefault();event.stopImmediatePropagation();window.adibContextSuppressUntil=0},true)})();
+</script>
+
+<style class="longtap-nav-highlight-fix">
+@media(max-width:650px){
+  body:has(#globalContextMenu:not([hidden])) #personalMobileButton,
+  body:has(#globalContextMenu:not([hidden])) #personalMobileButton.active{background:transparent!important;color:var(--notion-muted)!important;box-shadow:none!important;font-weight:500!important;outline:none!important;transform:none!important}
+}
+</style>
+
+<style class="personal-kanban-new-task-middle-fix">
+@media(max-width:650px){
+  .personal-kanban-modal .personal-kanban-actions{grid-template-columns:minmax(0,1.35fr) minmax(82px,1fr) minmax(76px,.9fr) 40px!important;grid-template-rows:40px!important;align-items:center!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-board-exit{grid-column:1!important;grid-row:1!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-new-task{display:inline-flex!important;grid-column:2!important;grid-row:1!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:5px 6px!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-view-mode-button{grid-column:3!important;grid-row:1!important;width:100%!important;min-width:0!important;height:40px!important;margin:0!important;padding:5px 6px!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .personal-kanban-modal .personal-kanban-actions .personal-kanban-close{grid-column:4!important;grid-row:1!important;width:40px!important;min-width:40px!important;height:40px!important;margin:0!important;justify-self:end!important;padding:0!important}
+}
+</style>
 </body>
 </html>
