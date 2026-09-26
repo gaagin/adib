@@ -26,6 +26,10 @@ const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
 const GEMINI_MODEL_FALLBACK = 'gemini-3.6-flash';
 const GEMINI_API_URL = String(process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/$/, '');
+const GEMINI_TIMEOUT_MS = Math.min(60000, Math.max(5000, Number(process.env.GEMINI_TIMEOUT_MS) || 25000));
+const AI_REQUESTS_PER_MINUTE = Math.min(120, Math.max(1, Number(process.env.AI_REQUESTS_PER_MINUTE) || 20));
+const AI_RATE_WINDOW_MS = 60000;
+const aiRequestTimes = [];
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
 const LINK_PROPERTY_DEFAULT = 'ADIB link';
@@ -525,35 +529,70 @@ async function syncServiceLinks(baseUrl, force = false) {
 const taskCache = new Map();
 const userCache = { value: null, at: 0 };
 
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+};
+
 function json(response, status, body, extraHeaders = {}) {
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': CORS_ORIGIN,
     'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
     'Cache-Control': 'no-store',
+    ...SECURITY_HEADERS,
     ...extraHeaders
   });
   response.end(JSON.stringify(body));
 }
 
 function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store') {
-  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl });
+  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS });
   response.end(fs.readFileSync(filename));
+}
+
+function requestError(message, statusCode) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
 }
 
 function readBody(request) {
   return new Promise((resolve, reject) => {
     let body = '';
+    let bytes = 0;
+    let settled = false;
     request.on('data', chunk => {
+      if (settled) return;
+      bytes += Buffer.byteLength(chunk);
+      if (bytes > 100000) {
+        settled = true;
+        reject(requestError('Размер запроса превышает 100 КБ', 413));
+        request.resume();
+        return;
+      }
       body += chunk;
-      if (body.length > 100000) request.destroy(new Error('Request body too large'));
     });
     request.on('end', () => {
+      if (settled) return;
       try { resolve(JSON.parse(body || '{}')); }
-      catch { reject(new Error('Некорректный JSON в запросе')); }
+      catch { reject(requestError('Некорректный JSON в запросе', 400)); }
     });
-    request.on('error', reject);
+    request.on('error', error => { if (!settled) reject(error); });
   });
+}
+
+function enforceAiRateLimit() {
+  const now = Date.now();
+  while (aiRequestTimes.length && now - aiRequestTimes[0] >= AI_RATE_WINDOW_MS) aiRequestTimes.shift();
+  if (aiRequestTimes.length >= AI_REQUESTS_PER_MINUTE) {
+    const error = requestError('Слишком много запросов к AI. Попробуйте ещё раз через минуту.', 429);
+    error.retryAfter = Math.max(1, Math.ceil((AI_RATE_WINDOW_MS - (now - aiRequestTimes[0])) / 1000));
+    throw error;
+  }
+  aiRequestTimes.push(now);
 }
 
 function updateLayoutCaches(id, values) {
@@ -1045,15 +1084,24 @@ async function savePersonalPomodoroUnlocked(body) {
 
 async function aiChat(body) {
   const message=String(body?.message||'').trim();
-  if(!message) throw new Error('Введите сообщение для Gemini');
+  if(!message) throw requestError('Введите сообщение для Gemini', 400);
+  if(message.length > 4000) throw requestError('Сообщение слишком длинное (максимум 4000 символов)', 413);
   if(!GEMINI_API_KEY){const error=new Error('Gemini не настроен. Добавьте GEMINI_API_KEY и GEMINI_MODEL в файл .env на сервере.');error.statusCode=503;throw error}
   const context=body?.context&&typeof body.context==='object'?body.context:{};
-  const safeContext=JSON.stringify(context).slice(0,24000);
+  const safeContext=JSON.stringify(context).slice(0,12000);
   const system='Ты AI-помощник сервиса ADIB для ведения задач и оборудования. Отвечай на языке пользователя, кратко и практично. Анализируй переданный контекст, но не выдумывай данные. В этой версии ты только консультируешь: не утверждай, что изменил задачу или базу.';
   const models=[...new Set([GEMINI_MODEL,GEMINI_MODEL_FALLBACK])];let data=null,usedModel=GEMINI_MODEL,lastStatus=0,lastError='';
   for(const model of models){
     const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
-    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
+    let response;
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),GEMINI_TIMEOUT_MS);
+    try {
+      response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
+    } catch(error) {
+      if(error.name==='AbortError') throw requestError('Gemini не ответил вовремя. Попробуйте ещё раз.',504);
+      throw error;
+    } finally { clearTimeout(timeout); }
     const text=await response.text();try{data=JSON.parse(text)}catch{data={error:{message:text}}}
     if(response.ok){usedModel=model;break}
     lastStatus=response.status;lastError=data.error?.message||data.message||text;
@@ -1082,14 +1130,17 @@ async function notionUsers(force = false) {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' });
+      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', ...SECURITY_HEADERS });
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
-      try { return json(response, 200, await aiChat(body)); }
-      catch (error) { return json(response, error.statusCode || 502, { error: error.message }); }
+      try { enforceAiRateLimit(); return json(response, 200, await aiChat(body)); }
+      catch (error) {
+        if (error.retryAfter) response.setHeader('Retry-After', String(error.retryAfter));
+        return json(response, error.statusCode || 502, { error: error.message });
+      }
     }
     if (request.method === 'GET' && url.pathname === '/api/ai/status') return json(response, 200, { configured: Boolean(GEMINI_API_KEY), model: GEMINI_MODEL, provider: 'gemini' });
     if (request.method === 'PATCH' && url.pathname === '/api/layout') {
@@ -1176,7 +1227,7 @@ const server = http.createServer(async (request, response) => {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
     if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = await snapshot(full, baseUrl); syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match' }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = await snapshot(full, baseUrl); syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
@@ -1184,8 +1235,9 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'));
     return json(response, 404, { error: 'Not found' });
   } catch (error) {
-    console.error(error);
-    return json(response, 500, { error: error.message });
+    if (error.statusCode && error.statusCode < 500) console.warn('Request rejected:', error.message);
+    else console.error(error);
+    return json(response, error.statusCode || 500, { error: error.message });
   }
 });
 
