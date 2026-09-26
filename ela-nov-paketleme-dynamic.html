@@ -2392,7 +2392,9 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       event.preventDefault();window.setDesktopSearchOpen(false,false);
     }
   },true);
-  window.addEventListener('resize',()=>{if(!window.matchMedia('(min-width:651px)').matches)window.setDesktopSearchOpen(false,false)});
+  const desktopSearchMedia=window.matchMedia('(min-width:651px)');
+  if(desktopSearchMedia.addEventListener)desktopSearchMedia.addEventListener('change',event=>{if(!event.matches)window.setDesktopSearchOpen(false,false)});
+  else desktopSearchMedia.addListener(event=>{if(!event.matches)window.setDesktopSearchOpen(false,false)});
 })();
 </script>
 <style class="eisenhower-small-circle-control">
