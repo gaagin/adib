@@ -2530,6 +2530,22 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   html.dark .top-toolbar .search,html.dark .top-toolbar #currentUser{background:#202124!important;border-color:#414349!important;color:#f0f1f3!important}
   html.dark #backHierarchy:hover,html.dark .canvas-zoom-controls button:hover,html.dark #canvasActionsPanel>button:hover,html.dark .top-toolbar button:hover{background:#383a40!important}
 }
+@media (min-width:651px){
+  /* Override legacy stable-canvas rules that imposed a shorter scroll region. */
+  html body main.app #layout.desktop-stable-canvas,
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed),
+  html body main.app #layout.desktop-stable-canvas:has(#inspector.collapsed),
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed):has(#inspector.collapsed){position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;display:block!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+  html body main.app #layout.desktop-stable-canvas>.canvas-card{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:auto!important;height:auto!important;min-height:0!important;margin:0!important;overflow:hidden!important}
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-wrap,
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed) .canvas-wrap,
+  html body main.app #layout.desktop-stable-canvas:has(#inspector.collapsed) .canvas-wrap,
+  html body main.app #layout.desktop-stable-canvas .canvas-wrap{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important}
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed):has(#inspector.collapsed) .canvas-wrap #plan,
+  html body main.app #layout.desktop-stable-canvas:has(#treePanel.collapsed) .canvas-wrap #plan,
+  html body main.app #layout.desktop-stable-canvas:has(#inspector.collapsed) .canvas-wrap #plan,
+  html body main.app #layout.desktop-stable-canvas .canvas-wrap #plan{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:visible!important}
+}
 </style>
 
 </body>
