@@ -2726,5 +2726,15 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
  body:has(#personalMode:not([hidden])) #centerCurrentCanvasButton{right:12px!important}
 }
 </style>
+<style class="miro-mobile-no-breadcrumbs">
+@media(max-width:650px){#backHierarchy,.crumbs{display:none!important;visibility:hidden!important}}
+</style>
+<style class="miro-mobile-remove-marked-controls">
+@media(max-width:650px){
+ .brandline #miroMobileTitle{display:none!important;visibility:hidden!important}
+ button#miroMobileInfo,button#miroMobileShare,button#miroMobileAi{display:none!important;visibility:hidden!important}
+ header.compact-top .top-toolbar #syncBadge{display:none!important;visibility:hidden!important}
+}
+</style>
 </body>
 </html>
