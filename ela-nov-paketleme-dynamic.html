@@ -3096,3 +3096,30 @@ html.dark .personal-container-body,html.dark .personal-container-body small{colo
 html.dark .modal,html.dark .task-list,html.dark .modal-head,html.dark .modal-backdrop.open .task-list input,html.dark .modal-backdrop.open .task-list select,html.dark .modal-backdrop.open .task-list textarea{background-color:#202020!important;color:#e9e9e7!important;border-color:#3b3b3b!important}
 html.dark input,html.dark select,html.dark textarea{color-scheme:dark}
 </style>
+
+<style class="adib-dark-canvas-single-tone">
+/* Keep the SVG plan and the surrounding app canvas on the same dark base. */
+html.dark #plan,html.dark .canvas-wrap #plan{background:#191919!important;border-color:#191919!important}
+html.dark #viewport>rect:first-child{fill:#191919!important;stroke:#303030!important}
+html.dark #viewport>rect:nth-child(2){fill:url(#grid)!important}
+html.dark #grid path{stroke:#303030!important}
+</style>
+
+<style class="adib-single-personal-grid-dark-mode-menu-fix">
+/* In My Tasks the pannable board has its own zoomed grid; never paint a second page-level grid beneath it. */
+body:has(#personalMode:not([hidden])){background-image:none!important}
+body:has(#personalMode:not([hidden])) #personalMode,
+body:has(#personalMode:not([hidden])) .personal-board-shell{background-image:none!important}
+body:has(#personalMode:not([hidden])) #personalBoard{background-image:linear-gradient(var(--notion-border) 1px,transparent 1px),linear-gradient(90deg,var(--notion-border) 1px,transparent 1px)!important;background-size:52px 52px!important}
+html.dark body:has(#personalMode:not([hidden])){background-color:#191919!important}
+html.dark body:has(#personalMode:not([hidden])) #personalMode,
+html.dark body:has(#personalMode:not([hidden])) .personal-board-shell{background-color:#191919!important}
+html.dark body:has(#personalMode:not([hidden])) #personalBoard{background-color:#191919!important;background-image:linear-gradient(rgba(230,230,230,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(230,230,230,.055) 1px,transparent 1px)!important;background-size:52px 52px!important}
+/* The light-menu skin is intentionally overridden only when dark theme is active. */
+html.dark #adibNavMenu.adib-nav-menu{background:#202020!important;border-color:#3b3b3b!important;color:#e9e9e7!important;box-shadow:0 16px 42px rgba(0,0,0,.48)!important}
+html.dark #adibNavMenu .adib-nav-menu-title{color:#a5a5a0!important}
+html.dark #adibNavMenu.adib-nav-menu button,html.dark #adibNavMenu.adib-nav-menu button b{background:transparent!important;color:#e9e9e7!important}
+html.dark #adibNavMenu.adib-nav-menu button small{color:#a5a5a0!important}
+html.dark #adibNavMenu.adib-nav-menu button:hover,html.dark #adibNavMenu.adib-nav-menu button.active{background:#34353b!important;color:#fff!important}
+html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavMenu.adib-nav-menu button[data-adib-nav-mode="matrix"]>span:first-child{color:#9c9fff!important}
+</style>
