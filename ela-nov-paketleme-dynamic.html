@@ -1808,7 +1808,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
   }
   function syncMiroTaskViewHeader(){
     const isMobile=useMiroMobileShell;
-    const modes=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')],active=modes[modes.length-1]||null;
+    const modes=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal,.modal-backdrop.open.kanban-modal')],active=modes[modes.length-1]||null;
     const header=document.querySelector('header.compact-top');
     if(!isMobile||!active){
       restoreMiroHeaderModeActions();
@@ -1818,7 +1818,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     if(!header)return;
     if(!header.__miroHomeParent){header.__miroHomeParent=header.parentNode;header.__miroHomeNext=header.nextSibling}
     if(header.parentNode!==document.body)document.body.appendChild(header);
-    if(!miroTaskViewHeaderObserver){miroTaskViewHeaderObserver=new MutationObserver(()=>syncMiroTaskViewHeader());miroTaskViewHeaderObserver.observe(document.body,{childList:true,subtree:true})}
+    if(!miroTaskViewHeaderObserver){miroTaskViewHeaderObserver=new MutationObserver(()=>syncMiroTaskViewHeader());miroTaskViewHeaderObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})}
     restoreMiroHeaderModeActions(active);
     if(active.classList.contains('personal-kanban-modal')){
       active.classList.add('miro-actions-in-header');
@@ -1826,6 +1826,9 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
       moveTaskViewActionToMiroHeader(active,'#personalKanbanFocus','Открыть доску контейнера','↗');
       addTaskViewToolbarButton(active,'Фильтры Kanban','▽',()=>document.getElementById('personalMobileFilterButton')?.click(),'kanban-filters');
       active.classList.add('miro-actions-in-header');
+    }else if(active.classList.contains('kanban-modal')){
+      active.classList.add('miro-actions-in-header');
+      moveTaskViewActionToMiroHeader(active,'#closeModal','Закрыть канбан','×');
     }
   }
   function moveTaskViewActionToMiroHeader(modal,selector,label,icon){
@@ -2590,9 +2593,9 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   bindMobileTap(document.getElementById('miroMobileMore'),()=>document.getElementById('adibNavCurrent')?.click());
   document.getElementById('miroMobileAi')?.addEventListener('click',()=>openAdibAiAssistant());
   document.getElementById('miroMobileTools')?.addEventListener('click',()=>{if(isPersonal())document.getElementById('adibNavCurrent')?.click();else document.getElementById('canvasActionsButton')?.click()});
-  document.getElementById('miroMobileAdd')?.addEventListener('click',()=>{if(isPersonal()){const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')].at(-1);if(mode?.classList.contains('personal-kanban-modal')){mode.querySelector('#personalKanbanNewTask')?.click();return}if(mode?.classList.contains('personal-eisenhower-modal')){mode.querySelector('.personal-eisenhower-add')?.click();return}document.getElementById('personalAddTask')?.click()}else document.getElementById('newCanvasTaskButton')?.click()});
+  document.getElementById('miroMobileAdd')?.addEventListener('click',()=>{const equipmentKanban=document.querySelector('.modal-backdrop.open.kanban-modal');if(equipmentKanban){document.getElementById('kanbanNewTask')?.click();return}if(isPersonal()){const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')].at(-1);if(mode?.classList.contains('personal-kanban-modal')){mode.querySelector('#personalKanbanNewTask')?.click();return}if(mode?.classList.contains('personal-eisenhower-modal')){mode.querySelector('.personal-eisenhower-add')?.click();return}document.getElementById('personalAddTask')?.click()}else document.getElementById('newCanvasTaskButton')?.click()});
   const title=document.getElementById('miroMobileTitle'),crumbs=document.getElementById('crumbs');
-  const syncTitle=()=>{if(!title)return;const set=value=>{if(title.textContent!==value)title.textContent=value};const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')].at(-1);if(mode?.classList.contains('personal-eisenhower-modal')){set(mode.querySelector('.personal-eisenhower-head h2')?.textContent?.trim()||'Матрица Эйзенхауэра');return}if(mode?.classList.contains('personal-kanban-modal')){set(mode.querySelector('.personal-kanban-title strong')?.textContent?.trim()||'Канбан задач');return}if(isPersonal()){set('Мои задачи');return}const current=crumbs?.querySelector('.crumb.current')?.textContent?.trim();set(current||'План оборудования')};
+  const syncTitle=()=>{if(!title)return;const set=value=>{if(title.textContent!==value)title.textContent=value};const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal,.modal-backdrop.open.kanban-modal')].at(-1);if(mode?.classList.contains('kanban-modal')){set(document.getElementById('modalTitle')?.textContent?.trim()||'Канбан задач');return}if(mode?.classList.contains('personal-eisenhower-modal')){set(mode.querySelector('.personal-eisenhower-head h2')?.textContent?.trim()||'Матрица Эйзенхауэра');return}if(mode?.classList.contains('personal-kanban-modal')){set(mode.querySelector('.personal-kanban-title strong')?.textContent?.trim()||'Канбан задач');return}if(isPersonal()){set('Мои задачи');return}const current=crumbs?.querySelector('.crumb.current')?.textContent?.trim();set(current||'План оборудования')};
   syncTitle();new MutationObserver(syncTitle).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&body.classList.contains('miro-personal-search-open')){body.classList.remove('miro-personal-search-open');document.getElementById('personalBoardSearchResults').hidden=true}});
   document.addEventListener('click',event=>{if(body.classList.contains('miro-personal-search-open')&&!event.target.closest('.personal-board-search-wrap')&&!event.target.closest('#miroMobileSearch'))body.classList.remove('miro-personal-search-open')});
@@ -2867,43 +2870,76 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
 @media (min-width:651px){
   /* On desktop, keep the board overview visible instead of paging one mobile-width column at a time. */
   .personal-kanban-modal .personal-kanban-board{
-    display:grid!important;
-    grid-template-columns:repeat(6,minmax(190px,1fr))!important;
-    grid-auto-flow:row!important;
-    grid-auto-columns:auto!important;
+    display:flex!important;
+    flex-flow:row nowrap!important;
+    grid-template-columns:none!important;
+    grid-auto-flow:column!important;
+    grid-auto-columns:300px!important;
     align-items:stretch!important;
     overflow-x:auto!important;
-    overflow-y:auto!important;
+    overflow-y:hidden!important;
     scroll-snap-type:none!important;
   }
   .personal-kanban-modal .personal-kanban-column{
-    flex:initial!important;
-    width:auto!important;
-    min-width:190px!important;
-    height:auto!important;
+    flex:0 0 300px!important;
+    width:300px!important;
+    min-width:300px!important;
+    height:100%!important;
     min-height:0!important;
-    max-height:none!important;
+    max-height:100%!important;
     overflow-x:hidden!important;
     overflow-y:auto!important;
     scroll-snap-align:none!important;
   }
   .modal-backdrop.open.kanban-modal .kanban-board{
-    display:grid!important;
-    grid-template-columns:repeat(4,minmax(220px,1fr))!important;
-    grid-auto-flow:row!important;
-    grid-auto-columns:auto!important;
+    display:flex!important;
+    flex-flow:row nowrap!important;
+    grid-template-columns:none!important;
+    grid-auto-flow:column!important;
+    grid-auto-columns:300px!important;
+    align-items:stretch!important;
     overflow-x:auto!important;
     overflow-y:hidden!important;
     scroll-snap-type:none!important;
   }
   .modal-backdrop.open.kanban-modal .kanban-column{
-    width:auto!important;
-    min-width:220px!important;
+    flex:0 0 300px!important;
+    width:300px!important;
+    min-width:300px!important;
     max-width:none!important;
     min-height:0!important;
     scroll-snap-align:none!important;
   }
 }
+</style>
+<style class="equipment-kanban-shared-miro-header">
+@media (min-width:0px){
+  header.compact-top{z-index:1500!important}
+  body:has(#taskModal.kanban-modal.open) .brandline h1{display:none!important}
+  body:has(#taskModal.kanban-modal.open) .brandline #miroMobileTitle{
+    display:block!important;visibility:visible!important;max-width:min(38vw,220px)!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+    color:#f7f7f9!important;font-size:13px!important;font-weight:600!important;
+  }
+  #taskModal.kanban-modal{
+    position:fixed!important;top:calc(var(--adib-safe-top) + 74px)!important;right:0!important;bottom:0!important;left:0!important;
+    z-index:140!important;display:flex!important;align-items:stretch!important;justify-content:stretch!important;
+    width:auto!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;
+    background:var(--notion-bg)!important;overflow:hidden!important;
+  }
+  #taskModal.kanban-modal>.modal{
+    display:flex!important;flex-direction:column!important;flex:1 1 auto!important;
+    width:100%!important;height:100%!important;min-height:0!important;max-width:none!important;max-height:none!important;
+    margin:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;
+  }
+  #taskModal.kanban-modal>.modal>.modal-head{display:none!important}
+  #taskModal.kanban-modal>.modal>.task-list{
+    display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;
+    width:100%!important;height:100%!important;max-height:none!important;overflow:hidden!important;
+  }
+  #taskModal.kanban-modal.miro-actions-in-header #kanbanNewTask{display:none!important}
+}
+@media (min-width:651px){body:has(#taskModal.kanban-modal.open) .brandline #miroMobileTitle{color:#202127!important}}
 </style>
 </body>
 </html>
