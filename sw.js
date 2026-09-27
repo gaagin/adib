@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v16-canvas-context-menu';
+const CACHE_NAME = 'adib-pwa-v8-back-button-open-modal';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
