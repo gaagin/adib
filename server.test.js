@@ -69,7 +69,7 @@ test('the Android mobile mode menu stays open after tapping its More button', as
   assert.match(html, /adib-native-android/);
   assert.doesNotMatch(html, /data-adib-nav-mode="search" role="menuitem"/);
   assert.match(html, /miro-header-persistent-in-kanban-matrix/);
-  assert.match(html, /@media\(max-width:1100px\), \(pointer:coarse\) and \(orientation:portrait\)\{\s*\n  :root\{--miro-mobile-ink/);
+  assert.match(html, /@media\(max-width:1100px\), \(orientation:portrait\)\{\s*\n  :root\{--miro-mobile-ink/);
   assert.match(html, /#mobileNav\{display:none!important\}/);
   assert.match(html, /\.personal-kanban-modal,\.personal-eisenhower-modal\{\s*z-index:140!important/);
   assert.match(html, /syncMiroTaskViewHeader/);

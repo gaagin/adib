@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v5-mobile-toolbar-responsive';
+const CACHE_NAME = 'adib-pwa-v6-portrait-responsive';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
