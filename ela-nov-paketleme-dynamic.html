@@ -1918,7 +1918,7 @@ function adibNavigate(mode){
 }
 function installAdibNavigationHub(){
   if(document.getElementById('adibNavDock'))return;
-  const dock=document.createElement('aside');dock.id='adibNavDock';dock.className='adib-nav-dock';dock.innerHTML='<button type="button" id="adibNavCurrent" class="adib-nav-current" aria-expanded="false" aria-controls="adibNavMenu"><span class="adib-nav-current-icon">↔</span><span id="adibNavCurrentLabel">Навигация</span><span class="adib-nav-chevron">⌄</span></button><div id="adibNavMenu" class="adib-nav-menu" role="menu"><div class="adib-nav-menu-title">Перейти в режим</div><button type="button" data-adib-nav-mode="board" role="menuitem"><span>▦</span><span><b>Холст оборудования</b><small>Планы и оборудование</small></span></button><button type="button" data-adib-nav-mode="personal" role="menuitem"><span>✓</span><span><b>Мои задачи</b><small>Личный холст</small></span></button><button type="button" data-adib-nav-mode="kanban" role="menuitem"><span>▤</span><span><b>Канбан задач</b><small>Список по колонкам</small></span></button><button type="button" data-adib-nav-mode="matrix" role="menuitem"><span>▦</span><span><b>Матрица Эйзенхауэра</b><small>Срочность и важность</small></span></button><button type="button" data-adib-nav-mode="search" role="menuitem"><span>⌕</span><span><b>Поиск</b><small>Быстрый переход к элементу</small></span></button><button type="button" data-adib-ai-open="1" role="menuitem"><span>✦</span><span><b>AI-помощник Gemini</b><small>Команды и анализ задач</small></span></button></div>';
+  const dock=document.createElement('aside');dock.id='adibNavDock';dock.className='adib-nav-dock';dock.innerHTML='<button type="button" id="adibNavCurrent" class="adib-nav-current" aria-expanded="false" aria-controls="adibNavMenu"><span class="adib-nav-current-icon">↔</span><span id="adibNavCurrentLabel">Навигация</span><span class="adib-nav-chevron">⌄</span></button><div id="adibNavMenu" class="adib-nav-menu" role="menu"><div class="adib-nav-menu-title">Перейти в режим</div><button type="button" data-adib-nav-mode="board" role="menuitem"><span>▦</span><span><b>Холст оборудования</b><small>Планы и оборудование</small></span></button><button type="button" data-adib-nav-mode="personal" role="menuitem"><span>✓</span><span><b>Мои задачи</b><small>Личный холст</small></span></button><button type="button" data-adib-nav-mode="kanban" role="menuitem"><span>▤</span><span><b>Канбан задач</b><small>Список по колонкам</small></span></button><button type="button" data-adib-nav-mode="matrix" role="menuitem"><span>▦</span><span><b>Матрица Эйзенхауэра</b><small>Срочность и важность</small></span></button><button type="button" data-adib-ai-open="1" role="menuitem"><span>✦</span><span><b>AI-помощник Gemini</b><small>Команды и анализ задач</small></span></button></div>';
   document.body.appendChild(dock);
   const current=dock.querySelector('#adibNavCurrent');current.onclick=()=>{const open=dock.classList.toggle('open');current.setAttribute('aria-expanded',String(open))};
   dock.querySelectorAll('[data-adib-nav-mode]').forEach(button=>button.onclick=()=>adibNavigate(button.dataset.adibNavMode));
@@ -2798,6 +2798,25 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
   .canvas-zoom-controls{display:none!important;visibility:hidden!important;pointer-events:none!important}
   #centerCurrentCanvasButton{position:fixed!important;z-index:170!important;right:12px!important;bottom:calc(16px + var(--adib-safe-bottom))!important;display:grid!important;place-items:center!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important}
   .miro-mobile-actions #miroMobileAdd{display:grid!important;visibility:visible!important}
+}
+</style>
+<style class="miro-header-persistent-in-kanban-matrix">
+@media(max-width:650px){
+  /* Keep the shared Miro-style app toolbar visible in both task views. */
+  .personal-kanban-modal,.personal-eisenhower-modal{
+    z-index:140!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    padding:calc(var(--adib-safe-top) + 74px) 0 0!important;
+  }
+  .personal-kanban-dialog,.personal-eisenhower-dialog{
+    width:100vw!important;
+    height:calc(100dvh - var(--adib-safe-top) - 74px)!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:0!important;
+    border-radius:0!important;
+  }
 }
 </style>
 </body>
