@@ -1548,10 +1548,10 @@ const layoutEl=document.getElementById('layout'),treePanel=document.getElementBy
   }
   function personalTaskPosition(task,index){const saved=personalLayout.tasks[task.id];if(saved)return saved;const pos={x:35+(index%5)*250,y:35+Math.floor(index/5)*145,width:220,height:105,containerId:null,order:Number.isFinite(Number(task.order))?Number(task.order):index};personalLayout.tasks[task.id]=pos;return pos}
   function personalContainerPosition(container,index){return container}
-  function containerById(id){return personalLayout.containers.find(item=>item.id===id)}
+  function containerById(id){return personalLayout.containers.find(item=>String(item.id)===String(id))}
   function personalContainerHasUrgent(containerId,seen=new Set()){if(!containerId||seen.has(containerId))return false;seen.add(containerId);if(personalTasks.some(task=>taskPriorityIsUrgent(task)&&personalLayout.tasks[task.id]?.containerId===containerId))return true;return personalLayout.containers.some(child=>child.parentId===containerId&&personalContainerHasUrgent(child.id,seen))}
-  function personalContainerDescendants(id){const result=[];for(const item of personalLayout.containers.filter(item=>item.parentId===id)){result.push(item.id,...personalContainerDescendants(item.id))}return result}
-  function personalTasksForContainer(id){const ids=new Set([id,...personalContainerDescendants(id)]);return personalTasks.filter(task=>ids.has(personalLayout.tasks[task.id]?.containerId||task.containerId))}
+  function personalContainerDescendants(id){const result=[];for(const item of personalLayout.containers.filter(item=>String(item.parentId||'')===String(id||''))){result.push(item.id,...personalContainerDescendants(item.id))}return result}
+  function personalTasksForContainer(id){const ids=new Set([id,...personalContainerDescendants(id)].map(value=>String(value)));return personalTasks.filter(task=>ids.has(String(personalLayout.tasks[task.id]?.containerId??task.containerId??'')))}
   function canNestContainer(id,parentId){if(!parentId||id===parentId)return false;return !personalContainerDescendants(id).includes(parentId)}
   const PERSONAL_CANVAS_GROW_STEP=2400;let personalCanvasOriginX=2400,personalCanvasOriginY=2400,personalBoardExpanding=false,personalBoardMaxWidth=4800,personalBoardMaxHeight=4800;
   function personalBoardElements(){return personalBoard?.querySelectorAll('[data-personal-container],[data-personal-task]')||[]}
@@ -2620,6 +2620,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   const headerRefreshButton=document.getElementById('miroMobileRefresh');
   bindMobileTap(headerRefreshButton,async()=>{if(!headerRefreshButton||headerRefreshButton.dataset.refreshing==='1')return;headerRefreshButton.dataset.refreshing='1';headerRefreshButton.setAttribute('aria-busy','true');try{if(isPersonal()||document.querySelector('.personal-eisenhower-modal')){await window.__refreshPersonalTasks?.();[...document.querySelectorAll('.personal-kanban-modal')].at(-1)?.__refreshFromTasks?.();document.querySelector('.personal-eisenhower-modal')?.__refreshFromTasks?.()}else await window.__refreshEquipmentData?.()}finally{headerRefreshButton.dataset.refreshing='0';headerRefreshButton.setAttribute('aria-busy','false');window.__updateHeaderModeButtons?.()}});
   const currentPersonalKanban=()=>document.querySelector('.personal-kanban-modal');
+  const navigatePersonalContainerUp=()=>{if(!personalFocusContainerId)return false;const focused=personalLayout.containers.find(item=>String(item.id)===String(personalFocusContainerId));const parentId=focused?.parentId,parent=parentId?personalLayout.containers.find(item=>String(item.id)===String(parentId)):null;if(parent)setPersonalFocus(parent.id);else clearPersonalFocus();return true};
   const currentEquipmentKanban=()=>document.querySelector('.modal-backdrop.open.kanban-modal');
   const updateHeaderModeButtons=()=>{
     const personalKanban=currentPersonalKanban(),equipmentKanban=currentEquipmentKanban(),matrix=document.querySelector('.personal-eisenhower-modal'),personal=isPersonal();
@@ -2661,7 +2662,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     }
     const matrix=document.querySelector('.personal-eisenhower-modal');if(matrix){matrix.querySelector('.personal-eisenhower-close')?.click();updateHeaderModeButtons();return}
     const taskModal=document.getElementById('taskModal');if(currentEquipmentKanban()||taskModal?.classList.contains('open')){document.getElementById('closeModal')?.click();updateHeaderModeButtons();return}
-    const personalMode=document.getElementById('personalMode');if(personalMode&&!personalMode.hidden){if(personalFocusContainerId){const focused=personalLayout.containers.find(item=>String(item.id)===String(personalFocusContainerId));if(focused?.parentId)setPersonalFocus(focused.parentId);else clearPersonalFocus()}else adibNavigate('board');updateHeaderModeButtons();return}
+    const personalMode=document.getElementById('personalMode');if(personalMode&&!personalMode.hidden){if(personalFocusContainerId)navigatePersonalContainerUp();else adibNavigate('board');updateHeaderModeButtons();return}
     const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(current?.parentId){if(adibHistoryReady&&!adibHistoryHandling)history.back();else adibNavigatePlan(current.parentId,false)}updateHeaderModeButtons()
   });
   document.getElementById('personalModeButton')?.addEventListener('click',()=>setTimeout(updateHeaderModeButtons,0));document.getElementById('personalMobileButton')?.addEventListener('click',()=>setTimeout(updateHeaderModeButtons,0));document.getElementById('personalModeCanvasButton')?.addEventListener('click',()=>setTimeout(updateHeaderModeButtons,0));
