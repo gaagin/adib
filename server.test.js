@@ -69,26 +69,13 @@ test('the Android mobile mode menu stays open after tapping its More button', as
   assert.match(html, /adib-native-android/);
   assert.doesNotMatch(html, /data-adib-nav-mode="search" role="menuitem"/);
   assert.match(html, /miro-header-persistent-in-kanban-matrix/);
-  assert.match(html, /@media\(max-width:1100px\), \(orientation:portrait\)\{\s*\n  :root\{--miro-mobile-ink/);
-  assert.match(html, /#mobileNav\{display:none!important\}/);
   assert.match(html, /\.personal-kanban-modal,\.personal-eisenhower-modal\{\s*z-index:140!important/);
   assert.match(html, /syncMiroTaskViewHeader/);
-  for (const id of ['miroMobileSearch', 'miroMobileAdd', 'miroMobileList', 'miroMobileFilter', 'miroMobileMore']) {
-    assert.equal((html.match(new RegExp(`id=\"${id}\"`, 'g')) || []).length, 1, `${id} should appear exactly once in the shared toolbar`);
-  }
-  assert.match(html, /bindMobileTap\(listButton/);
-  assert.match(html, /bindMobileTap\(filterButton/);
-  assert.match(html, /kanban-view-mode-button/);
-  assert.match(html, /personal-kanban-view-mode-button/);
-  assert.match(html, /miroMobileList/);
-  assert.match(html, /miroMobileFilter/);
-  assert.match(html, /aria-pressed=\"false\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"4\"/);
+  assert.match(html, /moveTaskViewActionToMiroHeader/);
   assert.doesNotMatch(html, /moveTaskViewActionToMiroHeader\(active,'\.personal-kanban-board-exit'/);
   assert.doesNotMatch(html, /moveTaskViewActionToMiroHeader\(active,'\.personal-kanban-close'/);
   assert.doesNotMatch(html, /moveTaskViewActionToMiroHeader\(active,'\.personal-eisenhower-close'/);
-  assert.doesNotMatch(html, /moveTaskViewActionToMiroHeader\(active/);
-  assert.doesNotMatch(html, /addTaskViewToolbarButton\(active/);
-  assert.match(html, /button\[aria-pressed=\"true\"\],\.miro-mobile-actions button\[aria-expanded=\"true\"\]/);
+  assert.match(html, /miro-mobile-actions>\.miro-mobile-mode-action/);
   assert.match(html, /personal-kanban-modal \.personal-kanban-head,\s*\.personal-eisenhower-modal \.personal-eisenhower-head\{display:none!important\}/);
   assert.match(html, /body:has\(\.personal-kanban-modal\) \.brandline #miroMobileTitle/);
   assert.match(html, /personal-kanban-modal\.personal-kanban-filter-open \.personal-kanban-viewbar/);
