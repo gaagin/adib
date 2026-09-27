@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v8-back-button-open-modal';
+const CACHE_NAME = 'adib-pwa-v14-personal-grid-menu-dark';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

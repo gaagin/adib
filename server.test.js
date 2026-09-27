@@ -176,7 +176,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v8-back-button-open-modal/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v14-personal-grid-menu-dark/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -212,6 +212,59 @@ test('the Android mobile mode menu stays open after tapping its More button', as
   assert.match(html, /personal-kanban-modal \.personal-kanban-head,\s*\.personal-eisenhower-modal \.personal-eisenhower-head\{display:none!important\}/);
   assert.match(html, /body:has\(\.personal-kanban-modal\) \.brandline #miroMobileTitle/);
   assert.match(html, /personal-kanban-modal\.personal-kanban-filter-open \.personal-kanban-viewbar/);
+});
+
+
+test('right-clicking empty space in either Kanban opens the grouping picker', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /contextmenu',event=>/);
+  assert.match(html, /\.personal-kanban-modal \.personal-kanban-board,#taskModal\.kanban-modal \.kanban-board/);
+  assert.match(html, /personalBoard\?\.querySelector\('#personalKanbanGroupBy'\)\|\|document\.querySelector\('#taskModal\.kanban-modal #kanbanGroupBy'\)/);
+  assert.match(html, /adibKanbanGroupingContextMenu/);
+  assert.match(html, /role=\"menuitemradio\"/);
+  assert.match(html, /grouping\.dispatchEvent\(new Event\('change',\{bubbles:true\}\)\)/);
+  assert.match(html, /event\.preventDefault\(\);event\.stopPropagation\(\)/);
+});
+
+
+test('the ADIB brand button opens extensible settings with theme and comment author controls', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /id="adibSettingsButton"[^>]*aria-controls="adibSettingsMenu"/);
+  assert.match(html, /id="adibSettingsMenu"[^>]*hidden/);
+  assert.match(html, /id="adibSettingsThemeHost"/);
+  assert.match(html, /id="adibSettingsUserHost"/);
+  assert.match(html, /id="adibSettingsAdditionalItems"/);
+  assert.match(html, /settingsThemeHost\.appendChild\(themeControl\)/);
+  assert.match(html, /settingsUserHost\.appendChild\(userControl\)/);
+  assert.match(html, /settingsButton\?\.addEventListener\('click'/);
+  assert.match(html, /button\.textContent=dark\?'☀ Светлая тема':'☾ Тёмная тема'/);
+});
+
+
+test('dark theme colors the shared header, canvas, matrix, and Kanban surfaces', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /html\.dark header\.compact-top\{background:#202020!important;color:#e9e9e7!important/);
+  assert.match(html, /html\.dark body\{background-image:linear-gradient\(rgba\(230,230,230,\.055\)/);
+  assert.match(html, /html\.dark \.personal-eisenhower-dialog,html\.dark \.personal-eisenhower-head/);
+  assert.match(html, /html\.dark \.personal-kanban-dialog,html\.dark \.personal-kanban-head/);
+  assert.match(html, /html\.dark \.kanban-board,html\.dark \.kanban-column/);
+});
+
+
+test('dark equipment canvas uses the same base tone inside and outside the SVG', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /html\.dark #plan,html\.dark \.canvas-wrap #plan\{background:#191919!important/);
+  assert.match(html, /html\.dark #viewport>rect:first-child\{fill:#191919!important/);
+  assert.match(html, /html\.dark #grid path\{stroke:#303030!important/);
+});
+
+
+test('My Tasks canvas draws one zoom-aware grid and dark mode menu stays dark', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.ok(html.includes('body:has(#personalMode:not([hidden])){background-image:none!important}'));
+  assert.ok(html.includes('body:has(#personalMode:not([hidden])) #personalBoard{background-image:linear-gradient'));
+  assert.ok(html.includes('html.dark #adibNavMenu.adib-nav-menu{background:#202020!important'));
+  assert.ok(html.includes('html.dark #adibNavMenu.adib-nav-menu button:hover,html.dark #adibNavMenu.adib-nav-menu button.active{background:#34353b!important'));
 });
 
 test('the PWA manifest exposes the quick-add task shortcut', async () => {
