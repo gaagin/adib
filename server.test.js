@@ -61,6 +61,96 @@ test('the app shell is served with security headers', async () => {
   assert.match(await response.text(), /Ela Nov Paketleme|ADIB/i);
 });
 
+test('the selected mobile Miro shell is used on desktop too', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /<style class="miro-mobile-workspace-skin">\s*@media \(min-width:0px\)/);
+  assert.match(html, /<style class="miro-mobile-shell-all-viewports">[\s\S]*?\.canvas-toolbar\{display:none!important\}/);
+  assert.match(html, /const useMiroMobileShell=true/);
+  assert.match(html, /const mobileSearchMedia=window\.matchMedia\('\(min-width:0px\)'\)/);
+  assert.doesNotMatch(html, /class="miro-workspace-skin">\s*@media/);
+});
+
+test('Kanban columns stay in one horizontal row on desktop', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /desktop-kanban-multicolumn-fix/);
+  assert.match(html, /\.personal-kanban-modal \.personal-kanban-board\{\s*display:flex!important;\s*flex-flow:row nowrap!important;/);
+  assert.match(html, /\.personal-kanban-modal \.personal-kanban-column\{\s*flex:0 0 300px!important/);
+  assert.match(html, /\.modal-backdrop\.open\.kanban-modal \.kanban-board\{\s*display:flex!important;\s*flex-flow:row nowrap!important;/);
+  assert.match(html, /\.modal-backdrop\.open\.kanban-modal \.kanban-column\{\s*flex:0 0 300px!important/);
+});
+
+test('the shared toolbar is light on desktop and includes hierarchy back', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /class="miro-mobile-actions"[^>]*><button id="backHierarchy"[^>]*title="Подняться на уровень выше"/);
+  assert.doesNotMatch(html, /class="canvas-toolbar"><button id="backHierarchy"/);
+  assert.match(html, /class="desktop-service-light-toolbar"/);
+  assert.match(html, /\.compact-top\{[\s\S]*?background:#fff!important/);
+  assert.match(html, /document\.getElementById\('backHierarchy'\)\.onclick=/);
+  assert.match(html, /if\(!current\?\.parentId\)return;state\.currentPlan=current\.parentId/);
+});
+
+test('equipment Kanban uses the shared toolbar instead of its separate heading', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /\.personal-eisenhower-modal,\.modal-backdrop\.open\.kanban-modal/);
+  assert.match(html, /moveTaskViewActionToMiroHeader\(active,'#closeModal','Закрыть канбан','×'\)/);
+  assert.match(html, /body:has\(#taskModal\.kanban-modal\.open\) \.brandline #miroMobileTitle/);
+  assert.match(html, /#taskModal\.kanban-modal>\.modal>\.modal-head\{display:none!important\}/);
+  assert.match(html, /#taskModal\.kanban-modal\.miro-actions-in-header #kanbanNewTask\{display:none!important\}/);
+  assert.match(html, /equipmentKanban\)\{document\.getElementById\('kanbanNewTask'\)\?\.click\(\);return\}/);
+});
+
+test('choosing Kanban waits for personal tasks and keeps its board open', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /else if\(mode==='kanban'\)\{adibCloseNavigationOverlays\(\);Promise\.resolve\(setPersonalMode\(true\)\)\.then/);
+  assert.match(html, /if\(!document\.querySelector\('\.personal-kanban-modal'\)\)\{openPersonalKanbanTool\(\);syncMiroTaskViewHeader\(\)\}/);
+  assert.match(html, /const adibProgrammaticHashes=new Set\(\)/);
+  assert.match(html, /if\(changedHash&&adibProgrammaticHashes\.has\(changedHash\)\)\{adibProgrammaticHashes\.delete\(changedHash\);return\}/);
+});
+
+test('navigation from equipment Kanban clears both backdrop and inner Kanban state', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /taskModal\.classList\.remove\('open','kanban-modal'\)/);
+  assert.match(html, /taskModal\.querySelector\('\.modal'\)\?\.classList\.remove\('kanban-modal'\)/);
+  assert.match(html, /delete taskModal\.dataset\.planBoardId/);
+});
+
+test('Kanban mode avoids page-wide mutation observer loops and refreshes shared controls directly', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.doesNotMatch(html, /miroTaskViewHeaderObserver\.observe\(document\.body/);
+  assert.doesNotMatch(html, /new MutationObserver\(syncTitle\)\.observe\(document\.body/);
+  assert.match(html, /miroTaskViewHeaderSyncing/);
+  assert.match(html, /window\.__syncMiroTaskViewHeader=syncMiroTaskViewHeader/);
+});
+
+test('Kanban rendering is bounded and extra tasks can be loaded incrementally', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /renderLimit=240/);
+  assert.match(html, /visibleTasksForRender=filtered\.slice\(0,renderLimit\)/);
+  assert.match(html, /loadMoreButton\.addEventListener\('click',\(\)=>\{renderLimit\+=240;render\(\)\}\)/);
+  assert.match(html, /kanbanRenderLimit=240/);
+  assert.match(html, /kanbanLoadMore\.onclick=\(\)=>\{kanbanRenderLimit\+=240;renderKanban\(machine\)\}/);
+});
+
+test('Escape cancels an active canvas drag or undoes its last completed move', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /let lastCanvasUndo=null/);
+  assert.match(html, /function cancelActiveCanvasEdit\(\)/);
+  assert.match(html, /function undoLastCanvasAction\(\)/);
+  assert.match(html, /function handleCanvasEscapeUndo\(event\)/);
+  assert.match(html, /document\.addEventListener\('keydown',handleCanvasEscapeUndo,true\)/);
+  assert.match(html, /lastCanvasUndo=\{id:a\.id,kind:drag\.kind,before:\{\.\.\.before\}/);
+  assert.match(html, /showCanvasUndoToast\('Последнее действие отменено'\)/);
+});
+
 test('the Android mobile mode menu stays open after tapping its More button', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
@@ -68,6 +158,8 @@ test('the Android mobile mode menu stays open after tapping its More button', as
   assert.match(html, /\.adib-nav-dock\.open #adibNavMenu\{display:grid!important/);
   assert.match(html, /adib-native-android/);
   assert.doesNotMatch(html, /data-adib-nav-mode="search" role="menuitem"/);
+  assert.doesNotMatch(html, /data-adib-nav-mode="kanban" role="menuitem"/);
+  assert.doesNotMatch(html, /data-adib-ai-open="1" role="menuitem"/);
   assert.match(html, /miro-header-persistent-in-kanban-matrix/);
   assert.match(html, /\.personal-kanban-modal,\.personal-eisenhower-modal\{\s*z-index:140!important/);
   assert.match(html, /syncMiroTaskViewHeader/);

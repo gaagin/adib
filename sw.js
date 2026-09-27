@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v4-quick-add';
+const CACHE_NAME = 'adib-pwa-v5-kanban-render';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
