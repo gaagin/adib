@@ -1959,8 +1959,20 @@ document.getElementById('personalAddContainer')?.addEventListener('click',()=>cr
 /* Unified navigation hub: one predictable way to switch between the main modes. */
 function adibCloseNavigationOverlays(){
   document.querySelectorAll('.personal-eisenhower-modal,.personal-kanban-modal').forEach(modal=>modal.remove());
-  document.querySelectorAll('.modal-backdrop.open.kanban-modal').forEach(modal=>{modal.classList.remove('open');delete modal.dataset.planBoardId;delete modal.dataset.machineId});
-  const taskModal=document.getElementById('taskModal');if(taskModal?.classList.contains('open'))taskModal.classList.remove('open');
+  /* Kanban adds its state class to both the backdrop and the inner modal. Clear both,
+     even if a previous view left only one of them marked as open. */
+  const taskModal=document.getElementById('taskModal');
+  if(taskModal){
+    taskModal.classList.remove('open','kanban-modal');
+    taskModal.querySelector('.modal')?.classList.remove('kanban-modal');
+    delete taskModal.dataset.planBoardId;
+    delete taskModal.dataset.machineId;
+  }
+  document.querySelectorAll('.modal-backdrop.open.kanban-modal').forEach(modal=>{
+    modal.classList.remove('open','kanban-modal');
+    modal.querySelector('.modal')?.classList.remove('kanban-modal');
+    delete modal.dataset.planBoardId;delete modal.dataset.machineId;
+  });
   const entityModal=document.getElementById('entityModal');if(entityModal?.classList.contains('open'))entityModal.classList.remove('open');
   document.getElementById('globalContextMenu')?.setAttribute('hidden','');
 }
