@@ -1582,8 +1582,42 @@ function collectPersonalPageBlocks(root){const canvas=root.querySelector('.notio
     setTimeout(()=>document.getElementById('personalEditTitle')?.focus(),0)
   }
   function applyPersonalZoom(){if(personalBoard)personalBoard.style.zoom=String(personalZoom);const label=document.getElementById('personalZoomLabel');if(label)label.textContent=Math.round(personalZoom*100)+'%'}
-  function setPersonalZoom(value){personalZoom=Math.max(.2,Math.min(2,Math.round(value*20)/20));applyPersonalZoom()}
-  function installPersonalPinchZoom(){const shell=personalBoard?.closest('.personal-board-shell');if(!shell||shell.dataset.personalPinchZoom==='1')return;shell.dataset.personalPinchZoom='1';let pinch=null;const distance=touches=>Math.hypot(touches[1].clientX-touches[0].clientX,touches[1].clientY-touches[0].clientY),center=touches=>({x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2});shell.addEventListener('touchstart',event=>{if(!document.getElementById('personalMode')?.hidden)personalBoard.dataset.userInteracted='1';if(event.touches.length!==2)return;const box=shell.getBoundingClientRect(),mid=center(event.touches),zoom=personalZoom;pinch={startDistance:Math.max(1,distance(event.touches)),startZoom:zoom,worldX:(mid.x-box.left+shell.scrollLeft)/zoom,worldY:(mid.y-box.top+shell.scrollTop)/zoom};event.preventDefault()},{passive:false});shell.addEventListener('touchmove',event=>{if(!pinch||event.touches.length!==2)return;const box=shell.getBoundingClientRect(),mid=center(event.touches),nextZoom=Math.max(.2,Math.min(2,Math.round(pinch.startZoom*(distance(event.touches)/pinch.startDistance)*20)/20));setPersonalZoom(nextZoom);shell.scrollLeft=Math.max(0,pinch.worldX*nextZoom-(mid.x-box.left));shell.scrollTop=Math.max(0,pinch.worldY*nextZoom-(mid.y-box.top));event.preventDefault()},{passive:false});const endPinch=event=>{if(!event.touches||event.touches.length<2)pinch=null};shell.addEventListener('touchend',endPinch,{passive:false});shell.addEventListener('touchcancel',endPinch,{passive:false})}
+  function setPersonalZoom(value){personalZoom=Math.max(.2,Math.min(2,Math.round(value*1000)/1000));applyPersonalZoom()}
+  function installPersonalPinchZoom(){
+    const shell=personalBoard?.closest('.personal-board-shell');if(!shell||shell.dataset.personalPinchZoom==='1')return;shell.dataset.personalPinchZoom='1';
+    let pinch=null,pending=null,frame=0;
+    const distance=touches=>Math.hypot(touches[1].clientX-touches[0].clientX,touches[1].clientY-touches[0].clientY);
+    const center=touches=>({x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2});
+    const applyPending=()=>{
+      frame=0;if(!pinch||!pending)return;
+      const {distance:currentDistance,mid}=pending;pending=null;
+      const box=shell.getBoundingClientRect();
+      const nextZoom=Math.max(.2,Math.min(2,pinch.startZoom*(currentDistance/pinch.startDistance)));
+      setPersonalZoom(nextZoom);
+      shell.scrollLeft=Math.max(0,pinch.worldX*nextZoom-(mid.x-box.left));
+      shell.scrollTop=Math.max(0,pinch.worldY*nextZoom-(mid.y-box.top));
+    };
+    shell.addEventListener('touchstart',event=>{
+      if(!document.getElementById('personalMode')?.hidden)personalBoard.dataset.userInteracted='1';
+      if(event.touches.length!==2)return;
+      const box=shell.getBoundingClientRect(),mid=center(event.touches),zoom=personalZoom;
+      pinch={startDistance:Math.max(1,distance(event.touches)),startZoom:zoom,worldX:(mid.x-box.left+shell.scrollLeft)/zoom,worldY:(mid.y-box.top+shell.scrollTop)/zoom};
+      event.preventDefault();
+    },{passive:false});
+    shell.addEventListener('touchmove',event=>{
+      if(!pinch||event.touches.length!==2)return;
+      pending={distance:distance(event.touches),mid:center(event.touches)};
+      if(!frame)frame=requestAnimationFrame(applyPending);
+      event.preventDefault();
+    },{passive:false});
+    const endPinch=event=>{
+      if(!event.touches||event.touches.length<2){
+        if(frame){cancelAnimationFrame(frame);frame=0}applyPending();pinch=null;pending=null;
+      }
+    };
+    shell.addEventListener('touchend',endPinch,{passive:false});
+    shell.addEventListener('touchcancel',endPinch,{passive:false});
+  }
   installPersonalPinchZoom();
   function installPersonalMousePan(){
     const shell=personalBoard?.closest('.personal-board-shell');if(!shell||shell.dataset.personalMousePan==='1')return;shell.dataset.personalMousePan='1';let pan=null;
@@ -2579,11 +2613,25 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 (()=>{
   const personalMode=document.getElementById('personalMode'),body=document.body;
   const isPersonal=()=>Boolean(personalMode&&!personalMode.hidden);
+  const bindMobileTap=(button,action)=>{
+    if(!button)return;
+    let ignoreClickBefore=0;
+    button.addEventListener('pointerup',event=>{
+      if(event.pointerType!=='touch')return;
+      ignoreClickBefore=performance.now()+800;
+      event.stopPropagation();
+      action(event);
+    },{passive:true});
+    button.addEventListener('click',event=>{
+      if(performance.now()<ignoreClickBefore){event.preventDefault();event.stopPropagation();return}
+      action(event);
+    });
+  };
   const mobileSearchButton=document.getElementById('miroMobileSearch');
-  mobileSearchButton?.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();if(isPersonal()){const modal=document.querySelector('.personal-kanban-modal');if(modal)document.getElementById('personalMobileSearchButton')?.click();else{body.classList.add('miro-personal-search-open');document.getElementById('personalBoardSearch')?.focus({preventScroll:true})}return}setMobileMode('search')});
+  bindMobileTap(mobileSearchButton,()=>{if(isPersonal()){const modal=document.querySelector('.personal-kanban-modal');if(modal)document.getElementById('personalMobileSearchButton')?.click();else{body.classList.add('miro-personal-search-open');document.getElementById('personalBoardSearch')?.focus({preventScroll:true})}return}setMobileMode('search')});
   document.getElementById('miroMobileInfo')?.addEventListener('click',()=>{if(isPersonal()){document.getElementById('personalMobileFilterButton')?.click();return}const layout=document.getElementById('layout');setMobileMode(layout?.classList.contains('mobile-inspector-mode')?'canvas':'inspector')});
   document.getElementById('miroMobileShare')?.addEventListener('click',()=>document.getElementById('copyCanvasLink')?.click());
-  document.getElementById('miroMobileMore')?.addEventListener('click',()=>document.getElementById('adibNavCurrent')?.click());
+  bindMobileTap(document.getElementById('miroMobileMore'),()=>document.getElementById('adibNavCurrent')?.click());
   document.getElementById('miroMobileAi')?.addEventListener('click',()=>openAdibAiAssistant());
   document.getElementById('miroMobileTools')?.addEventListener('click',()=>{if(isPersonal())document.getElementById('adibNavCurrent')?.click();else document.getElementById('canvasActionsButton')?.click()});
   document.getElementById('miroMobileAdd')?.addEventListener('click',()=>{if(isPersonal())document.getElementById('personalAddTask')?.click();else document.getElementById('newCanvasTaskButton')?.click()});
