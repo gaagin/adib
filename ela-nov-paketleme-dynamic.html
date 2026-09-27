@@ -1796,6 +1796,52 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     if(groupBy==='assignee')changes.assignees=group==='Без исполнителя'?[]:[group];
     updatePersonalTask(task.id,changes,rerender)
   }
+  let miroTaskViewHeaderObserver=null;
+  function restoreMiroHeaderModeActions(keepModal=null){
+    const header=document.querySelector('header.compact-top');if(!header)return;
+    header.querySelectorAll('.miro-mobile-mode-action').forEach(button=>{
+      if(button.__miroModeOwner===keepModal)return;
+      const parent=button.__miroModeParent,next=button.__miroModeNext;
+      if(parent?.isConnected)parent.insertBefore(button,next?.parentNode===parent?next:null);else button.remove();
+      button.classList.remove('miro-mobile-mode-action');delete button.__miroModeOwner;delete button.__miroModeParent;delete button.__miroModeNext;
+    });
+  }
+  function syncMiroTaskViewHeader(){
+    const isMobile=window.matchMedia('(max-width:650px)').matches;
+    const modes=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')],active=modes[modes.length-1]||null;
+    const header=document.querySelector('header.compact-top');
+    if(!isMobile||!active){
+      restoreMiroHeaderModeActions();
+      if(header?.__miroHomeParent){const parent=header.__miroHomeParent,next=header.__miroHomeNext;if(parent?.isConnected&&header.parentNode!==parent)parent.insertBefore(header,next?.parentNode===parent?next:null);delete header.__miroHomeParent;delete header.__miroHomeNext}
+      return;
+    }
+    if(!header)return;
+    if(!header.__miroHomeParent){header.__miroHomeParent=header.parentNode;header.__miroHomeNext=header.nextSibling}
+    if(header.parentNode!==document.body)document.body.appendChild(header);
+    if(!miroTaskViewHeaderObserver){miroTaskViewHeaderObserver=new MutationObserver(()=>syncMiroTaskViewHeader());miroTaskViewHeaderObserver.observe(document.body,{childList:true,subtree:true})}
+    restoreMiroHeaderModeActions(active);
+    if(active.classList.contains('personal-kanban-modal')){
+      active.classList.add('miro-actions-in-header');
+      moveTaskViewActionToMiroHeader(active,'.personal-kanban-view-mode-button','Переключить вид Канбан/Список',active.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode')?'▦':'☷');
+      moveTaskViewActionToMiroHeader(active,'.personal-kanban-board-exit','Назад к холсту Моих задач','←');
+      moveTaskViewActionToMiroHeader(active,'.personal-kanban-close','Закрыть вид','×');
+      active.classList.add('miro-actions-in-header');
+    }else{
+      moveTaskViewActionToMiroHeader(active,'.personal-eisenhower-close','Закрыть матрицу','×');
+    }
+  }
+  function moveTaskViewActionToMiroHeader(modal,selector,label,icon){
+    if(!window.matchMedia('(max-width:650px)').matches)return;
+    const button=modal.querySelector(selector),host=document.querySelector('.miro-mobile-actions'),more=document.getElementById('miroMobileMore');
+    if(!button||!host||button.parentNode===host)return;
+    button.__miroModeOwner=modal;button.__miroModeParent=button.parentNode;button.__miroModeNext=button.nextSibling;
+    button.classList.add('miro-mobile-mode-action');
+    if(button.getAttribute('aria-label')!==label)button.setAttribute('aria-label',label);
+    if(button.title!==label)button.title=label;
+    if(icon&&button.textContent!==icon)button.textContent=icon;
+    host.insertBefore(button,more||null);
+  }
+  window.addEventListener('resize',syncMiroTaskViewHeader,{passive:true});
   function openPersonalKanban(title,tasks,parentId='',containerId=''){
     personalKanbanTasks=tasks.filter(task=>!task.completed);
     const statuses=['Not started','Waiting','In progress','My Day','Delegate','Done'];
@@ -1820,7 +1866,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     const render=()=>{const filtered=visibleTasks(),groups=groupsFor(filtered),taskCard=task=>'<article class="personal-kanban-card" draggable="true" data-personal-kanban-task="'+escapeHtml(task.id)+'"><div class="personal-kanban-card-head"><strong>'+escapeHtml(task.title)+'</strong><button type="button" class="personal-kanban-card-open" title="Открыть свойства">↗</button></div><div class="personal-kanban-chips">'+chip(task.status,'status')+chip(task.priority,'priority')+chip(task.category)+chip((task.tags||[]).join(', '))+chip((task.assignees||[]).join(', '))+chip(task.date,'date')+'</div>'+personalTaskPomodoroIndicator(task)+(groupBy==='status'?'<select data-personal-status="'+escapeHtml(task.id)+'" aria-label="Статус задачи">'+statuses.filter(value=>value!=='Done'||task.status==='Done').map(value=>'<option value="'+escapeHtml(value)+'"'+(value===task.status?' selected':'')+'>'+escapeHtml(value)+'</option>').join('')+'</select>':'')+(personalTasks.filter(item=>item.parentId===task.id&&!item.completed).length?'<button type="button" data-open-personal-subtasks="'+escapeHtml(task.id)+'">Подзадачи</button>':'')+'</article>',personalListRow=task=>'<article class="personal-kanban-check-row" draggable="true" data-personal-kanban-task="'+escapeHtml(task.id)+'"><button type="button" class="personal-kanban-check-toggle" data-personal-complete="'+escapeHtml(task.id)+'" aria-label="'+(task.status==='Done'?'Вернуть в работу':'Отметить выполненной')+'">'+(task.status==='Done'?'✓':'')+'</button><div class="personal-kanban-check-content"><strong>'+escapeHtml(task.title)+'</strong><div class="personal-kanban-check-meta">'+chip(task.status,'status')+chip(task.priority,'priority')+chip(task.date,'date')+'</div>'+personalTaskPomodoroIndicator(task)+(personalTasks.filter(item=>item.parentId===task.id&&!item.completed).length?'<button type="button" class="personal-kanban-subtasks-link" data-open-personal-subtasks="'+escapeHtml(task.id)+'">Подзадачи</button>':'')+'</div><button type="button" class="personal-kanban-check-open" data-personal-open="'+escapeHtml(task.id)+'" title="Открыть свойства">↗</button></article>',listMarkup='<div class="personal-kanban-list personal-kanban-checklist">'+(filtered.length?filtered.map(task=>'<div class="personal-kanban-list-group-row"><small class="personal-kanban-list-group">'+escapeHtml(personalTaskGroupValue(task,groupBy))+'</small>'+personalListRow(task)+'</div>').join(''):'<div class="personal-kanban-empty">Нет задач</div>')+'</div>';
       board.innerHTML=viewMode==='list'?listMarkup:groups.map(group=>{const columnTasks=filtered.filter(task=>personalTaskGroupValue(task,groupBy)===group);return '<section class="personal-kanban-column" data-personal-status-column="'+escapeHtml(group)+'"><header class="personal-kanban-column-header"><div class="personal-kanban-column-heading"><strong>'+escapeHtml(group)+'</strong><span class="personal-kanban-column-count">'+columnTasks.length+'</span></div><button type="button" class="personal-kanban-add-card" data-kanban-add-group="'+escapeHtml(group)+'" title="Новая задача в колонке">+</button></header><div class="personal-kanban-column-body">'+(columnTasks.length?columnTasks.map(taskCard).join(''):'<div class="personal-kanban-empty">Нет задач</div>')+'</div></section>'}).join('');
       board.classList.toggle('personal-kanban-list-mode',viewMode==='list');
-      if(viewModeButton)viewModeButton.textContent=viewMode==='kanban'?'☷ Список':'▦ Канбан';
+      if(viewModeButton){const nextViewLabel=viewMode==='kanban'?'Переключить на список':'Переключить на Канбан';viewModeButton.setAttribute('aria-label',nextViewLabel);viewModeButton.title=nextViewLabel;viewModeButton.textContent=window.matchMedia('(max-width:650px)').matches?(viewMode==='kanban'?'☷':'▦'):(viewMode==='kanban'?'☷ Список':'▦ Канбан')}
       board.querySelectorAll('[data-personal-status]').forEach(select=>select.onchange=()=>updatePersonalTask(select.dataset.personalStatus,{status:select.value,completed:select.value==='Done'},render));
       board.querySelectorAll('[data-personal-complete]').forEach(button=>button.onclick=()=>{const task=personalTasks.find(item=>item.id===button.dataset.personalComplete);if(task)updatePersonalTask(task.id,{status:task.status==='Done'?'Not started':'Done',completed:task.status!=='Done'},render)});
       board.querySelectorAll('[data-personal-open]').forEach(button=>button.onclick=()=>openPersonalTaskEditor(button.dataset.personalOpen,false,{},modal));
@@ -1831,7 +1877,9 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     };
     refreshFilterValues();render();modal.__personalKanbanRefresh=render;searchInput.oninput=()=>{searchText=searchInput.value.trim().toLocaleLowerCase();render()};filterField.onchange=()=>{filterKey=filterField.value;filterValueText='all';refreshFilterValues();render()};filterValue.onchange=()=>{filterValueText=filterValue.value;render()};groupBySelect.onchange=()=>{groupBy=groupBySelect.value;try{localStorage.setItem(personalGroupStorageKey,groupBy)}catch(error){}refreshFilterValues();render()};viewModeButton?.addEventListener('click',()=>{viewMode=viewMode==='kanban'?'list':'kanban';render()});
     modal.querySelector('#personalKanbanNewTask')?.addEventListener('click',()=>openPersonalTaskEditor('',true,{parentId,containerId},modal));modal.querySelector('#personalAddSubtask')?.addEventListener('click',async()=>{const choice=modal.querySelector('#personalSubtaskChoice')?.value;if(!choice||!parentId)return;await updatePersonalTask(choice,{parentId},()=>{const task=personalTasks.find(item=>item.id===choice);if(task&&!personalKanbanTasks.some(item=>item.id===choice))personalKanbanTasks.push(task);render()})});
-    modal.querySelector('.personal-kanban-board-exit').onclick=()=>{modal.remove();renderPersonalBoard()};modal.querySelector('.personal-kanban-close').onclick=()=>modal.remove();modal.onclick=event=>{if(event.target===modal)modal.remove()};return modal
+    modal.querySelector('.personal-kanban-board-exit').onclick=()=>{modal.remove();renderPersonalBoard()};modal.querySelector('.personal-kanban-close').onclick=()=>modal.remove();modal.onclick=event=>{if(event.target===modal)modal.remove()};
+    syncMiroTaskViewHeader();
+    return modal
   }
   async function updatePersonalTask(id,changes,rerender){const task=personalTasks.find(item=>item.id===id);if(!task)return;Object.assign(task,changes);if(changes.status==='Done')changes.completed=true;try{const base=new URL(CONFIG.syncUrl||location.href,location.href);const response=await fetch(base.origin+'/api/personal-task',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,...changes})});if(!response.ok)throw new Error('HTTP '+response.status);if(task.completed)personalTasks=personalTasks.filter(item=>item.id!==id);rerender();renderPersonalBoard()}catch(error){personalError.textContent='Ошибка сохранения задачи: '+error.message;await loadPersonalTasks()}}
   function eisenhowerQuadrantForTask(task){
@@ -1879,7 +1927,14 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
   function openPersonalEisenhowerMatrix(){
     document.querySelector('.personal-eisenhower-modal')?.remove();
     const modal=document.createElement('div');modal.className='personal-eisenhower-modal';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.innerHTML='<section class="personal-eisenhower-dialog"><header class="personal-eisenhower-head"><div><h2>Матрица Эйзенхауэра</h2><small>Мои задачи · распределение по срочности и важности</small></div><div class="personal-eisenhower-head-actions"><button type="button" class="personal-eisenhower-add" aria-label="Добавить новую задачу" title="Добавить новую задачу"><span aria-hidden="true">＋</span><span class="personal-eisenhower-add-label">Новая задача</span></button><button type="button" class="personal-eisenhower-close" aria-label="Закрыть">×</button></div></header><div class="personal-eisenhower-grid"><section class="eisenhower-quadrant eisenhower-q1"><h3><b>I</b> срочно_важно</h3><div data-eisenhower-group="urgent-important"></div></section><section class="eisenhower-quadrant eisenhower-q2"><h3><b>II</b> несрочно_важно</h3><div data-eisenhower-group="not-urgent-important"></div></section><section class="eisenhower-quadrant eisenhower-q3"><h3><b>III</b> срочно_неважно</h3><div data-eisenhower-group="urgent-unimportant"></div></section><section class="eisenhower-quadrant eisenhower-q4"><h3><b>IV</b> несрочно_неважно</h3><div data-eisenhower-group="not-urgent-unimportant"></div></section></div></section>';
-    document.body.appendChild(modal);modal.querySelector('.personal-eisenhower-close').onclick=()=>modal.remove();modal.querySelector('.personal-eisenhower-add').onclick=()=>{const taskModal=document.getElementById('taskModal');let observer=null,restored=false;modal.style.display='none';const restore=()=>{if(restored)return;if(!taskModal||!taskModal.classList.contains('open')){restored=true;observer?.disconnect();modal.style.display='';if(document.body.contains(modal))renderPersonalEisenhowerMatrix(modal)}};if(taskModal){observer=new MutationObserver(restore);observer.observe(taskModal,{attributes:true,attributeFilter:['class']})}openPersonalTaskEditor('',true,{});if(!taskModal||!taskModal.classList.contains('open'))restore()};modal.addEventListener('click',event=>{if(event.target===modal)modal.remove()});renderPersonalEisenhowerMatrix(modal);setTimeout(()=>{if(document.body.contains(modal))loadPersonalTasks().then(()=>{if(document.body.contains(modal))renderPersonalEisenhowerMatrix(modal)})},0);return modal;
+    document.body.appendChild(modal);
+    modal.querySelector('.personal-eisenhower-close').onclick=()=>modal.remove();
+    modal.querySelector('.personal-eisenhower-add').onclick=()=>{const taskModal=document.getElementById('taskModal');let observer=null,restored=false;modal.style.display='none';const restore=()=>{if(restored)return;if(!taskModal||!taskModal.classList.contains('open')){restored=true;observer?.disconnect();modal.style.display='';if(document.body.contains(modal))renderPersonalEisenhowerMatrix(modal)}};if(taskModal){observer=new MutationObserver(restore);observer.observe(taskModal,{attributes:true,attributeFilter:['class']})}openPersonalTaskEditor('',true,{});if(!taskModal||!taskModal.classList.contains('open'))restore()};
+    modal.addEventListener('click',event=>{if(event.target===modal)modal.remove()});
+    renderPersonalEisenhowerMatrix(modal);
+    syncMiroTaskViewHeader();
+    setTimeout(()=>{if(document.body.contains(modal))loadPersonalTasks().then(()=>{if(document.body.contains(modal))renderPersonalEisenhowerMatrix(modal)})},0);
+    return modal;
   }
   function openPersonalKanbanTool(focus){const modal=openPersonalKanban('Мои задачи',personalTasks.filter(task=>!task.completed));if(modal&&focus)setTimeout(()=>modal.querySelector(focus)?.focus(),0);return modal}
   function setPersonalMode(active){const mode=document.getElementById('personalMode'),layout=document.getElementById('layout');if(!mode||!layout)return;if(!active){personalFocusContainerId='';personalInlineDiagramRoot=''}mode.hidden=!active;if(active){layout.hidden=true;layout.style.setProperty('display','none','important')}else{layout.hidden=false;layout.style.removeProperty('display')}document.getElementById('personalModeButton')?.classList.toggle('active',active);document.getElementById('personalMobileButton')?.classList.toggle('active',active);document.querySelectorAll('.equipment-nav-action').forEach(button=>button.hidden=active);document.querySelectorAll('.personal-mode-nav-action').forEach(button=>button.hidden=!active);if(active){delete personalBoard.dataset.userInteracted;delete personalBoard.dataset.contentCentered;loadPersonalTasks().then(()=>{if(personalBoard.dataset.userInteracted==='1')return;const place=()=>{if(window.matchMedia('(max-width:650px)').matches)fitPersonalBoardToViewport();else centerPersonalBoardOnContent(true)};requestAnimationFrame(place);setTimeout(place,350)}).catch(()=>{})}}
@@ -2637,7 +2692,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   bindMobileTap(document.getElementById('miroMobileMore'),()=>document.getElementById('adibNavCurrent')?.click());
   document.getElementById('miroMobileAi')?.addEventListener('click',()=>openAdibAiAssistant());
   document.getElementById('miroMobileTools')?.addEventListener('click',()=>{if(isPersonal())document.getElementById('adibNavCurrent')?.click();else document.getElementById('canvasActionsButton')?.click()});
-  document.getElementById('miroMobileAdd')?.addEventListener('click',()=>{if(isPersonal())document.getElementById('personalAddTask')?.click();else document.getElementById('newCanvasTaskButton')?.click()});
+  document.getElementById('miroMobileAdd')?.addEventListener('click',()=>{if(isPersonal()){const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal')].at(-1);if(mode?.classList.contains('personal-kanban-modal')){mode.querySelector('#personalKanbanNewTask')?.click();return}if(mode?.classList.contains('personal-eisenhower-modal')){mode.querySelector('.personal-eisenhower-add')?.click();return}document.getElementById('personalAddTask')?.click()}else document.getElementById('newCanvasTaskButton')?.click()});
   const title=document.getElementById('miroMobileTitle'),crumbs=document.getElementById('crumbs');
   const syncTitle=()=>{if(!title)return;if(isPersonal()){title.textContent='Мои задачи';return}const current=crumbs?.querySelector('.crumb.current')?.textContent?.trim();title.textContent=current||'План оборудования'};
   syncTitle();new MutationObserver(syncTitle).observe(document.getElementById('layout')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});
@@ -2803,6 +2858,13 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
 <style class="miro-header-persistent-in-kanban-matrix">
 @media(max-width:650px){
   /* Keep the shared Miro-style app toolbar visible in both task views. */
+  header.compact-top{
+    z-index:1500!important;
+    background:#1c1d21!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    filter:none!important;
+  }
   .personal-kanban-modal,.personal-eisenhower-modal{
     z-index:140!important;
     align-items:stretch!important;
@@ -2817,6 +2879,27 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
     margin:0!important;
     border-radius:0!important;
   }
+  .personal-kanban-modal.miro-actions-in-header #personalKanbanNewTask,
+  .personal-eisenhower-modal .personal-eisenhower-add{display:none!important}
+  .miro-mobile-actions>.miro-mobile-mode-action{
+    display:grid!important;
+    place-items:center!important;
+    flex:0 0 36px!important;
+    width:36px!important;
+    min-width:36px!important;
+    height:40px!important;
+    min-height:40px!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:50%!important;
+    background:transparent!important;
+    color:#f7f7f9!important;
+    box-shadow:none!important;
+    font-size:20px!important;
+    line-height:1!important;
+  }
+  .miro-mobile-actions>.miro-mobile-mode-action:active{background:#ffffff20!important}
 }
 </style>
 </body>
