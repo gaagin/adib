@@ -2614,7 +2614,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     const personalKanban=currentPersonalKanban(),equipmentKanban=currentEquipmentKanban(),matrix=document.querySelector('.personal-eisenhower-modal'),personal=isPersonal();
     if(headerListButton){const activeView=personalKanban?personalKanban.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode'):equipmentKanban?window.__adibKanbanViewMode==='list':false;headerListButton.setAttribute('aria-pressed',String(Boolean(activeView)));headerListButton.title=activeView?'Переключить на канбан':'Показать задачи списком'}
     if(headerFilterButton){const activeFilter=personalKanban?.classList.contains('personal-kanban-filter-open')||matrix?.classList.contains('personal-eisenhower-filter-open')||(equipmentKanban&&(window.__adibKanbanFilterOpen===true||window.__adibKanbanFilterApplied===true))||document.getElementById('taskFiltersPanel')&&!document.getElementById('taskFiltersPanel').hidden;headerFilterButton.setAttribute('aria-pressed',String(Boolean(activeFilter)));headerFilterButton.title=activeFilter?'Закрыть фильтры':'Открыть фильтры'}
-    if(headerBackButton){const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));headerBackButton.disabled=!(personalKanban||equipmentKanban||matrix||personal||current?.parentId)}
+    if(headerBackButton){const current=state.plans.find(item=>String(item.id)===String(state.currentPlan)),taskDialogOpen=document.getElementById('taskModal')?.classList.contains('open');headerBackButton.disabled=!(personalKanban||equipmentKanban||taskDialogOpen||matrix||personal||current?.parentId)}
   };
   const switchToList=()=>{
     const personalKanban=currentPersonalKanban();if(personalKanban){personalKanban.querySelector('.personal-kanban-view-mode-button')?.click();updateHeaderModeButtons();return}
@@ -2649,7 +2649,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       updateHeaderModeButtons();return
     }
     const matrix=document.querySelector('.personal-eisenhower-modal');if(matrix){matrix.querySelector('.personal-eisenhower-close')?.click();updateHeaderModeButtons();return}
-    if(currentEquipmentKanban()){document.getElementById('closeModal')?.click();updateHeaderModeButtons();return}
+    const taskModal=document.getElementById('taskModal');if(currentEquipmentKanban()||taskModal?.classList.contains('open')){document.getElementById('closeModal')?.click();updateHeaderModeButtons();return}
     const personalMode=document.getElementById('personalMode');if(personalMode&&!personalMode.hidden){if(personalFocusContainerId){const focused=personalLayout.containers.find(item=>String(item.id)===String(personalFocusContainerId));if(focused?.parentId)setPersonalFocus(focused.parentId);else clearPersonalFocus()}else adibNavigate('board');updateHeaderModeButtons();return}
     const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(current?.parentId){if(adibHistoryReady&&!adibHistoryHandling)history.back();else adibNavigatePlan(current.parentId,false)}updateHeaderModeButtons()
   });
