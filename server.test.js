@@ -176,13 +176,13 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v18-previous-view-back/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v16-canvas-context-menu/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
   assert.doesNotMatch(html, /body:has\(#personalMode:not\(\[hidden\]\)\) #backHierarchy/);
   assert.match(html, /const args=personalKanban\.__personalKanbanArgs\|\|\{\},parentId=args\.parentId,containerId=args\.containerId/);
-  assert.match(html, /headerBackButton\.disabled=false/);
+  assert.match(html, /taskDialogOpen=document\.getElementById\('taskModal'\)\?\.classList\.contains\('open'\)/);
   assert.match(html, /const taskModal=document\.getElementById\('taskModal'\);if\(currentEquipmentKanban\(\)\|\|taskModal\?\.classList\.contains\('open'\)\)/);
   assert.match(html, /if\(parentContainer\)\{personalKanban\.remove\(\);openPersonalKanban/);
   assert.match(html, /if\(personalFocusContainerId\)navigatePersonalContainerUp\(\);else adibNavigate\('board'\)/);
@@ -284,24 +284,6 @@ test('right-clicks anywhere on either canvas are routed to the app context menu'
   assert.match(html, /personalCanvas=Boolean\(personalMode&&!personalMode\.hidden&&element\?\.closest\('\.personal-board-shell,#personalBoard'\)\)/);
   assert.match(html, /equipmentCanvas=Boolean\(element\?\.closest\('\.canvas-wrap'\)\)/);
   assert.match(html, /event\.preventDefault\(\);event\.stopPropagation\(\);adibContextOpen\(target,event\.clientX,event\.clientY\)/);
-});
-
-
-test('the shared Back button restores the previously visited screen from an app view stack', async () => {
-  const html = await (await fetch(`${baseUrl}/`)).text();
-  assert.match(html, /window\.__adibRecordView=adibRecordView/);
-  assert.match(html, /window\.__adibGoBack=async\(\)=>/);
-  assert.match(html, /window\.__adibRestoringView=true/);
-  assert.match(html, /bindMobileTap\(headerBackButton,async\(\)=>/);
-  assert.match(html, /if\(await window\.__adibGoBack\?\.\(\)\)/);
-});
-
-test('container focus keeps the shared back button enabled over root equipment breadcrumbs', async () => {
-  const html = await (await fetch(`${baseUrl}/`)).text();
-  assert.match(html, /back\.disabled=false;back\.title='Вернуться к предыдущему экрану'/);
-  assert.match(html, /back\.title='Вернуться к предыдущему экрану'/);
-  assert.match(html, /personalInlineDiagramRoot='';renderPersonalBoard\(\);window\.__updateHeaderModeButtons\?\.\(\);setTimeout/);
-  assert.match(html, /personalInlineDiagramRoot='';renderPersonalBoard\(\);window\.__updateHeaderModeButtons\?\.\(\);requestAnimationFrame/);
 });
 
 test('the PWA manifest exposes the quick-add task shortcut', async () => {
