@@ -2661,6 +2661,16 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   const title=document.getElementById('miroMobileTitle'),crumbs=document.getElementById('crumbs');
   const syncTitle=()=>{if(!title)return;const set=value=>{if(title.textContent!==value)title.textContent=value};const mode=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal,.modal-backdrop.open.kanban-modal')].at(-1);if(mode?.classList.contains('kanban-modal')){set(document.getElementById('modalTitle')?.textContent?.trim()||'Канбан задач');return}if(mode?.classList.contains('personal-eisenhower-modal')){set(mode.querySelector('.personal-eisenhower-head h2')?.textContent?.trim()||'Матрица Эйзенхауэра');return}if(mode?.classList.contains('personal-kanban-modal')){set(mode.querySelector('.personal-kanban-title strong')?.textContent?.trim()||'Канбан задач');return}if(isPersonal()){set('Мои задачи');return}const current=crumbs?.querySelector('.crumb.current')?.textContent?.trim();set(current||'План оборудования')};
   window.__syncMiroMobileTitle=syncTitle;syncTitle();
+  document.addEventListener('contextmenu',event=>{
+    const board=event.target.closest('.personal-kanban-modal .personal-kanban-board,#taskModal.kanban-modal .kanban-board,#taskModal.kanban-modal .kanban-checklist-view,#taskModal.kanban-modal .kanban-checklist-items');
+    if(!board||event.target.closest('.personal-kanban-card,.personal-kanban-check-row,.kanban-task,.kanban-list-row,.kanban-check-row,button,select,input,textarea,a,header,[contenteditable="true"]'))return;
+    const personalBoard=board.closest('.personal-kanban-modal');
+    const grouping=personalBoard?.querySelector('#personalKanbanGroupBy')||document.querySelector('#taskModal.kanban-modal #kanbanGroupBy');
+    if(!grouping)return;
+    event.preventDefault();
+    grouping.focus({preventScroll:true});
+    try{if(typeof grouping.showPicker==='function')grouping.showPicker();else grouping.click()}catch(error){grouping.click()}
+  });
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&body.classList.contains('miro-personal-search-open')){body.classList.remove('miro-personal-search-open');document.getElementById('personalBoardSearchResults').hidden=true}});
   document.addEventListener('click',event=>{if(body.classList.contains('miro-personal-search-open')&&!event.target.closest('.personal-board-search-wrap')&&!event.target.closest('#miroMobileSearch'))body.classList.remove('miro-personal-search-open')});
 })();
