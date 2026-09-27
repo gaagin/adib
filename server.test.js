@@ -61,6 +61,15 @@ test('the app shell is served with security headers', async () => {
   assert.match(await response.text(), /Ela Nov Paketleme|ADIB/i);
 });
 
+test('the PWA manifest exposes the quick-add task shortcut', async () => {
+  const response = await fetch(`${baseUrl}/manifest.webmanifest`);
+  assert.equal(response.status, 200);
+  const manifest = await response.json();
+  const shortcut = manifest.shortcuts?.find(item => item.url.includes('action=quick-add-task'));
+  assert.ok(shortcut, 'quick-add task shortcut should be available to installed Android PWAs');
+  assert.match(shortcut.name, /задач/i);
+});
+
 test('unknown routes return JSON 404', async () => {
   const response = await fetch(`${baseUrl}/not-a-route`);
   assert.equal(response.status, 404);

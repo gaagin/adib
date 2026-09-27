@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v3-android-back';
+const CACHE_NAME = 'adib-pwa-v4-quick-add';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

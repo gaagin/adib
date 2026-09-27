@@ -11,6 +11,17 @@
   "background_color": "#fbfbfa",
   "theme_color": "#2383e2",
   "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Быстро добавить задачу",
+      "short_name": "Новая задача",
+      "description": "Создать задачу в ADIB",
+      "url": "/?action=quick-add-task&source=android-shortcut",
+      "icons": [
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
+  ],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
