@@ -2645,7 +2645,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   };
   const openHeaderFilters=()=>{
     const personalKanban=currentPersonalKanban();if(personalKanban){document.getElementById('personalMobileFilterButton')?.click();updateHeaderModeButtons();return}
-    const equipmentKanban=currentEquipmentKanban();if(equipmentKanban){const field=document.getElementById('kanbanFilterField');window.__adibKanbanFilterOpen=window.__adibKanbanFilterOpen!==true;field?.focus({preventScroll:true});field?.scrollIntoView({block:'nearest',inline:'nearest'});field?.click();updateHeaderModeButtons();return}
+    const equipmentKanban=currentEquipmentKanban();if(equipmentKanban){const open=!equipmentKanban.classList.contains('kanban-filter-open'),field=document.getElementById('kanbanFilterField');equipmentKanban.classList.remove('kanban-search-open');equipmentKanban.classList.toggle('kanban-filter-open',open);window.__adibKanbanFilterOpen=open;if(open){field?.focus({preventScroll:true});field?.scrollIntoView({block:'nearest',inline:'nearest'})}updateHeaderModeButtons();return}
     const matrix=document.querySelector('.personal-eisenhower-modal');if(matrix){const open=!matrix.classList.contains('personal-eisenhower-filter-open');matrix.classList.toggle('personal-eisenhower-filter-open',open);const panel=matrix.querySelector('.personal-eisenhower-filter-panel'),field=matrix.querySelector('#personalEisenhowerSearch');if(panel)panel.hidden=!open;if(open)field?.focus({preventScroll:true});updateHeaderModeButtons();return}if(isPersonal()){document.getElementById('personalMobileFilterButton')?.click();updateHeaderModeButtons();return}
     document.getElementById('taskFiltersButton')?.click();updateHeaderModeButtons()
   };
