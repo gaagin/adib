@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v20-whatsapp-chat-cache';
+const CACHE_NAME = 'adib-pwa-v21-default-comment-author';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

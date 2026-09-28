@@ -127,7 +127,7 @@ async function requestedCommentAuthor(body) {
       console.warn('Comment profile lookup failed:', error.message);
     }
   }
-  return String(body.authorName || 'Пользователь сервиса').trim().slice(0, 120) || 'Пользователь сервиса';
+  return String(body.authorName || 'ilqar mamedov').trim().slice(0, 120) || 'ilqar mamedov';
 }
 
 async function addTaskComment(body) {
