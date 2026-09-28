@@ -105,6 +105,24 @@ test('equipment Kanban uses the shared toolbar instead of its separate heading',
   assert.match(html, /equipmentKanban\)\{document\.getElementById\('kanbanNewTask'\)\?\.click\(\);return\}/);
 });
 
+test('new tasks without equipment are assigned directly to a selected plan', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /Без оборудования — назначить плану/);
+  assert.match(html, /Задача без оборудования будет назначена выбранному плану/);
+  assert.match(html, /Выберите план для задачи без оборудования/);
+  assert.ok(html.includes("planId:document.getElementById('taskMachine').value?'':(document.getElementById('taskPlan')?.value||task.planId||''"));
+  assert.match(html, /const tasks=\[\.\.\.directPlanTasks\(id\)/);
+  assert.match(html, /function directPlanTasks\(planId\)/);
+  assert.match(html, /info\.plan\).*openPlanTasks\(info\.plan\.id\)/);
+  assert.doesNotMatch(html, /__createStandalonePersonalTask/);
+  const serverSource = require('node:fs').readFileSync(require('node:path').join(root, 'server.js'), 'utf8');
+  assert.match(serverSource, /planRelation: process\.env\.TODO_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
+  assert.match(serverSource, /planRelation: process\.env\.GORULEN_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
+  assert.match(serverSource, /properties\[config\.planRelation\] = \{ relation: \[\{ id: String\(body\.planId\) \}\] \}/);
+  assert.match(serverSource, /!machineId && !planId/);
+});
+
 test('choosing Kanban waits for personal tasks and keeps its board open', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
@@ -176,7 +194,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v14-personal-grid-menu-dark/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v20-plan-assigned-tasks/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -258,6 +276,40 @@ test('dark equipment canvas uses the same base tone inside and outside the SVG',
   assert.match(html, /html\.dark #grid path\{stroke:#303030!important/);
 });
 
+
+test('legacy styling is hidden before the final Miro shell can render', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  const gate = html.indexOf("classList.add('adib-ui-pending')");
+  const bodyStart = html.indexOf('<body');
+  assert.ok(gate >= 0 && gate < bodyStart, 'first-paint gate must run in the document head');
+  assert.match(html, /html\.adib-ui-pending body\{visibility:hidden!important\}/);
+  assert.match(html, /DOMContentLoaded',\(\)=>document\.documentElement\.classList\.remove\('adib-ui-pending'\)/);
+  assert.match(html, /miro-mobile-shell-all-viewports/);
+});
+
+test('a single click on any My Tasks container opens its Kanban by default', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /function openPersonalItem\(type,id\)\{if\(type==='container'\)\{const container=containerById\(id\);if\(container\)openPersonalKanban\(container\.name,personalTasksForContainer\(id\)\.filter\(task=>!task\.completed\),'',id\);return\}/);
+  assert.match(html, /if\(type==='container'\)\{personalLastTap=null;openPersonalItem\(type,id\);return\}/);
+  assert.match(html, /data-focus-personal-container/);
+});
+
+test('My Tasks grouping uses the Prioritet property, not Priority', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /<option value=\"prioritet\">Prioritet<\/option>/);
+  assert.doesNotMatch(html, /const groupOptions=.*?<option value=\"priority\">Priority<\/option>/);
+  assert.match(html, /function personalTaskGroupValue\(task,key\).*?key==='prioritet'\)return task\.prioritet/);
+  assert.match(html, /if\(groupBy==='prioritet'\)changes\.prioritet=/);
+  assert.match(html, /if\(savedGroup==='priority'\)groupBy='prioritet'/);
+});
+
+test('dark theme uses dark high-contrast labels on light canvas elements', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /adib-dark-canvas-label-contrast/);
+  assert.match(html, /html\.dark #viewport \.label\{fill:#263648!important\}/);
+  assert.match(html, /html\.dark #viewport \.plan-label\{fill:#263648!important\}/);
+  assert.match(html, /html\.dark #viewport \.small,html\.dark #viewport \.plan-sub\{fill:#536578!important\}/);
+});
 
 test('My Tasks canvas draws one zoom-aware grid and dark mode menu stays dark', async () => {
   const html = await (await fetch(`${baseUrl}/`)).text();

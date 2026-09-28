@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v14-personal-grid-menu-dark';
+const CACHE_NAME = 'adib-pwa-v20-plan-assigned-tasks';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

@@ -80,6 +80,8 @@ HTML вызывает `/api/plan-snapshot` при нажатии «Обнови�
 
 В базах Notion `Makina`, `ToDo` и `Gorulen isler` добавлено новое URL-свойство `ADIB link`. Сервис автоматически заполняет/обновляет его после первого обращения к `/api/plan-snapshot`. На Railway задайте `PUBLIC_APP_URL=https://adib-production-eba3.up.railway.app`. Для ручного запуска синхронизации используйте `POST /api/sync-links`.
 
+Чтобы создавать задачи прямо на плане без оборудования, добавьте в базы `ToDo` и `Gorulen isler` свойство Relation с именем `Plan`, связанное с базой `Plan`. Если имя отличается, задайте `TODO_PLAN_RELATION_PROPERTY` и/или `GORULEN_PLAN_RELATION_PROPERTY` в `.env`. После этого в редакторе задачи можно оставить оборудование пустым, выбрать план и сохранить задачу; она появится в канбане этого плана.
+
 
 ## 7. Защита AI и API-запросов
 
