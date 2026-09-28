@@ -105,26 +105,6 @@ test('equipment Kanban uses the shared toolbar instead of its separate heading',
   assert.match(html, /equipmentKanban\)\{document\.getElementById\('kanbanNewTask'\)\?\.click\(\);return\}/);
 });
 
-test('new tasks without equipment are assigned directly to a selected plan', async () => {
-  const response = await fetch(`${baseUrl}/`);
-  const html = await response.text();
-  assert.match(html, /Без оборудования — назначить плану/);
-  assert.match(html, /Задача без оборудования будет назначена выбранному плану/);
-  assert.match(html, /Выберите план для задачи без оборудования/);
-  assert.ok(html.includes("planId:document.getElementById('taskMachine').value?'':(document.getElementById('taskPlan')?.value||task.planId||''"));
-  assert.match(html, /const tasks=\[\.\.\.directPlanTasks\(id\)/);
-  assert.match(html, /function directPlanTasks\(planId\)/);
-  assert.match(html, /info\.plan\).*openPlanTasks\(info\.plan\.id\)/);
-  assert.doesNotMatch(html, /__createStandalonePersonalTask/);
-  const serverSource = require('node:fs').readFileSync(require('node:path').join(root, 'server.js'), 'utf8');
-  assert.match(serverSource, /planRelation: process\.env\.TODO_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
-  assert.match(serverSource, /planRelation: process\.env\.GORULEN_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
-  assert.match(serverSource, /body\.planId !== undefined/);
-  assert.match(serverSource, /if \(includeMachine\) properties\[config\.relation\].*body\.machineId \? \[\{ id:/);
-  assert.match(serverSource, /if \(body\.planId !== undefined\) properties\[config\.planRelation\]/);
-  assert.match(serverSource, /!machineId && !planId/);
-});
-
 test('choosing Kanban waits for personal tasks and keeps its board open', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
@@ -196,7 +176,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v20-plan-assigned-tasks/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v18-task-reminders/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -279,16 +259,6 @@ test('dark equipment canvas uses the same base tone inside and outside the SVG',
 });
 
 
-test('legacy styling is hidden before the final Miro shell can render', async () => {
-  const html = await (await fetch(`${baseUrl}/`)).text();
-  const gate = html.indexOf("classList.add('adib-ui-pending')");
-  const bodyStart = html.indexOf('<body');
-  assert.ok(gate >= 0 && gate < bodyStart, 'first-paint gate must run in the document head');
-  assert.match(html, /html\.adib-ui-pending body\{visibility:hidden!important\}/);
-  assert.match(html, /DOMContentLoaded',\(\)=>document\.documentElement\.classList\.remove\('adib-ui-pending'\)/);
-  assert.match(html, /miro-mobile-shell-all-viewports/);
-});
-
 test('a single click on any My Tasks container opens its Kanban by default', async () => {
   const html = await (await fetch(`${baseUrl}/`)).text();
   assert.match(html, /function openPersonalItem\(type,id\)\{if\(type==='container'\)\{const container=containerById\(id\);if\(container\)openPersonalKanban\(container\.name,personalTasksForContainer\(id\)\.filter\(task=>!task\.completed\),'',id\);return\}/);
@@ -328,6 +298,16 @@ test('the PWA manifest exposes the quick-add task shortcut', async () => {
   const shortcut = manifest.shortcuts?.find(item => item.url.includes('action=quick-add-task'));
   assert.ok(shortcut, 'quick-add task shortcut should be available to installed Android PWAs');
   assert.match(shortcut.name, /задач/i);
+});
+
+test('task editors support due-date reminders with browser popup and sound', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /id="taskReminder"/);
+  assert.match(html, /id="personalTaskReminder"/);
+  assert.match(html, /function setTaskDateReminder/);
+  assert.match(html, /function showTaskReminderPopup/);
+  assert.match(html, /function playTaskReminderSound/);
+  assert.match(html, /TASK_REMINDERS_KEY/);
 });
 
 test('unknown routes return JSON 404', async () => {

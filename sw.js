@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v20-plan-assigned-tasks';
+const CACHE_NAME = 'adib-pwa-v18-task-reminders';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
@@ -35,5 +35,14 @@ self.addEventListener('fetch', event => {
       return response;
     }).catch(() => cached);
     return cached || network;
+  }));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+    const appWindow = windows.find(client => new URL(client.url).origin === self.location.origin);
+    if (appWindow) return appWindow.focus();
+    return self.clients.openWindow('/');
   }));
 });
