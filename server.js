@@ -379,7 +379,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '') {
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
+      const taskPriority = select(page, source.priorityName); const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, planId: linkedPlan || null, machineId: linkedMachines[0] || "", machineIds: linkedMachines, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -667,7 +667,7 @@ function buildTaskProperties(body, config, includeMachine = false) {
   const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
   if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Задача' } }] };
   if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
-  if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
+  if (body.priority !== undefined) properties[config.priority] = String(body.priority).trim() ? { status: { name: String(body.priority).trim() } } : { status: null };
   if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: notionDateStart(body.date) } : null };
   if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
   if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
@@ -677,8 +677,8 @@ function buildTaskProperties(body, config, includeMachine = false) {
   if (body.tag !== undefined && config.tagProperty) properties[config.tagProperty] = body.tag ? { select: { name: String(body.tag).trim() } } : { select: null };
   if (body.doneWork !== undefined) properties[config.doneWork] = config.doneWorkType === 'title' ? { title: textBlocks(body.doneWork) } : { rich_text: textBlocks(body.doneWork) };
   if (body.completed !== undefined) properties[config.complete] = { checkbox: Boolean(body.completed) };
-  if (includeMachine && body.machineId) properties[config.relation] = { relation: [{ id: String(body.machineId) }] };
-  if (body.planId) properties[config.planRelation] = { relation: [{ id: String(body.planId) }] };
+  if (includeMachine) properties[config.relation] = { relation: body.machineId ? [{ id: String(body.machineId) }] : [] };
+  if (body.planId !== undefined) properties[config.planRelation] = { relation: body.planId ? [{ id: String(body.planId) }] : [] };
   return properties;
 }
 
@@ -716,7 +716,7 @@ async function saveTask(body) {
   const sourceKey = String(body.sourceKey || 'todo');
   if (!id) throw new Error('Не указан ID задачи');
   const config = taskConfig(sourceKey);
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, Boolean(body.machineId)) }) });
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, body.machineId !== undefined) }) });
   if (body.machineId) taskCache.delete(String(body.machineId));
   snapshotCache = null;
   console.log('Task saved:', id, sourceKey);
@@ -836,6 +836,53 @@ async function personalSnapshot(force = false) {
     return result;
   }).finally(() => { personalTasksInFlight = null; });
   return personalTasksInFlight;
+}
+
+let taskOptionsCache = null;
+let taskOptionsCacheAt = 0;
+async function getTaskOptions() {
+  if (taskOptionsCache && Date.now() - taskOptionsCacheAt < 5 * 60 * 1000) return taskOptionsCache;
+  const readSchema = async (databaseId, dataSourceId) => {
+    const schema = dataSourceId
+      ? await notion('/data_sources/' + encodeURIComponent(dataSourceId), { method: 'GET' })
+      : await notion('/databases/' + encodeURIComponent(databaseId), { method: 'GET' }, '2022-06-28');
+    return schema.properties || {};
+  };
+  const mappedChoices = (properties, names) => {
+    const result = {};
+    for (const [key, name] of Object.entries(names)) {
+      const property = properties[name];
+      const type = property?.type;
+      const values = ['select', 'status', 'multi_select'].includes(type)
+        ? (property[type]?.options || []).map(option => option.name).filter(Boolean)
+        : [];
+      result[key] = { type: type || '', options: values };
+    }
+    return result;
+  };
+  const todo = taskConfig('todo');
+  const gorulen = taskConfig('gorulen');
+  const [personalSchema, todoSchema, gorulenSchema] = await Promise.all([
+    readSchema(TASKS_DB, TASKS_DS),
+    TODO_DB || TODO_DS ? readSchema(TODO_DB, TODO_DS) : {},
+    GORULEN_DB || GORULEN_DS ? readSchema(GORULEN_DB, GORULEN_DS) : {}
+  ]);
+  taskOptionsCache = {
+    personal: mappedChoices(personalSchema, {
+      status: 'Status', priority: 'Priority', prioritet: 'Prioritet',
+      category: 'Kateqoriya', tags: 'Tag', assignees: 'Tapsirildi'
+    }),
+    todo: mappedChoices(todoSchema, {
+      process: todo.process, priority: todo.priority, tapsirildi: todo.tapsirildi,
+      gtd: todo.gtdProperty, isciTag: todo.isciTagProperty
+    }),
+    gorulen: mappedChoices(gorulenSchema, {
+      process: gorulen.process, priority: gorulen.priority, tapsirildi: gorulen.tapsirildi,
+      gtd: gorulen.gtdProperty, workType: gorulen.workTypeProperty, tag: gorulen.tagProperty
+    })
+  };
+  taskOptionsCacheAt = Date.now();
+  return taskOptionsCache;
 }
 
 function personalContainerProperties(body, includeName = false) {
@@ -1060,7 +1107,7 @@ async function savePersonalPomodoroUnlocked(body) {
   const id=cleanId(String(body.id||'').trim());
   const action=String(body.action||'').trim();
   if(!id) throw new Error('Не указан ID задачи Tasks');
-  if(!['start','finish','break-finish','reset'].includes(action)) throw new Error('Неизвестное действие Pomodoro');
+  if(!['start','pause','finish','break-finish','reset'].includes(action)) throw new Error('Неизвестное действие Pomodoro');
   const page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});
   const currentCount=Number(number(page,'Pomodoro количество')||0);
   const currentMinutes=Number(number(page,'Pomodoro всего минут')||0);
@@ -1086,6 +1133,11 @@ async function savePersonalPomodoroUnlocked(body) {
   }else if(action==='break-finish'){
     properties['Отчет запущен']={checkbox:false};
     properties['Конец отчета']={date:{start:now}};
+  }else if(action==='pause'){
+    properties['Отчет запущен']={checkbox:false};
+    properties['Конец отчета']={date:{start:now}};
+    properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};
+    properties['Pomodoro текущая длительность']={number:duration};
   }else{
     properties['Отчет запущен']={checkbox:false};
     properties['Начало отчета']={date:null};
@@ -1194,6 +1246,9 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       return json(response, 200, await personalSnapshot(url.searchParams.get('force') === '1'));
+    }
+    if (request.method === 'GET' && url.pathname === '/api/task-options') {
+      return json(response, 200, await getTaskOptions());
     }
     if (request.method === 'GET' && url.pathname === '/api/personal-task-content') {
       return json(response, 200, await getPersonalTaskContent(url.searchParams.get('id')));

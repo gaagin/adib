@@ -119,7 +119,9 @@ test('new tasks without equipment are assigned directly to a selected plan', asy
   const serverSource = require('node:fs').readFileSync(require('node:path').join(root, 'server.js'), 'utf8');
   assert.match(serverSource, /planRelation: process\.env\.TODO_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
   assert.match(serverSource, /planRelation: process\.env\.GORULEN_PLAN_RELATION_PROPERTY \|\| 'Plan'/);
-  assert.match(serverSource, /properties\[config\.planRelation\] = \{ relation: \[\{ id: String\(body\.planId\) \}\] \}/);
+  assert.match(serverSource, /body\.planId !== undefined/);
+  assert.match(serverSource, /if \(includeMachine\) properties\[config\.relation\].*body\.machineId \? \[\{ id:/);
+  assert.match(serverSource, /if \(body\.planId !== undefined\) properties\[config\.planRelation\]/);
   assert.match(serverSource, /!machineId && !planId/);
 });
 
