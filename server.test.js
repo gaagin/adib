@@ -176,7 +176,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v18-task-reminders/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v19-comment-chat/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -308,6 +308,20 @@ test('task editors support due-date reminders with browser popup and sound', asy
   assert.match(html, /function showTaskReminderPopup/);
   assert.match(html, /function playTaskReminderSound/);
   assert.match(html, /TASK_REMINDERS_KEY/);
+});
+
+
+test('comment chat is available in the shared web shell and gathers both task sources', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /id="miroMobileChat"/);
+  assert.match(html, /data-adib-nav-mode="chat"/);
+  assert.match(html, /function chatTaskCandidates\(personal=\[\]\)/);
+  assert.match(html, /\/api\/chat-threads/);
+  assert.match(html, /\/api\/task-comments/);
+  assert.match(html, /Обсуждения задач/);
+  const serverSource = require('node:fs').readFileSync(path.join(root, 'server.js'), 'utf8');
+  assert.match(serverSource, /request\.method === 'POST' && url\.pathname === '\/api\/chat-threads'/);
+  assert.match(serverSource, /async function listChatThreads\(body\)/);
 });
 
 test('unknown routes return JSON 404', async () => {

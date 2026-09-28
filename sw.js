@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v18-task-reminders';
+const CACHE_NAME = 'adib-pwa-v19-comment-chat';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

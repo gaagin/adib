@@ -146,6 +146,36 @@ async function addTaskComment(body) {
   return { ok: true, comment: await resolveCommentAuthor(comment), savedAt: new Date().toISOString() };
 }
 
+async function listChatThreads(body) {
+  const raw = Array.isArray(body.tasks) ? body.tasks : [];
+  const tasks = [...new Map(raw.map(item => {
+    const id = cleanId(String(item?.id || '').trim());
+    return [id, id ? {
+      id,
+      title: String(item?.title || 'Задача').trim().slice(0, 240) || 'Задача',
+      source: String(item?.source || '').trim().slice(0, 80),
+      machineName: String(item?.machineName || '').trim().slice(0, 160)
+    } : null];
+  }).filter(([id, item]) => id && item))].map(([, item]) => item).slice(0, 120);
+  const threads = [];
+  // Keep Notion API pressure low; two concurrent comment requests at a time.
+  for (let i = 0; i < tasks.length; i += 2) {
+    const batch = await Promise.all(tasks.slice(i, i + 2).map(async task => {
+      try {
+        const result = await notion('/comments?block_id=' + encodeURIComponent(task.id), { method: 'GET' });
+        const comments = (result.results || []).map(mapComment).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        return comments.length ? { taskId: task.id, title: task.title, source: task.source, machineName: task.machineName, comments } : null;
+      } catch (error) {
+        console.warn('Chat thread lookup failed:', task.id, error.message);
+        return null;
+      }
+    }));
+    threads.push(...batch.filter(Boolean));
+  }
+  threads.sort((a, b) => String(b.comments.at(-1)?.createdAt || '').localeCompare(String(a.comments.at(-1)?.createdAt || '')));
+  return { ok: true, threads };
+}
+
 async function listCommentNotifications(body) {
   const rawIds = Array.isArray(body.ids) ? body.ids : String(body.ids || '').split(',');
   const ids = [...new Set(rawIds.map(value => cleanId(String(value || '').trim())).filter(Boolean))].slice(0, 120);
@@ -1153,6 +1183,10 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/task-comments') {
       const body = await readBody(request);
       return json(response, 201, await addTaskComment(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/api/chat-threads') {
+      const body = await readBody(request);
+      return json(response, 200, await listChatThreads(body));
     }
     if (request.method === 'POST' && url.pathname === '/api/comment-notifications') {
       const body = await readBody(request);
