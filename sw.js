@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v28-list-kanban-toggle';
+const CACHE_NAME = 'adib-pwa-v28-context-pomodoro';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

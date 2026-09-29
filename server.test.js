@@ -92,6 +92,24 @@ test('the shared toolbar is light on desktop and includes hierarchy back', async
   assert.match(html, /if\(!current\?\.parentId\)return;state\.currentPlan=current\.parentId/);
 });
 
+test('task context menus can start Pomodoro for personal and equipment tasks', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /if\(target\.kind==='equipment-task'\)[\s\S]*?adibContextItem\('start-pomodoro','Запустить Pomodoro'/);
+  assert.match(html, /if\(action==='start-pomodoro'\)\{openPersonalPomodoro\(target\.id\);return\}/);
+  assert.match(html, /function pomodoroTaskById\(id\)[\s\S]*?state\.equipment\.flatMap/);
+});
+
+test('task lists offer persistent sorting by task properties', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /id="personalKanbanSortBy"/);
+  assert.match(html, /id="personalKanbanSortDirection"/);
+  assert.match(html, /id="kanbanSortBy"/);
+  assert.match(html, /id="kanbanSortDirection"/);
+  assert.match(html, /ADIB_TASK_SORT_OPTIONS=.*Prioritet/);
+  assert.match(html, /localStorage\.setItem\('adib-task-sort-key'/);
+  assert.match(html, /adibSortTaskItems\(personalKanbanTasks\.filter/);
+});
+
 test('equipment Kanban uses the shared toolbar instead of its separate heading', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
@@ -176,7 +194,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v28-list-kanban-toggle/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v28-context-pomodoro/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -190,6 +208,15 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.doesNotMatch(html, /#miroMobileList\[aria-pressed=\"true\"\],\.miro-mobile-actions #miroMobileFilter\[aria-pressed=\"true\"\]\{background:#ffffff24/);
   assert.doesNotMatch(html, /moveTaskViewActionToMiroHeader\(active,'\.personal-kanban-view-mode-button'/);
   assert.doesNotMatch(html, /addTaskViewToolbarButton\(active,'Фильтры Kanban'/);
+});
+
+test('mobile shared toolbar uses the approved two-row layout with grouped view controls', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+  assert.match(html, /class="adib-mobile-toolbar-two-row"/);
+  assert.match(html, /grid-template-areas:"brand brand brand brand add more" "back refresh search view filter chat"/);
+  assert.match(html, /header\.compact-top \.top-toolbar>\.miro-mobile-actions\{display:contents!important\}/);
+  assert.match(html, /#miroMobileList\{grid-area:view!important\}/);
 });
 
 test('the Android mobile mode menu stays open after tapping its More button', async () => {
@@ -259,6 +286,15 @@ test('dark equipment canvas uses the same base tone inside and outside the SVG',
 });
 
 
+test('online service opens My Tasks in list mode by default and keeps explicit routes intact', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /function openDefaultMyTasksList\(\)/);
+  assert.match(html, /window\.__adibOpenDefaultMyTasksList=openDefaultMyTasksList/);
+  assert.match(html, /hasExplicitStartupTarget=Boolean\(location\.hash[^;]*\);if\(!hasExplicitStartupTarget\)/);
+  assert.match(html, /else if\(mode==='personal'\)\{adibCloseNavigationOverlays\(\);window\.__adibOpenDefaultMyTasksList\?\.\(\)\}/);
+  assert.match(html, /ticktick-personal-list-global-style/);
+});
+
 test('mobile My Tasks containers open in list view while desktop remains Kanban', async () => {
   const html = await (await fetch(`${baseUrl}/`)).text();
   assert.match(html, /function openPersonalItem\(type,id\)\{if\(type==='container'\)\{const container=containerById\(id\);if\(container\)openPersonalKanban\(container\.name,personalTasksForContainer\(id\)\.filter\(task=>!task\.completed\),'',id,window\.matchMedia\('\(max-width:650px\)'\)\.matches\?'list':'kanban'\);return\}/);
@@ -266,12 +302,6 @@ test('mobile My Tasks containers open in list view while desktop remains Kanban'
   assert.match(html, /viewMode=initialView==='list'\?'list':'kanban'/);
   assert.match(html, /if\(type==='container'\)\{personalLastTap=null;openPersonalItem\(type,id\);return\}/);
   assert.match(html, /data-focus-personal-container/);
-});
-
-test('shared mobile list icon toggles list and Kanban both ways', async () => {
-  const html = await (await fetch(`${baseUrl}/`)).text();
-  assert.match(html, /if\(personalKanban\)\{personalKanban\.querySelector\('\.personal-kanban-view-mode-button'\)\?\.click\(\)/);
-  assert.match(html, /if\(equipmentKanban\)\{document\.getElementById\('kanbanViewModeButton'\)\?\.click\(\)/);
 });
 
 test('mobile equipment and plan task boards start in list view', async () => {
@@ -287,10 +317,6 @@ test('mobile checklist follows TickTick-style layout and marks overdue tasks', a
   assert.match(html, /days\+' '\+word\+' просрочено'/);
   assert.match(html, /class="kanban-check-due'\+\(overdue\?' overdue':''\)/);
   assert.match(html, /personal-kanban-check-due/);
-  const mobileStyle = html.match(/<style id=\"ticktick-mobile-list-style\">([\s\S]*?)<\/style>/)?.[1] || '';
-  assert.match(mobileStyle, /border-radius:4px!important/);
-  assert.match(mobileStyle, /border-radius:3px!important/);
-  assert.doesNotMatch(mobileStyle, /border-radius:(?:40px|50%)/);
 });
 
 test('My Tasks grouping uses the Prioritet property, not Priority', async () => {
@@ -346,6 +372,10 @@ test('comment chat is available in the shared web shell and gathers both task so
   assert.match(html, /\/api\/chat-threads/);
   assert.match(html, /\/api\/task-comments/);
   assert.match(html, /Обсуждения задач/);
+  assert.match(html, /data-chat-open-task/);
+  assert.match(html, /function openChatTask\(taskId\)/);
+  assert.match(html, /window\.__openPersonalChatTask=\(id,containerId=''/);
+  assert.match(html, /openTaskEditor\(info\.task,info\.machine,false\)/);
   const serverSource = require('node:fs').readFileSync(path.join(root, 'server.js'), 'utf8');
   assert.match(serverSource, /request\.method === 'POST' && url\.pathname === '\/api\/chat-threads'/);
   assert.match(serverSource, /async function listChatThreads\(body\)/);

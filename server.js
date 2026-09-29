@@ -87,22 +87,26 @@ function commentText(comment) {
 function mapComment(comment) {
   const author = comment.created_by || {};
   const rawText = commentText(comment);
-  const authored = rawText.match(/^\[([^\]]{1,120})\]\s([\s\S]*)$/);
+  // Only integration-authored comments use ADIB's [name] prefix.
+  // A person's native Notion comment must retain its exact text.
+  const authored = author.type === 'bot' ? rawText.match(/^\[([^\]]{1,120})\]\s([\s\S]*)$/) : null;
   return {
     id: comment.id,
     text: authored ? authored[2] : rawText,
     createdAt: comment.created_time || '',
     authorId: author.id || '',
-    authorName: authored ? authored[1] : (author.name || author.person?.email || 'Пользователь Notion')
+    authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'Пользователь Notion')
   };
 }
 
 async function resolveCommentAuthor(comment) {
   const mapped = mapComment(comment);
-  if (!mapped.authorId) return mapped;
+  // Do not replace the service sender with the integration bot's profile.
+  if (!mapped.authorId || (comment.created_by?.type === 'bot' && /^\[([^\]]{1,120})\]\s/.test(commentText(comment)))) return mapped;
+  if (comment.created_by?.name) return mapped;
   try {
     const user = await notion('/users/' + encodeURIComponent(mapped.authorId), { method: 'GET' });
-    mapped.authorName = user.name || user.person?.email || mapped.authorName;
+    mapped.authorName = user.name || mapped.authorName;
   } catch (error) {
     console.warn('Comment author lookup failed:', mapped.authorId, error.message);
   }
