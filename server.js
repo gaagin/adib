@@ -167,7 +167,7 @@ async function listChatThreads(body) {
     const batch = await Promise.all(tasks.slice(i, i + 2).map(async task => {
       try {
         const result = await notion('/comments?block_id=' + encodeURIComponent(task.id), { method: 'GET' });
-        const comments = (result.results || []).map(mapComment).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        const comments = (await Promise.all((result.results || []).map(resolveCommentAuthor))).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
         return comments.length ? { taskId: task.id, title: task.title, source: task.source, machineName: task.machineName, comments } : null;
       } catch (error) {
         console.warn('Chat thread lookup failed:', task.id, error.message);
@@ -316,6 +316,7 @@ function taskConfig(sourceKey) {
     date: process.env.GORULEN_DATE_PROPERTY || 'Tarix',
     assignee: process.env.GORULEN_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
     relation: machineRelationProperty(),
+    planRelation: process.env.GORULEN_PLAN_RELATION_PROPERTY || 'Plan',
     tapsirildi: process.env.GORULEN_TAPSIRILDI_PROPERTY || 'Tapsirildi',
     gtdProperty: process.env.GORULEN_GTD_PROPERTY || 'GTD',
     workTypeProperty: process.env.GORULEN_WORK_TYPE_PROPERTY || 'Is',
@@ -325,6 +326,7 @@ function taskConfig(sourceKey) {
     periodicProperty: process.env.GORULEN_PERIODIC_PROPERTY || 'Is',
     periodicValue: process.env.GORULEN_PERIODIC_VALUE || 'Periodik',
     database: GORULEN_DB,
+    dataSourceId: GORULEN_DS,
     complete: process.env.GORULEN_COMPLETE_PROPERTY || 'Status',
     linkProperty: linkPropertyName('gorulen')
   };
@@ -338,10 +340,12 @@ function taskConfig(sourceKey) {
     isciTagProperty: process.env.TODO_ISCI_TAG_PROPERTY || 'Isci tag',
     gtdValue: process.env.TODO_GTD_VALUE || 'Check list',
     relation: machineRelationProperty(),
+    planRelation: process.env.TODO_PLAN_RELATION_PROPERTY || 'Plan',
     tapsirildi: process.env.TODO_TAPSIRILDI_PROPERTY || 'Tapsirildi',
     doneWork: process.env.TODO_DONE_WORK_PROPERTY || 'Gorulen is',
     doneWorkType: process.env.TODO_DONE_WORK_TYPE || 'rich_text',
     database: TODO_DB,
+    dataSourceId: TODO_DS,
     complete: process.env.TODO_COMPLETE_PROPERTY || 'Status',
     linkProperty: linkPropertyName('todo')
   };
@@ -364,8 +368,8 @@ function taskSources() {
   const sources = [];
   const todo = taskConfig('todo');
   const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: machineRelationProperty(), titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
-  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: machineRelationProperty(), titleNames: [gorulen.title, 'Gorulen is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, gtdName: gorulen.gtdProperty, workTypeName: gorulen.workTypeProperty, tagName: gorulen.tagProperty, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
+  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: machineRelationProperty(), planRelationName: todo.planRelation, titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
+  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: machineRelationProperty(), planRelationName: gorulen.planRelation, titleNames: [gorulen.title, 'Gorulmeli is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, gtdName: gorulen.gtdProperty, workTypeName: gorulen.workTypeProperty, tagName: gorulen.tagProperty, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
   return sources;
 }
 
@@ -400,17 +404,24 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '') {
   for (const { source, pages } of pageSets) {
     for (const page of pages) {
       const linkedMachines = relationIds(page, source.relationName);
-      if (machineIds.length && !linkedMachines.some(id => machineIds.includes(id))) continue;
+      const linkedPlan = relationIds(page, source.planRelationName)[0] || '';
+      if (!linkedMachines.length && !linkedPlan) continue;
+      if (machineIds.length && !linkedMachines.some(id => machineIds.includes(id)) && !linkedPlan) continue;
       if (source.key === 'gorulen' && select(page, source.periodicName).trim().toLowerCase() === String(source.periodicValue).trim().toLowerCase()) continue;
       if (source.key === 'todo' && select(page, source.gtdName).trim().toLowerCase() === String(source.gtdValue).trim().toLowerCase()) continue;
       if (taskIsCompleted(page, source)) continue;
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
       const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: linkedMachines[0] || '' }) };
+      const taskPriority = select(page, source.priorityName); const task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), completed: false, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
+      }
+      if (!linkedMachines.length && linkedPlan) {
+        const key = `plan:${linkedPlan}`;
+        if (!result.has(key)) result.set(key, []);
+        result.get(key).push(task);
       }
     }
   }
@@ -437,7 +448,7 @@ function buildSnapshotFromRawCache(baseUrl = '') {
   const machineIds = machinePages.map(page => page.id);
   const taskSets = taskSources().map(source => ({ source, pages: [...(rawCache.tasks.get(source.key) || new Map()).values()] }));
   const tasks = buildTaskMap(taskSets, machineIds, baseUrl);
-  const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl);
+  const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl).map(plan => ({ ...plan, tasks: tasks.get(`plan:${plan.id}`) || [] }));
   const mappedEquipment = mapEquipment(machinePages, tasks, baseUrl);
   attachTaskCounts(mappedPlans, mappedEquipment);
   return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment };
@@ -456,7 +467,8 @@ function mergePages(target, pages) {
 
 async function fullSync(startedAt, baseUrl = '') {
   const [plans, machines] = await Promise.all([queryDatabase(PLAN_DB, PLAN_DS), queryDatabase(MAKINA_DB, MAKINA_DS)]);
-  const taskSets = await queryTaskPages(machines.map(page => page.id), '', true);
+  // Read task databases without a machine-only relation filter so plan-only tasks are included.
+  const taskSets = await queryTaskPages([], '', false);
   rawCache.plans = new Map(plans.map(page => [page.id, page]));
   rawCache.machines = new Map(machines.map(page => [page.id, page]));
   rawCache.tasks = new Map(taskSources().map(source => [source.key, new Map()]));
@@ -500,6 +512,7 @@ function countTasks(tasks) { const counts = zeroTaskCounts(); for (const task of
 function attachTaskCounts(plans, equipment) {
   const own = new Map();
   for (const machine of equipment) { machine.taskCounts = countTasks(machine.tasks); const current = own.get(machine.planId) || zeroTaskCounts(); current.gorulen += machine.taskCounts.gorulen; current.todo += machine.taskCounts.todo; current.total += machine.taskCounts.total; current.urgent += machine.taskCounts.urgent || 0; own.set(machine.planId, current); }
+  for (const plan of plans) { const current = own.get(plan.id) || zeroTaskCounts(); const direct = countTasks(plan.tasks); current.gorulen += direct.gorulen; current.todo += direct.todo; current.total += direct.total; current.urgent += direct.urgent; own.set(plan.id, current); }
   const children = new Map();
   for (const plan of plans) { const list = children.get(plan.parentId || '') || []; list.push(plan); children.set(plan.parentId || '', list); }
   const visit = plan => { const counts = own.get(plan.id) || zeroTaskCounts(); for (const child of children.get(plan.id) || []) { const childCounts = visit(child); counts.gorulen += childCounts.gorulen; counts.todo += childCounts.todo; counts.total += childCounts.total; } plan.taskCounts = counts; return counts; };
@@ -699,6 +712,7 @@ function buildTaskProperties(body, config, includeMachine = false) {
   if (body.doneWork !== undefined) properties[config.doneWork] = config.doneWorkType === 'title' ? { title: textBlocks(body.doneWork) } : { rich_text: textBlocks(body.doneWork) };
   if (body.completed !== undefined) properties[config.complete] = { checkbox: Boolean(body.completed) };
   if (includeMachine && body.machineId) properties[config.relation] = { relation: [{ id: String(body.machineId) }] };
+  if (body.planId) properties[config.planRelation] = { relation: [{ id: String(body.planId) }] };
   return properties;
 }
 
@@ -746,13 +760,14 @@ async function saveTask(body) {
 async function createTask(body, baseUrl = '') {
   const sourceKey = String(body.sourceKey || 'todo');
   const machineId = String(body.machineId || '').trim();
+  const planId = String(body.planId || '').trim();
   const titleValue = String(body.title || '').trim();
-  if (!machineId || !titleValue) throw new Error('Нужны машина и название задачи');
+  if ((!machineId && !planId) || !titleValue) throw new Error('Укажите название задачи и оборудование или план');
   const config = taskConfig(sourceKey);
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: { database_id: config.database }, properties: buildTaskProperties({ ...body, title: titleValue, completed: false }, config, true) }) });
-  taskCache.delete(machineId);
+  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)) }) });
+  if (machineId) taskCache.delete(machineId);
   snapshotCache = null;
-  return { ok: true, id: page.id, url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, { machine: machineId }), sourceKey, savedAt: new Date().toISOString() };
+  return { ok: true, id: page.id, url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, machineId ? { machine: machineId } : { plan: planId }), sourceKey, savedAt: new Date().toISOString() };
 }
 
 async function archiveElement(body) {
