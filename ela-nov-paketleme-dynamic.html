@@ -1281,6 +1281,30 @@ html.dark #viewport .small,html.dark #viewport .plan-sub{fill:#536578!important}
 .personal-kanban-board.personal-kanban-list-mode .personal-kanban-check-open{display:none!important}
 html.dark .personal-kanban-modal .personal-kanban-board.personal-kanban-list-mode,html.dark .personal-kanban-board.personal-kanban-list-mode .personal-kanban-list.personal-kanban-checklist{background:#202020!important;border-color:#3c3c3c!important}
 </style>
+<style class="adib-mobile-toolbar-two-row">
+@media (max-width:650px){
+  header.compact-top{position:sticky!important;top:var(--adib-safe-top,0px)!important;z-index:1500!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-template-rows:38px 40px!important;grid-template-areas:"brand brand brand brand add more" "back refresh search view filter chat"!important;align-items:center!important;gap:2px!important;width:100%!important;height:auto!important;min-height:84px!important;margin:0 0 8px!important;padding:5px 8px 4px!important;border:1px solid var(--notion-border)!important;border-radius:10px!important;background:var(--notion-bg)!important;color:var(--notion-text)!important;box-shadow:0 2px 8px rgba(20,24,34,.08)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible!important}
+  header.compact-top .brandline{grid-area:brand!important;display:flex!important;align-items:center!important;width:auto!important;min-width:0!important;height:38px!important;max-width:none!important;gap:8px!important}
+  header.compact-top .brand-mark{flex:0 0 32px!important;width:32px!important;height:32px!important;border-radius:8px!important;background:#4563f7!important;color:#fff!important;font-family:inherit!important;font-size:18px!important}
+  header.compact-top .brandline h1{display:none!important}
+  header.compact-top .brandline #miroMobileTitle{display:block!important;visibility:visible!important;min-width:0!important;max-width:none!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:var(--notion-text)!important;font-size:16px!important;font-weight:650!important}
+  header.compact-top .top-toolbar{display:contents!important;position:static!important;width:auto!important;height:auto!important;min-width:0!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+  header.compact-top .top-toolbar>:not(.miro-mobile-actions){display:none!important}
+  header.compact-top .top-toolbar>.miro-mobile-actions{display:contents!important}
+  header.compact-top .miro-mobile-actions>button{display:grid!important;place-items:center!important;justify-self:center!important;align-self:center!important;width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;border:0!important;border-radius:7px!important;background:transparent!important;color:var(--notion-text)!important;box-shadow:none!important;font-size:21px!important;line-height:1!important;transition:background .12s ease,color .12s ease!important}
+  header.compact-top .miro-mobile-actions>button:active,header.compact-top .miro-mobile-actions>button:hover{background:var(--notion-hover)!important;transform:none!important;box-shadow:none!important}
+  header.compact-top #miroMobileAdd{grid-area:add!important;color:var(--notion-blue)!important}
+  header.compact-top #miroMobileMore{grid-area:more!important}
+  header.compact-top #backHierarchy{grid-area:back!important}
+  header.compact-top #miroMobileRefresh{grid-area:refresh!important}
+  header.compact-top #miroMobileSearch{grid-area:search!important}
+  header.compact-top #miroMobileList{grid-area:view!important}
+  header.compact-top #miroMobileFilter{grid-area:filter!important}
+  header.compact-top #miroMobileChat{grid-area:chat!important}
+  header.compact-top #miroMobileInfo,header.compact-top #miroMobileShare{display:none!important}
+  header.compact-top>.sync-badge{display:none!important}
+}
+</style>
 </head>
 <body>
 <main class="app">
