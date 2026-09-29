@@ -1,0 +1,6 @@
+Mobile task list update:
+- The top list icon toggles between list and Kanban in both directions.
+- Reduced list typography for task titles and due labels.
+- List corners remain nearly square.
+- Service worker cache bumped to reload the new interface.
+Deploy these files to the existing web host to publish.

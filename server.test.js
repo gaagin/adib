@@ -176,7 +176,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v21-default-comment-author/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v28-list-kanban-toggle/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
@@ -259,11 +259,38 @@ test('dark equipment canvas uses the same base tone inside and outside the SVG',
 });
 
 
-test('a single click on any My Tasks container opens its Kanban by default', async () => {
+test('mobile My Tasks containers open in list view while desktop remains Kanban', async () => {
   const html = await (await fetch(`${baseUrl}/`)).text();
-  assert.match(html, /function openPersonalItem\(type,id\)\{if\(type==='container'\)\{const container=containerById\(id\);if\(container\)openPersonalKanban\(container\.name,personalTasksForContainer\(id\)\.filter\(task=>!task\.completed\),'',id\);return\}/);
+  assert.match(html, /function openPersonalItem\(type,id\)\{if\(type==='container'\)\{const container=containerById\(id\);if\(container\)openPersonalKanban\(container\.name,personalTasksForContainer\(id\)\.filter\(task=>!task\.completed\),'',id,window\.matchMedia\('\(max-width:650px\)'\)\.matches\?'list':'kanban'\);return\}/);
+  assert.match(html, /function openPersonalKanban\(title,tasks,parentId='',containerId='',initialView='kanban'\)/);
+  assert.match(html, /viewMode=initialView==='list'\?'list':'kanban'/);
   assert.match(html, /if\(type==='container'\)\{personalLastTap=null;openPersonalItem\(type,id\);return\}/);
   assert.match(html, /data-focus-personal-container/);
+});
+
+test('shared mobile list icon toggles list and Kanban both ways', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /if\(personalKanban\)\{personalKanban\.querySelector\('\.personal-kanban-view-mode-button'\)\?\.click\(\)/);
+  assert.match(html, /if\(equipmentKanban\)\{document\.getElementById\('kanbanViewModeButton'\)\?\.click\(\)/);
+});
+
+test('mobile equipment and plan task boards start in list view', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /function openPlanTasks\(id\)\{if\(typeof setPersonalMode==='function'\)setPersonalMode\(false\);if\(window\.matchMedia\('\(max-width:650px\)'\)\.matches\)\{kanbanViewMode='list';window\.__adibKanbanViewMode='list'\}/);
+  assert.match(html, /function openTasks\(id\)\{if\(typeof setPersonalMode==='function'\)setPersonalMode\(false\);if\(window\.matchMedia\('\(max-width:650px\)'\)\.matches\)\{kanbanViewMode='list';window\.__adibKanbanViewMode='list'\}/);
+});
+
+test('mobile checklist follows TickTick-style layout and marks overdue tasks', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.match(html, /id="ticktick-mobile-list-style"/);
+  assert.match(html, /function taskBoardDueLabel\(value\)/);
+  assert.match(html, /days\+' '\+word\+' просрочено'/);
+  assert.match(html, /class="kanban-check-due'\+\(overdue\?' overdue':''\)/);
+  assert.match(html, /personal-kanban-check-due/);
+  const mobileStyle = html.match(/<style id=\"ticktick-mobile-list-style\">([\s\S]*?)<\/style>/)?.[1] || '';
+  assert.match(mobileStyle, /border-radius:4px!important/);
+  assert.match(mobileStyle, /border-radius:3px!important/);
+  assert.doesNotMatch(mobileStyle, /border-radius:(?:40px|50%)/);
 });
 
 test('My Tasks grouping uses the Prioritet property, not Priority', async () => {

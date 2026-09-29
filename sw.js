@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v21-default-comment-author';
+const CACHE_NAME = 'adib-pwa-v28-list-kanban-toggle';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
