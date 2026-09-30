@@ -194,7 +194,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /opened\?\.classList\.add\('personal-kanban-filter-open'\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v28-context-pomodoro/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v30-desktop-container-grid/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
   assert.match(html, /bindMobileTap\(headerBackButton/);
