@@ -1004,19 +1004,61 @@ function structuredSimpleBlock(dto) {
   return { object: 'block', type, [type]: value };
 }
 async function getPersonalTaskBlocks(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); return { ok: true, id, blocks: await loadStructuredBlockTree(id) }; }
+function structuredTablePlan(dto) {
+  const inputRows = Array.isArray(dto.rows) && dto.rows.length ? dto.rows : [['']];
+  if (inputRows.some(row => !Array.isArray(row))) throw new Error('Строки таблицы должны быть массивами ячеек');
+  const declaredWidth = Number(dto.width) || 0;
+  if (declaredWidth && (!Number.isInteger(declaredWidth) || declaredWidth < 1)) throw new Error('Некорректная ширина таблицы');
+  const width = Math.max(1, declaredWidth, ...inputRows.map(row => row.length));
+  if (width > 100) throw new Error('Таблица может содержать не более 100 столбцов');
+  const normalized = inputRows.map(row => Array.from({length: width}, (_, i) => row[i] ?? ''));
+  const rows = structuredTableRows({rows: normalized});
+  return {
+    block: {object: 'block', type: 'table', table: {
+      table_width: width, has_column_header: Boolean(dto.hasColumnHeader), has_row_header: false,
+      children: rows.slice(0, 100)
+    }}, extraRows: rows.slice(100)
+  };
+}
 async function replacePersonalTaskBlocks(idValue, blocks) {
   const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks');
-  for (const block of await listStructuredPageBlocks(id)) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' });
-  const items = Array.isArray(blocks) && blocks.length ? blocks : [{ type: 'paragraph', html: '' }];
-  for (const dto of items) {
-    if (dto.type === 'table') {
-      const width = Math.max(1, Math.min(20, Number(dto.width) || Math.max(1, ...((dto.rows || []).map(row => row.length)))));
-      const created = await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: [{ object: 'block', type: 'table', table: { table_width: width, has_column_header: Boolean(dto.hasColumnHeader), has_row_header: false } }] }) });
-      const tableId = created.results?.[0]?.id;
-      if (tableId) { const rows = structuredTableRows(dto); if (rows.length) await notion('/blocks/' + encodeURIComponent(tableId) + '/children', { method: 'PATCH', body: JSON.stringify({ children: rows }) }); }
-    } else await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: [structuredSimpleBlock(dto)] }) });
+  const items = Array.isArray(blocks) && blocks.length ? blocks : [{type: 'paragraph', html: ''}];
+  // Validate/build the entire payload before making changes in Notion.
+  const plan = items.map(dto => {
+    if (!dto || typeof dto !== 'object') throw new Error('Некорректный блок содержимого задачи');
+    return dto.type === 'table' ? structuredTablePlan(dto) : {block: structuredSimpleBlock(dto), extraRows: []};
+  });
+  const oldBlocks = await listStructuredPageBlocks(id), createdIds = [], archiveAttempted = [];
+  try {
+    // Stage all new content first. A rejected table must not erase existing content.
+    for (const item of plan) {
+      const created = await notion('/blocks/' + encodeURIComponent(id) + '/children', {method: 'PATCH', body: JSON.stringify({children: [item.block]})});
+      const blockId = created.results?.[0]?.id;
+      if (!blockId) throw new Error('Notion не вернул ID созданного блока; старое содержимое не удалено');
+      createdIds.push(blockId);
+      for (let offset = 0; offset < item.extraRows.length; offset += 100) {
+        await notion('/blocks/' + encodeURIComponent(blockId) + '/children', {method: 'PATCH', body: JSON.stringify({children: item.extraRows.slice(offset, offset + 100)})});
+      }
+    }
+    for (const block of oldBlocks) {
+      archiveAttempted.push(block.id);
+      await notion('/blocks/' + encodeURIComponent(block.id), {method: 'DELETE'});
+    }
+  } catch (error) {
+    const recoveryErrors = [];
+    // Best-effort rollback: Notion has no atomic replace API.
+    for (const blockId of archiveAttempted) {
+      try {await notion('/blocks/' + encodeURIComponent(blockId), {method: 'PATCH', body: JSON.stringify({archived: false})});}
+      catch (recovery) {recoveryErrors.push(recovery.message);}
+    }
+    for (const blockId of createdIds.reverse()) {
+      try {await notion('/blocks/' + encodeURIComponent(blockId), {method: 'DELETE'});}
+      catch (recovery) {recoveryErrors.push(recovery.message);}
+    }
+    if (recoveryErrors.length) error.message += ' · Не удалось полностью отменить частичное сохранение. Не закрывайте редактор и сохраните копию текста.';
+    throw error;
   }
-  return { ok: true, id };
+  return {ok: true, id};
 }
 
 async function createPersonalTask(body) {
@@ -1051,7 +1093,18 @@ async function deletePersonalTask(idValue) {
   return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
 }
 
-async function savePersonalTask(body) {
+const {TaskManagementStore}=require('./task-management');
+const taskManagement=new TaskManagementStore(process.env.TASK_MANAGEMENT_FILE||path.join(process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'task-management.json'));
+let personalStatusWriteQueue=Promise.resolve();
+async function savePersonalTask(body){
+ if(String(body.status||'').trim().toLowerCase()==='in progress'){
+  const operation=personalStatusWriteQueue.then(async()=>{const pages=await queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Status 1',checkbox:{equals:false}}});taskManagement.checkWip(pages.map(mapPersonalTask),cleanId(String(body.id||'')),body.wipOverride);return savePersonalTaskUnlocked(body)});
+  personalStatusWriteQueue=operation.catch(()=>{});return operation;
+ }
+ return savePersonalTaskUnlocked(body);
+}
+
+async function savePersonalTaskUnlocked(body) {
   const id = cleanId(String(body.id || '').trim());
   if (!id) throw new Error('Не указан ID задачи Tasks');
   const properties = {};
@@ -1073,6 +1126,7 @@ async function savePersonalTask(body) {
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
+  if(body.completed===true||body.status==='Done')taskManagement.update({type:'finish',id});
   personalTasksCache = null;
   return { ok: true, id, savedAt: new Date().toISOString() };
 }
@@ -1225,6 +1279,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       return json(response, 200, await personalSnapshot(url.searchParams.get('force') === '1'));
     }
+    if (request.method === 'GET' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.snapshot()});
+    if (request.method === 'POST' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.update(await readBody(request))});
     if (request.method === 'GET' && url.pathname === '/api/personal-task-content') {
       return json(response, 200, await getPersonalTaskContent(url.searchParams.get('id')));
     }
@@ -1283,7 +1339,7 @@ const server = http.createServer(async (request, response) => {
   } catch (error) {
     if (error.statusCode && error.statusCode < 500) console.warn('Request rejected:', error.message);
     else console.error(error);
-    return json(response, error.statusCode || 500, { error: error.message });
+    return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
   }
 });
 
