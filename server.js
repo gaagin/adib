@@ -1100,23 +1100,24 @@ async function savePersonalPomodoroUnlocked(body){
  let timer=existing||timerFromTask(task,now);
  const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
  if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
- if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Number(body.duration)||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,openedAt:now,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
+ if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,openedAt:now,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
  if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=sharedPomodoro.put(timerFromTask(task,now));return answer(timer,{duplicate:true})}
- if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning){timer=sharedPomodoro.put({...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0});return answer(timer,{duplicate:true})}
- const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,(timer.status==='paused'&&timer.mode===mode?timer.duration:Number(body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
+ if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning&&timer.status!=='paused')return answer(timer,{duplicate:true});
+ const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,Math.round(timer.status==='paused'&&timer.mode===mode?timer.plannedDuration||timer.duration:Number(body.plannedDuration||body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
  if(action==='start'){
   const requested=Number(body.remainingSeconds),remaining=Number.isFinite(requested)&&requested>0?Math.min(duration*60,Math.ceil(requested)):timer.status==='paused'&&timer.mode===mode?timer.remainingSeconds:duration*60;
-  properties['Отчет запущен']={checkbox:true};properties['Начало отчета']={date:{start:iso}};properties['Конец отчета']={date:null};properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};properties['Pomodoro текущая длительность']={number:remaining/60};
-  timer={...timer,mode,duration,running:true,status:'running',startedAt:iso,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:id+':'+iso};
+  const effectiveStart=new Date(now-(duration*60-remaining)*1000).toISOString();
+  properties['Отчет запущен']={checkbox:true};properties['Начало отчета']={date:{start:effectiveStart}};properties['Конец отчета']={date:null};properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};properties['Pomodoro текущая длительность']={number:duration};
+  timer={...timer,mode,duration,plannedDuration:duration,running:true,status:'running',startedAt:effectiveStart,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:id+':'+effectiveStart,completedAt:null,completionReason:null,creditedMinutes:null};
  }else if(action==='pause'){
   const remaining=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Math.min(duration*60,Number(body.remainingSeconds)||timer.remainingSeconds||duration*60));
   properties['Отчет запущен']={checkbox:false};timer={...timer,running:false,status:'paused',endsAt:0,remainingSeconds:remaining};
  }else if(action==='finish'||action==='break-finish'){
-  const credited=Number(timer.duration)||duration;properties['Отчет запущен']={checkbox:false};properties['Конец отчета']={date:{start:iso}};
-  if(action==='finish'){properties['Pomodoro количество']={number:task.pomodoroCount+1};properties['Pomodoro всего минут']={number:task.pomodoroMinutes+credited}}
-  timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,pomodoroCount:action==='finish'?task.pomodoroCount+1:task.pomodoroCount,pomodoroMinutes:action==='finish'?task.pomodoroMinutes+credited:task.pomodoroMinutes};
+  const fullMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||duration)),left=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Number(timer.remainingSeconds)||0),workedSeconds=Math.max(0,Math.min(fullMinutes*60,fullMinutes*60-left)),early=body.early===true&&left>0,credited=early?Math.round(workedSeconds/60):fullMinutes;properties['Отчет запущен']={checkbox:false};properties['Конец отчета']={date:{start:iso}};
+  if(action==='finish'){properties['Pomodoro количество']={number:task.pomodoroCount+1};properties['Pomodoro всего минут']={number:Math.round(Number(task.pomodoroMinutes)||0)+credited}}
+  timer={...timer,running:false,status:'completed',endsAt:0,remainingSeconds:0,completedAt:iso,completionReason:early?'early':'elapsed',creditedMinutes:action==='finish'?credited:0,pomodoroCount:action==='finish'?task.pomodoroCount+1:task.pomodoroCount,pomodoroMinutes:action==='finish'?Math.round(Number(task.pomodoroMinutes)||0)+credited:task.pomodoroMinutes};
  }else{
-  properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0};
+  properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,completedAt:null,completionReason:'reset',creditedMinutes:null};
  }
  if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});personalTasksCache=null;timer=sharedPomodoro.put(timer);return answer(timer);
 }

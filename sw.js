@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v33-shared-pomodoro';
+const CACHE_NAME = 'adib-pwa-v34-pomodoro-accounting';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
