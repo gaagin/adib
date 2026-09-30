@@ -84,12 +84,13 @@ test('Kanban columns stay in one horizontal row on desktop', async () => {
 test('the shared toolbar is light on desktop and includes hierarchy back', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
-  assert.match(html, /class="miro-mobile-actions"[^>]*><button id="backHierarchy"[^>]*title="Подняться на уровень выше"/);
-  assert.doesNotMatch(html, /class="canvas-toolbar"><button id="backHierarchy"/);
+  assert.match(html, /class="miro-mobile-actions"[^>]*><button id="equipmentBackButton"[^>]*title="Назад по планам оборудования"/);
+  assert.doesNotMatch(html, /class="canvas-toolbar"><button id="equipmentBackButton"/);
   assert.match(html, /class="desktop-service-light-toolbar"/);
   assert.match(html, /\.compact-top\{[\s\S]*?background:#fff!important/);
-  assert.match(html, /document\.getElementById\('backHierarchy'\)\.onclick=/);
-  assert.match(html, /if\(!current\?\.parentId\)return;state\.currentPlan=current\.parentId/);
+  assert.match(html, /bindMobileTap\(equipmentBackButton/);
+  assert.match(html, /bindMobileTap\(personalBackButton/);
+  assert.match(html, /adibNavigatePlan\(parent.id,false\)/);
 });
 
 test('task context menus can start Pomodoro for personal and equipment tasks', async () => {
@@ -182,7 +183,7 @@ test('the mode navigation popup has a light background and readable active state
 test('Back, list, and filter actions are always present in the shared toolbar', async () => {
   const response = await fetch(`${baseUrl}/`);
   const html = await response.text();
-  assert.match(html, /id="backHierarchy"/);
+  assert.match(html, /id="equipmentBackButton"/);
   assert.match(html, /id="miroMobileList"[^>]*aria-label="Список"/);
   assert.match(html, /id="miroMobileFilter"[^>]*aria-label="Фильтр"/);
   assert.match(html, /id="miroMobileRefresh"[^>]*aria-label="Обновить"/);
@@ -194,15 +195,15 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /modal.classList.toggle\('personal-kanban-filter-open',open\)/);
   assert.match(html, /personal-eisenhower-filter-open/);
   assert.match(html, /button\[aria-pressed="true"\].*background:#4262ff!important/);
-  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v34-pomodoro-accounting/);
+  assert.match(await (await fetch(`${baseUrl}/sw.js`)).text(), /adib-pwa-v35-separate-back-buttons/);
   assert.match(html, /bindMobileTap\(headerListButton,switchToList\)/);
   assert.match(html, /bindMobileTap\(headerFilterButton,openHeaderFilters\)/);
-  assert.match(html, /bindMobileTap\(headerBackButton/);
-  assert.doesNotMatch(html, /body:has\(#personalMode:not\(\[hidden\]\)\) #backHierarchy/);
-  assert.match(html, /const args=personalKanban\.__personalKanbanArgs\|\|\{\},parentId=args\.parentId,containerId=args\.containerId/);
-  assert.match(html, /taskDialogOpen=document\.getElementById\('taskModal'\)\?\.classList\.contains\('open'\)/);
-  assert.match(html, /const taskModal=document\.getElementById\('taskModal'\);if\(currentEquipmentKanban\(\)\|\|taskModal\?\.classList\.contains\('open'\)\)/);
-  assert.match(html, /if\(parentContainer\)\{personalKanban\.remove\(\);openPersonalKanban/);
+  assert.match(html, /bindMobileTap\(equipmentBackButton/);
+  assert.doesNotMatch(html, /body:has\(#personalMode:not\(\[hidden\]\)\) #equipmentBackButton/);
+  assert.match(html, /window\.__adibPersonalBack/);
+  assert.match(html, /window\.__adibPersonalBack/);
+  assert.match(html, /window\.__adibPersonalBack/);
+  assert.match(html, /window\.__adibPersonalBack/);
   assert.match(html, /focused\?\.parentId\)setPersonalFocus\(focused\.parentId\)/);
   assert.match(html, /background:#4262ff!important;color:#fff!important;opacity:1!important;border:1px solid #bfd0ff!important/);
   assert.doesNotMatch(html, /#miroMobileList\[aria-pressed=\"true\"\],\.miro-mobile-actions #miroMobileFilter\[aria-pressed=\"true\"\]\{background:#ffffff24/);

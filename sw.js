@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v34-pomodoro-accounting';
+const CACHE_NAME = 'adib-pwa-v35-separate-back-buttons';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
