@@ -1315,6 +1315,7 @@ html body:has(#personalMode:not([hidden])) #personalMode #personalBoard.personal
 body:has(#personalMode:not([hidden]) .personal-desktop-grid-board) #centerCurrentCanvasButton{display:none!important}
 body:has(#personalMode:not([hidden]) .personal-desktop-grid-board) #backHierarchy{color:var(--notion-text)!important}
 body:has(#personalMode:not([hidden]) .personal-desktop-grid-board) header.compact-top{position:fixed!important;width:auto!important;left:10px!important;right:10px!important;box-sizing:border-box!important}
+body:has(#taskModal.open.kanban-modal) header.compact-top{position:fixed!important;width:auto!important;left:10px!important;right:10px!important;box-sizing:border-box!important}
 #personalMode .personal-desktop-scope-title{margin:0 0 24px;font-size:28px;line-height:1.25;color:var(--notion-text);overflow-wrap:anywhere}
 #personalMode .personal-desktop-container-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:clamp(180px,25vh,260px);gap:16px;align-items:stretch}
 #personalMode .personal-desktop-card{position:relative!important;inset:auto!important;width:100%!important;height:100%!important;min-width:0!important;margin:0!important;padding:24px 16px!important;background:#dcecf8!important;border:1px solid #8795a6!important;border-radius:16px!important;box-shadow:none!important;cursor:pointer!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:16px!important;color:#33485e!important;overflow:hidden!important;font-family:inherit;user-select:none;text-align:center}
@@ -2133,8 +2134,8 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     return modal;
   }
   function openPersonalKanbanTool(focus,initialView='kanban'){const modal=openPersonalKanban('Мои задачи',personalTasks.filter(task=>!task.completed),'','',initialView);if(modal&&focus)setTimeout(()=>modal.querySelector(focus)?.focus(),0);return modal}
-  function openDefaultMyTasksList(){return Promise.resolve(setPersonalMode(true)).then(()=>{let modal=document.querySelector('.personal-kanban-modal');if(!modal)modal=openPersonalKanbanTool(undefined,'list');else if(!modal.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode'))modal.querySelector('.personal-kanban-view-mode-button')?.click();syncMiroTaskViewHeader();return modal})}
-  window.__adibOpenDefaultMyTasksList=openDefaultMyTasksList;
+  function openDefaultMyTasksList(){return Promise.resolve(setPersonalMode(true)).then(()=>{if(usePersonalDesktopGrid()){document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal').forEach(modal=>modal.remove());renderPersonalBoard();syncMiroTaskViewHeader();return null}let modal=document.querySelector('.personal-kanban-modal');if(!modal)modal=openPersonalKanbanTool(undefined,'list');else if(!modal.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode'))modal.querySelector('.personal-kanban-view-mode-button')?.click();syncMiroTaskViewHeader();return modal})}
+  window.__adibOpenDefaultMyTasksList=openDefaultMyTasksList;window.__openPersonalKanbanTool=openPersonalKanbanTool;
 
   function setPersonalMode(active){const mode=document.getElementById('personalMode'),layout=document.getElementById('layout');if(!mode||!layout)return;if(!active){personalFocusContainerId='';personalInlineDiagramRoot=''}mode.hidden=!active;if(active){layout.hidden=true;layout.style.setProperty('display','none','important')}else{layout.hidden=false;layout.style.removeProperty('display')}document.getElementById('personalModeButton')?.classList.toggle('active',active);document.getElementById('personalMobileButton')?.classList.toggle('active',active);document.querySelectorAll('.equipment-nav-action').forEach(button=>button.hidden=active);document.querySelectorAll('.personal-mode-nav-action').forEach(button=>button.hidden=!active);if(active){delete personalBoard.dataset.userInteracted;delete personalBoard.dataset.contentCentered;return loadPersonalTasks().then(()=>{if(personalBoard.dataset.userInteracted==='1')return;const place=()=>{if(useMiroMobileShell)fitPersonalBoardToViewport();else centerPersonalBoardOnContent(true)};requestAnimationFrame(place);setTimeout(place,350)}).catch(()=>{})}}
   window.matchMedia('(min-width:901px)').addEventListener('change',()=>{if(!personalMode.hidden)renderPersonalBoard()});
@@ -2820,10 +2821,10 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   };
   const switchToList=()=>{
     if(window.__openPersonalDesktopGridList?.()){updateHeaderModeButtons();return}
-    const personalKanban=currentPersonalKanban();if(personalKanban){if(!personalKanban.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode'))personalKanban.querySelector('.personal-kanban-view-mode-button')?.click();updateHeaderModeButtons();return}
-    const equipmentKanban=currentEquipmentKanban();if(equipmentKanban){if(window.__adibKanbanViewMode!=='list')document.getElementById('kanbanViewModeButton')?.click();updateHeaderModeButtons();return}
-    const matrix=document.querySelector('.personal-eisenhower-modal');if(matrix){matrix.querySelector('.personal-eisenhower-close')?.click();requestAnimationFrame(()=>{openPersonalKanbanTool(undefined,'list');updateHeaderModeButtons()});return}
-    if(isPersonal()){openPersonalKanbanTool(undefined,'list');updateHeaderModeButtons();return}
+    const personalKanban=currentPersonalKanban();if(personalKanban){personalKanban.querySelector('.personal-kanban-view-mode-button')?.click();updateHeaderModeButtons();return}
+    const equipmentKanban=currentEquipmentKanban();if(equipmentKanban){document.getElementById('kanbanViewModeButton')?.click();updateHeaderModeButtons();return}
+    const matrix=document.querySelector('.personal-eisenhower-modal');if(matrix){matrix.querySelector('.personal-eisenhower-close')?.click();requestAnimationFrame(()=>{window.__openPersonalKanbanTool?.(undefined,'list');updateHeaderModeButtons()});return}
+    if(isPersonal()){window.__openPersonalKanbanTool?.(undefined,'list');updateHeaderModeButtons();return}
     const current=state.plans.find(item=>String(item.id)===String(state.currentPlan));if(current){window.__adibKanbanViewMode='list';kanbanViewMode='list';openPlanTasks(current.id);updateHeaderModeButtons()}
   };
   const openHeaderFilters=()=>{
