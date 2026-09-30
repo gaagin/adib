@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync(__dirname+'/ela-nov-paketleme-dynamic.html','utf8');
+const css=html.match(/<style id="kanban-card-width-fix">([\s\S]*?)<\/style>/)[1];
+test('equipment kanban separates title, Pomodoro and property selectors into rows',()=>{assert.match(css,/grid-template-columns:minmax\(0,1fr\) auto!important/);for(const [selector,row] of [['>strong',1],['>.task-pomodoro-summary',2],['>.kanban-task-selects',3]]){const rule=css.split('}').find(x=>x.includes(selector));assert.ok(rule);assert.ok(rule.includes('grid-row:'+row+'!important'))}});
+test('property dropdowns cannot force title to shrink',()=>{assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)!important/);assert.match(css,/select\{box-sizing:border-box!important;min-width:0!important;width:100%!important/)});
+test('layout override excludes checklist/list rows and keeps task interactions',()=>{assert.ok(css.split('}').filter(x=>x.includes('{')).every(x=>x.includes('.kanban-task:not(.kanban-list-row)')));for(const s of ['data-kanban-open-task','data-kanban-group','data-kanban-status','data-kanban-copy','draggable="true"'])assert.ok(html.includes(s))});
