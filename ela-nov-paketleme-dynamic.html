@@ -1890,6 +1890,22 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     }).sort((a,b)=>Number(a.order||0)-Number(b.order||0));
   }
   function personalDesktopGridSlice(containers,page){const pageCount=Math.max(1,Math.ceil(containers.length/10)),currentPage=Math.max(0,Math.min(page,pageCount-1));return{items:containers.slice(currentPage*10,currentPage*10+10),page:currentPage,pageCount}}
+  const desktopPersonalCompletionBusy=new Set();
+  async function completeDesktopPersonalTask(id,button){
+    id=String(id);if(desktopPersonalCompletionBusy.has(id))return;
+    const task=personalTasks.find(item=>String(item.id)===id);if(!task||task.completed)return;
+    desktopPersonalCompletionBusy.add(id);button.disabled=true;button.setAttribute('aria-busy','true');
+    const row=button.closest('.personal-desktop-task-row'),feedback=row?.querySelector('.desktop-complete-feedback');
+    if(feedback){feedback.textContent='Сохраняю выполнение…';feedback.classList.remove('is-error');}
+    try{
+      await personalApi('/api/personal-task',{method:'PATCH',body:JSON.stringify({id,status:'Done',completed:true})});
+      task.status='Done';task.completed=true;setTaskDateReminder(task.id,task.title,task.date,false);
+      personalTasks=personalTasks.filter(item=>String(item.id)!==id);renderPersonalBoard();
+    }catch(error){
+      if(feedback){feedback.textContent='Не удалось завершить задачу. Проверьте интернет и нажмите кружок ещё раз.';feedback.classList.add('is-error');}
+      else personalError.textContent='Не удалось завершить задачу: '+error.message;
+    }finally{desktopPersonalCompletionBusy.delete(id);button.disabled=false;button.removeAttribute('aria-busy');}
+  }
   function renderPersonalDesktopGrid(focusedContainer,query){
     const focusId=focusedContainer?.id||'',scope=focusId+'|'+query;
     if(scope!==personalDesktopGridScope){personalDesktopGridPage=0;personalDesktopGridScope=scope}
@@ -1905,7 +1921,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     if(containers.length)personalBoard.appendChild(grid);
     if(page.pageCount>1){const pagination=document.createElement('nav');pagination.className='personal-desktop-grid-pagination';pagination.setAttribute('aria-label','Страницы контейнеров');pagination.innerHTML='<button type="button" data-grid-page="prev" aria-label="Предыдущая страница"'+(page.page===0?' disabled':'')+'>‹</button><span>'+(page.page+1)+' / '+page.pageCount+'</span><button type="button" data-grid-page="next" aria-label="Следующая страница"'+(page.page===page.pageCount-1?' disabled':'')+'>›</button>';pagination.querySelector('[data-grid-page="prev"]').onclick=()=>{personalDesktopGridPage--;renderPersonalBoard()};pagination.querySelector('[data-grid-page="next"]').onclick=()=>{personalDesktopGridPage++;renderPersonalBoard()};personalBoard.appendChild(pagination)}
     const needle=query.trim().toLocaleLowerCase(),tasks=personalTasks.filter(task=>!task.completed&&!task.parentId&&String(personalLayout.tasks[task.id]?.containerId||task.containerId||'')===String(focusId)&&(!needle||String(task.title||'').toLocaleLowerCase().includes(needle)));
-    if(tasks.length){const list=document.createElement('div');list.className='personal-desktop-task-list';if(containers.length){const heading=document.createElement('h3');heading.textContent='Задачи';list.appendChild(heading)}for(const task of tasks){const row=document.createElement('div');row.className='personal-desktop-task-row';row.setAttribute('role','group');row.setAttribute('aria-label',task.title||'Задача');row.tabIndex=0;row.dataset.personalTask=task.id;row.innerHTML='<span class="task-dot" aria-hidden="true"></span><span><strong>'+escapeHtml(task.title||'Без названия')+'</strong><small>'+escapeHtml([task.date,task.priority,task.prioritet].filter(Boolean).join(' · '))+'</small>'+personalTaskPomodoroIndicator(task,true)+'</span>';row.onclick=event=>{if(!event.target.closest('button'))openPersonalTaskEditor(task.id,false)};row.onkeydown=event=>{if(event.target!==row)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();openPersonalTaskEditor(task.id,false)}};list.appendChild(row)}personalBoard.appendChild(list)}
+    if(tasks.length){const list=document.createElement('div');list.className='personal-desktop-task-list';if(containers.length){const heading=document.createElement('h3');heading.textContent='Задачи';list.appendChild(heading)}for(const task of tasks){const row=document.createElement('div');row.className='personal-desktop-task-row';row.setAttribute('role','group');row.setAttribute('aria-label',task.title||'Задача');row.tabIndex=0;row.dataset.personalTask=task.id;row.innerHTML='<button type="button" class="task-dot desktop-task-complete" data-desktop-complete="'+escapeHtml(String(task.id))+'" aria-label="Отметить выполненной: '+escapeHtml(task.title||'Задача')+'" title="Отметить выполненной"'+(desktopPersonalCompletionBusy.has(String(task.id))?' disabled aria-busy="true"':'')+'></button><span><strong>'+escapeHtml(task.title||'Без названия')+'</strong><small>'+escapeHtml([task.date,task.priority,task.prioritet].filter(Boolean).join(' · '))+'</small>'+personalTaskPomodoroIndicator(task,true)+'<span class="desktop-complete-feedback" role="status" aria-live="polite"></span></span>';const completeButton=row.querySelector('[data-desktop-complete]');completeButton.addEventListener('pointerdown',event=>event.stopPropagation());completeButton.onclick=event=>{event.preventDefault();event.stopPropagation();void completeDesktopPersonalTask(task.id,completeButton)};row.onclick=event=>{if(!event.target.closest('button'))openPersonalTaskEditor(task.id,false)};row.onkeydown=event=>{if(event.target!==row)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();openPersonalTaskEditor(task.id,false)}};list.appendChild(row)}personalBoard.appendChild(list)}
     if(!containers.length&&!tasks.length){const empty=document.createElement('div');empty.className='personal-desktop-grid-empty';empty.textContent=needle?'Ничего не найдено':'Здесь пока нет элементов';personalBoard.appendChild(empty)}
     personalCount.textContent=containers.length+' контейнеров · '+tasks.length+' задач';const title=document.querySelector('.personal-title strong');if(title)title.textContent=focusedContainer?focusedContainer.name:'Мои задачи';const addButton=document.getElementById('personalAddContainer');if(addButton)addButton.hidden=false;const exitButton=document.getElementById('personalExitFocus');if(exitButton)exitButton.textContent='← Назад';writePersonalSnapshot();renderPersonalBoardSearchResults();
   }
@@ -3326,6 +3342,15 @@ document.getElementById('centerCurrentCanvasButton')?.addEventListener('click',(
 :is(#taskModal.open.adib-task-properties,.kanban-task-editor-layer.adib-task-properties,.personal-kanban-editor-layer.adib-task-properties).adib-properties-expanded{padding:0!important}
 :is(#taskModal.open.adib-task-properties,.kanban-task-editor-layer.adib-task-properties,.personal-kanban-editor-layer.adib-task-properties).adib-properties-expanded>.adib-task-properties-panel{width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;border:0!important}
 }
+</style>
+<style id="desktop-task-complete-style">
+html body #personalMode .personal-desktop-task-row button.desktop-task-complete{box-sizing:border-box!important;display:grid!important;place-items:center!important;flex:0 0 44px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;margin:0!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--notion-text)!important;cursor:pointer!important;touch-action:manipulation!important}
+html body #personalMode .personal-desktop-task-row button.desktop-task-complete::before{content:'';box-sizing:border-box;width:24px;height:24px;border:2px solid #dfa92f;border-radius:50%;display:block}
+html body #personalMode .personal-desktop-task-row button.desktop-task-complete:not(:disabled):hover{background:var(--notion-hover)!important}
+html body #personalMode .personal-desktop-task-row button.desktop-task-complete:focus-visible{outline:2px solid var(--notion-blue)!important;outline-offset:2px!important}
+html body #personalMode .personal-desktop-task-row button.desktop-task-complete:disabled{opacity:.5!important;cursor:wait!important}
+.desktop-complete-feedback{display:block;min-width:0;font-size:14px;line-height:1.5;color:var(--notion-muted);margin-top:6px;overflow-wrap:anywhere}
+.desktop-complete-feedback:empty{display:none}.desktop-complete-feedback.is-error{color:#b03030}html.dark .desktop-complete-feedback.is-error{color:#ff9a9a}
 </style>
 </body>
 </html>
