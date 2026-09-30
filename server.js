@@ -1077,58 +1077,48 @@ async function savePersonalTask(body) {
   return { ok: true, id, savedAt: new Date().toISOString() };
 }
 
+const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
+const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
+let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
+async function sharedPomodoroSnapshot(){
+  if(Date.now()-pomodoroRefreshAt>30000){
+    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
+    await pomodoroRefreshPromise;
+  }
+  return sharedPomodoro.snapshot();
+}
 const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
-  const id = cleanId(String(body.id || '').trim());
-  if (!id) throw new Error('Не указан ID задачи Tasks');
-  const previous = personalPomodoroLocks.get(id) || Promise.resolve();
-  let release;
-  const current = new Promise(resolve => { release = resolve; });
-  personalPomodoroLocks.set(id, current);
-  await previous;
-  try { return await savePersonalPomodoroUnlocked(body); }
-  finally { release(); if (personalPomodoroLocks.get(id) === current) personalPomodoroLocks.delete(id); }
+  const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Не указан ID задачи Tasks');
+  const previous=personalPomodoroLocks.get(id)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(id,current);await previous;
+  try{return await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(id)===current)personalPomodoroLocks.delete(id)}
 }
-
-async function savePersonalPomodoroUnlocked(body) {
-  const id=cleanId(String(body.id||'').trim());
-  const action=String(body.action||'').trim();
-  if(!id) throw new Error('Не указан ID задачи Tasks');
-  if(!['start','finish','break-finish','reset'].includes(action)) throw new Error('Неизвестное действие Pomodoro');
-  const page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});
-  const currentCount=Number(number(page,'Pomodoro количество')||0);
-  const currentMinutes=Number(number(page,'Pomodoro всего минут')||0);
-  const alreadyRunning=checkbox(page,'Отчет запущен');
-  const existingStartedAt=dateStart(page,'Начало отчета');
-  if(action==='start' && alreadyRunning && existingStartedAt) return {ok:true,id,action,duplicate:true,pomodoroCount:currentCount,pomodoroMinutes:currentMinutes,startedAt:existingStartedAt,savedAt:new Date().toISOString()};
-  if((action==='finish'||action==='break-finish') && !alreadyRunning) return {ok:true,id,action,duplicate:true,pomodoroCount:currentCount,pomodoroMinutes:currentMinutes,startedAt:'',savedAt:new Date().toISOString()};
-  const mode=body.mode==='break'?'break':'work';
-  const duration=Math.max(1,Math.min(mode==='break'?60:180,Number(body.duration)||pomodoroModeDuration(select(page,'Pomodoro режим'))));
-  const now=new Date().toISOString();
-  const properties={};
-  if(action==='start'){
-    properties['Отчет запущен']={checkbox:true};
-    properties['Начало отчета']={date:{start:now}};
-    properties['Конец отчета']={date:null};
-    properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};
-    properties['Pomodoro текущая длительность']={number:duration};
-  }else if(action==='finish'){
-    properties['Отчет запущен']={checkbox:false};
-    properties['Конец отчета']={date:{start:now}};
-    properties['Pomodoro количество']={number:currentCount+1};
-    properties['Pomodoro всего минут']={number:currentMinutes+duration};
-  }else if(action==='break-finish'){
-    properties['Отчет запущен']={checkbox:false};
-    properties['Конец отчета']={date:{start:now}};
-  }else{
-    properties['Отчет запущен']={checkbox:false};
-    properties['Начало отчета']={date:null};
-    properties['Конец отчета']={date:null};
-    properties['Pomodoro текущая длительность']={number:null};
-  }
-  await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});
-  personalTasksCache=null;
-  return {ok:true,id,action,pomodoroCount:action==='finish'?currentCount+1:currentCount,pomodoroMinutes:action==='finish'?currentMinutes+duration:currentMinutes,startedAt:action==='start'?now:'',savedAt:now};
+async function savePersonalPomodoroUnlocked(body){
+ const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
+ if(!['open','start','pause','finish','break-finish','reset'].includes(action))throw new Error('Неизвестное действие Pomodoro');
+ const global=id==='00000000-0000-4000-8000-000000000001',existing=sharedPomodoro.get(id),now=Date.now(),page=global?null:await notion('/pages/'+encodeURIComponent(id),{method:'GET'}),task=global?{id,title:'Помодоро',pomodoroRunning:existing?.running||false,pomodoroStartedAt:existing?.startedAt||'',pomodoroCount:existing?.pomodoroCount||0,pomodoroMinutes:existing?.pomodoroMinutes||0}:mapPersonalTask(page);
+ let timer=existing||timerFromTask(task,now);
+ const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
+ if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
+ if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Number(body.duration)||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,openedAt:now,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
+ if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=sharedPomodoro.put(timerFromTask(task,now));return answer(timer,{duplicate:true})}
+ if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning){timer=sharedPomodoro.put({...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0});return answer(timer,{duplicate:true})}
+ const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,(timer.status==='paused'&&timer.mode===mode?timer.duration:Number(body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
+ if(action==='start'){
+  const requested=Number(body.remainingSeconds),remaining=Number.isFinite(requested)&&requested>0?Math.min(duration*60,Math.ceil(requested)):timer.status==='paused'&&timer.mode===mode?timer.remainingSeconds:duration*60;
+  properties['Отчет запущен']={checkbox:true};properties['Начало отчета']={date:{start:iso}};properties['Конец отчета']={date:null};properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};properties['Pomodoro текущая длительность']={number:remaining/60};
+  timer={...timer,mode,duration,running:true,status:'running',startedAt:iso,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:id+':'+iso};
+ }else if(action==='pause'){
+  const remaining=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Math.min(duration*60,Number(body.remainingSeconds)||timer.remainingSeconds||duration*60));
+  properties['Отчет запущен']={checkbox:false};timer={...timer,running:false,status:'paused',endsAt:0,remainingSeconds:remaining};
+ }else if(action==='finish'||action==='break-finish'){
+  const credited=Number(timer.duration)||duration;properties['Отчет запущен']={checkbox:false};properties['Конец отчета']={date:{start:iso}};
+  if(action==='finish'){properties['Pomodoro количество']={number:task.pomodoroCount+1};properties['Pomodoro всего минут']={number:task.pomodoroMinutes+credited}}
+  timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,pomodoroCount:action==='finish'?task.pomodoroCount+1:task.pomodoroCount,pomodoroMinutes:action==='finish'?task.pomodoroMinutes+credited:task.pomodoroMinutes};
+ }else{
+  properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0};
+ }
+ if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});personalTasksCache=null;timer=sharedPomodoro.put(timer);return answer(timer);
 }
 
 async function aiChat(body) {
@@ -1254,6 +1244,7 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       return json(response, 200, await savePersonalTask(body));
     }
+    if (request.method === 'GET' && url.pathname === '/api/pomodoro-state') return json(response,200,await sharedPomodoroSnapshot());
     if (request.method === 'POST' && url.pathname === '/api/personal-pomodoro') {
       const body = await readBody(request);
       return json(response, 200, await savePersonalPomodoro(body));

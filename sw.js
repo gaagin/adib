@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v30-desktop-container-grid';
+const CACHE_NAME = 'adib-pwa-v33-shared-pomodoro';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
