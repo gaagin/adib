@@ -1,0 +1,52 @@
+.adib-calendar{position:fixed;inset:0 0 0 var(--adib-side-width,0px);z-index:35;display:flex;flex-direction:column;background:var(--surface);color:var(--text);min-width:0}
+.adib-calendar-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}.adib-calendar-bar h2{font-size:21px;margin:0 auto 0 12px;text-transform:capitalize}.adib-calendar-bar button,.adib-calendar-bar select,.adib-calendar-bar input{min-height:36px;background:var(--soft);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:6px 12px}.adib-calendar-bar input{max-width:180px}
+.adib-calendar-status{font-size:12px;color:var(--muted);padding:5px 16px;min-height:26px}
+.adib-calendar-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 280px}.adib-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:30px repeat(6,minmax(110px,1fr));overflow:auto;min-height:0}.adib-calendar-grid[data-view=week]{grid-template-rows:30px minmax(0,1fr)}.adib-calendar-grid[data-view=day]{grid-template-columns:1fr;grid-template-rows:1fr}.adib-calendar-weekday{padding:4px 10px;background:var(--soft);color:var(--muted);font-size:12px}.adib-calendar-cell{padding:7px;border:1px solid var(--line);min-width:0;overflow:auto}.adib-calendar-cell header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:12px}.adib-calendar-cell header button{border:0;background:transparent;color:var(--muted);font-size:18px;min-width:26px}.adib-calendar-cell.outside{background:var(--soft)}.adib-calendar-cell.today header strong{border-radius:50%;background:var(--blue);color:white;padding:5px}.adib-calendar-task{padding:6px;margin:5px 0;background:var(--blue-soft);border:1px solid var(--line);border-radius:7px;font-size:12px;cursor:grab}.adib-calendar-task button{font:inherit;color:var(--text);background:transparent;border:0;padding:0;text-align:left;max-width:100%;overflow-wrap:anywhere}.adib-calendar-task .calendar-task-title{display:block;width:100%}.adib-calendar-task small{color:var(--muted)}.adib-calendar-task [data-date-today]{color:var(--blue);margin-top:6px}.adib-calendar-undated{padding:14px;background:var(--soft);border-left:1px solid var(--line);overflow:auto;min-height:0}.adib-calendar-undated h3{font-size:16px}.adib-calendar-undated>small{color:var(--muted);font-size:12px}
+@media(max-width:1050px){.adib-calendar-body{grid-template-columns:minmax(0,1fr) 210px}.adib-calendar-bar input{display:none}}
+/* Hourly week/day workspace. Month layout and its date-only behavior stay intact. */
+.adib-calendar-grid[data-view=week],.adib-calendar-grid[data-view=day]{display:block!important;position:relative;overflow:auto!important}
+.calendar-time-layout{display:grid;grid-template-columns:64px repeat(var(--calendar-days),minmax(140px,1fr));min-width:calc(64px + var(--calendar-days)*140px);position:relative;background:var(--surface)}
+.calendar-time-layout.calendar-one-day{min-width:0;grid-template-columns:64px minmax(0,1fr)}
+.calendar-time-corner,.calendar-time-layout>.calendar-day-head{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--line);min-height:48px;padding:10px 8px;font-size:13px}
+.calendar-time-corner{left:0;z-index:12;color:var(--muted);font-size:12px;display:flex;align-items:center}
+.calendar-day-head{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0}
+.calendar-day-head strong{font-size:13px;line-height:1.3}.calendar-day-head.today strong{color:var(--blue)}
+.calendar-day-head button{min-width:28px;min-height:28px;padding:2px!important;background:transparent!important;color:var(--blue)!important;border:0!important}
+.calendar-allday-label{font-size:11px;color:var(--muted);padding:12px 6px;position:sticky;left:0;background:var(--soft);z-index:5;border-bottom:1px solid var(--line)}
+.calendar-allday{min-height:48px;padding:4px;border-left:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--soft);min-width:0}
+.calendar-hour-ruler{height:1920px;position:sticky;left:0;background:var(--surface);z-index:5;border-right:1px solid var(--line)}
+.calendar-hour-label{position:absolute;right:10px;font-size:12px;line-height:16px;color:var(--muted);transform:translateY(-8px)}.calendar-hour-label:first-child{transform:none}
+.calendar-time-day{position:relative;height:1920px;border-right:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0px,transparent 39px,var(--soft) 39px,var(--soft) 40px,transparent 40px,transparent 79px,var(--line) 79px,var(--line) 80px);min-width:0}
+.calendar-time-event{position:absolute;background:var(--blue-soft);border:1px solid var(--blue);border-left:3px solid var(--blue);border-radius:6px;padding:5px 24px 3px 7px;min-width:0;overflow:hidden;cursor:grab;touch-action:none;user-select:none;color:var(--text);z-index:2;box-sizing:border-box}
+.calendar-event-title{display:block;font-size:13px;line-height:16px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-weight:600}
+.calendar-event-time{display:block;font-size:11px;line-height:14px;color:var(--muted);white-space:nowrap}
+.calendar-time-event.calendar-short{padding-top:1px;padding-bottom:0}.calendar-short .calendar-event-time{display:none}
+.calendar-event-menu{position:absolute;right:1px;top:3px;height:22px;min-height:22px!important;width:22px;min-width:22px!important;border:0!important;background:transparent!important;padding:0!important;color:var(--blue)!important;line-height:16px;z-index:4}
+.calendar-resize{position:absolute;left:0;right:0;height:10px;touch-action:none;cursor:ns-resize;z-index:5}.calendar-resize-start{top:0}.calendar-resize-end{bottom:0}
+.calendar-resize::after{content:'';display:block;width:22px;height:2px;background:var(--blue);opacity:.5;border-radius:2px;margin:2px auto}
+.calendar-time-event:focus-visible{outline:3px solid var(--blue);outline-offset:2px}.calendar-dragging{opacity:.35}
+.calendar-event-preview{position:absolute;left:2px;right:2px;border:2px dashed var(--blue);border-radius:6px;background:var(--blue-soft);color:var(--blue);padding:3px 6px;font-size:12px;pointer-events:none;z-index:8;box-sizing:border-box;overflow:hidden}
+.calendar-saving{opacity:.55}.adib-calendar-status.error,.calendar-form-error{color:var(--danger,#bf3939)}.calendar-form-error:empty{display:none}
+.calendar-form-error{font-size:13px;margin:0}.drop-target{outline:2px dashed var(--blue);outline-offset:-2px}
+@media(max-width:750px){.adib-calendar-body{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 150px}.adib-calendar-undated{border-left:0;border-top:1px solid var(--line);padding:8px 12px}.adib-calendar-undated h3{margin:0 0 4px}.adib-calendar-undated>.adib-calendar-task{display:inline-block;vertical-align:top;width:calc(50% - 6px);margin-right:4px}.adib-calendar-bar input{display:block;max-width:140px}.adib-calendar-status{font-size:11px;line-height:1.4;padding:4px 12px}.calendar-time-layout.calendar-one-day{grid-template-columns:52px minmax(0,1fr)}.calendar-hour-label{right:7px}}
+/* Give narrow overlapping weekly events usable text, without clipped time strings. */
+.adib-calendar[data-calendar-view=week] .calendar-time-event{padding-right:19px}
+.adib-calendar[data-calendar-view=week] .calendar-event-menu{width:16px;min-width:16px!important}
+.adib-calendar[data-calendar-view=week] .calendar-event-title{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-height:32px}
+.adib-calendar[data-calendar-view=week] .calendar-event-time{overflow:hidden;text-overflow:ellipsis}
+.adib-calendar[data-calendar-view=week] .calendar-time-event.calendar-medium .calendar-event-title{-webkit-line-clamp:1;max-height:16px;white-space:nowrap}
+.calendar-time-layout>.calendar-allday-label,.calendar-time-layout>.calendar-allday{position:sticky;top:48px;z-index:9;min-height:58px;height:58px;max-height:58px;overflow:auto}
+.calendar-time-layout>.calendar-allday-label{left:0;z-index:11}
+.adib-calendar-undated>small{display:block;line-height:1.45;margin:4px 0 8px}
+.calendar-event-time{overflow:hidden;text-overflow:ellipsis}
+
+.calendar-time-event.calendar-saving{cursor:grab;opacity:1}.calendar-time-event.calendar-saving::after{content:"↻";position:absolute;right:5px;bottom:8px;font-size:11px;color:var(--blue);pointer-events:none}
+
+/* Keep hourly gestures inside the calendar, including Electron's draggable chrome. */
+.adib-calendar,.adib-calendar *{-webkit-app-region:no-drag}
+.calendar-time-event,.calendar-time-event .calendar-event-title,.calendar-time-event .calendar-event-time{-webkit-user-drag:none;user-select:none;touch-action:none}
+.calendar-resize{pointer-events:auto}
+/* Marker is transparent to hit testing; it does not cover events or resize handles. */
+.calendar-now-line{position:absolute;left:0;right:0;height:2px;background:#d94b42;z-index:7;pointer-events:none;transform:translateY(-1px)}
+.calendar-now-today::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#d94b42}
+.calendar-now-label{position:absolute;right:3px;color:#fff;background:#c43d34;border-radius:4px;padding:2px 3px;font-size:11px;line-height:14px;transform:translateY(-50%);z-index:7;pointer-events:none}
