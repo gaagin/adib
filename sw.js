@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v142-network-only-time';
+const CACHE_NAME = 'adib-online-v143-filter-memory';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
