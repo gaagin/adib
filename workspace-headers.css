@@ -63,3 +63,13 @@ html body .personal-kanban-modal,html body .personal-eisenhower-modal{backdrop-f
  html body .personal-eisenhower-grid .eisenhower-quadrant{min-height:260px!important;max-height:540px;padding:12px!important}
  html body .personal-eisenhower-grid .eisenhower-quadrant h3{white-space:normal!important}
 }
+
+/* Matrix lives inside the workspace width, not the full window behind the sidebar. */
+html body .personal-eisenhower-modal{min-width:0!important;box-sizing:border-box!important}
+html body .personal-eisenhower-modal .personal-eisenhower-dialog{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+html body .personal-eisenhower-filter-panel{flex:0 0 auto;min-width:0;width:100%;max-width:100%;box-sizing:border-box;padding:12px 18px!important;overflow:visible}
+html body .personal-eisenhower-filter-panel[hidden]{display:none!important}
+html body .personal-eisenhower-filter-panel input{display:block;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;min-height:44px!important;font:inherit}
+html body .personal-eisenhower-grid{min-width:0!important;min-height:0!important;flex:1 1 0!important;overflow:auto}
+html body .eisenhower-quadrant{min-width:0!important}
+@media(max-width:600px){html body .personal-eisenhower-filter-panel{padding:12px!important}}
