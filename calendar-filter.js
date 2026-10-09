@@ -1,0 +1,13 @@
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.ADIBCalendarFilters=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';
+const NONE='__empty__',defaults=Object.freeze({container:'',query:'',view:'month',completion:'all',status:'',priority:'',category:'',tag:'',assignee:''});
+const names={completion:'Состояние',status:'Статус',priority:'Приоритет',category:'Категория',tag:'Тег',assignee:'Ответственный'};
+const labels={'Not started':'Не начато','In progress':'В работе','Waiting':'Ожидание','My Day':'Мой день','Delegate':'Делегировано','Done':'Выполнено'};
+function text(value){if(value&&typeof value==='object')return String(value.name||value.title||value.email||'').trim();return String(value??'').trim();}
+function list(value){return (Array.isArray(value)?value:value==null?[]:[value]).map(text).filter(Boolean);}
+function clean(value={}){const result={...defaults};for(const key of Object.keys(defaults))if(typeof value[key]==='string'&&value[key].length<=4000)result[key]=value[key];if(!['all','open','done'].includes(result.completion))result.completion='all';if(!['month','week','day'].includes(result.view))result.view='month';return result;}
+function fields(t,key){if(key==='tag')return list(t.tags??t.tag);if(key==='assignee')return list(t.assignees??t.tapsirildi);if(key==='priority'){const v=text(t.prioritet||t.priority);return v&&v!=='.'?[v]:[];}return list(t[key]);}
+function matches(task,filters,isDone=t=>t.completed===true||text(t.status).toLowerCase()==='done'){const f=clean(filters),done=isDone(task);if(f.container&&String(task.containerId||'')!==f.container)return false;if(f.query&&!text(task.title).toLocaleLowerCase().includes(f.query.trim().toLocaleLowerCase()))return false;if(f.completion==='open'&&done||f.completion==='done'&&!done)return false;for(const key of ['status','priority','category','tag','assignee']){const wanted=f[key],values=fields(task,key);if(wanted===NONE?values.length>0:wanted&&!values.includes(wanted))return false;}return true;}
+function options(key,tasks,selected=''){const values=new Set();if(key==='status')Object.keys(labels).forEach(v=>values.add(v));for(const t of tasks||[])fields(t,key).forEach(v=>values.add(v));if(selected&&selected!==NONE)values.add(selected);return [...values].sort((a,b)=>a.localeCompare(b,'ru'));}
+function count(value){const f=clean(value);return ['container','query','status','priority','category','tag','assignee'].filter(k=>f[k].trim()).length+(f.completion!=='all'?1:0);}
+return {NONE,defaults,names,labels,clean,fields,matches,options,count};
+});
