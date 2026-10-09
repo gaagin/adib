@@ -2,7 +2,7 @@
 (function(root){'use strict';
 const make=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e};
 const button=(text,handler,cls='')=>{const b=make('button',cls,text);b.type='button';b.onclick=handler;return b};
-function formatDate(value){if(!value)return '';const d=new Date(value.length===10?value+'T12:00:00':value);if(!Number.isFinite(d.getTime()))return value;const today=root.ADIBClock?.date()||new Date();const label=d.toDateString()===today.toDateString()?'Сегодня':d.toLocaleDateString('ru',{day:'numeric',month:'long'});return label+(value.length>10?' · '+d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}):'')}
+function formatDate(value){if(!value)return '';const d=root.ADIBZone.parse(value.length===10?value+'T12:00:00':value,root.ADIBClock.timeZone);if(!d||!Number.isFinite(d.getTime()))return value;const today=root.ADIBClock.date();const label=d.toDateString()===today.toDateString()?'Сегодня':d.toLocaleDateString('ru',{day:'numeric',month:'long'});return label+(value.length>10?' · '+d.toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}):'')}
 function labelText(label,text){const node=[...label.childNodes].find(n=>n.nodeType===3);if(node)node.textContent=text;else label.prepend(document.createTextNode(text))}
 function install(list,{task,isNew=false,containerName=''}={}){
  const editor=list.querySelector('.personal-task-editor');if(!editor)return;editor.classList.add('adib-personal-workspace');const detail=editor.querySelector('.adib-task-detail'),pane=detail?.querySelector('[data-task-pane="task"]')||editor;

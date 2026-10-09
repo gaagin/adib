@@ -1,7 +1,7 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.ADIBTaskHistory=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';
 const DAYS=7,WINDOW=DAYS*86400000;let clock=()=>typeof globalThis!=='undefined'&&globalThis.ADIBClock?.now?globalThis.ADIBClock.now():Date.now();function setClock(fn){clock=fn;}function now(){return clock();}
 function done(t){if(!t)return false;if(t.completed===true)return true;return /^(done|complete|completed|is goruldu|tamamlandi|bitdi|bitib|выполнено|выполнена)$/i.test(String(t.process||t.status||'').trim());}
-function visible(t,now=clock()){if(!t||t.archived||t.in_trash||t.deleted)return false;if(!done(t))return true;const at=Date.parse(t.completedAt||'');return Number.isFinite(at)&&at>=now-WINDOW&&at<=now+60000;}
+function visible(t,now=clock()){if(!t||t.archived||t.in_trash||t.deleted)return false;if(!done(t)||!Number.isFinite(now))return true;const at=Date.parse(t.completedAt||'');return Number.isFinite(at)&&at>=now-WINDOW&&at<=now+60000;}
 function counts(tasks,now=clock()){const c={open:0,done:0,total:0,todo:0,gorulen:0,urgent:0};const seen=new Set();for(const t of tasks||[]){if(!visible(t,now)||seen.has(t.id))continue;seen.add(t.id);c.total++;c[done(t)?'done':'open']++;c[t.sourceKey==='gorulen'?'gorulen':'todo']++;if(!done(t)&&(t.urgent||String(t.priority||'').trim()==='!!!'))c.urgent++;}return c;}
 function color(tasks,fallback='#dcecf8',now=clock()){const c=counts(tasks,now);return c.open&&c.done?'#ffe699':c.open?'#f4b183':c.done?'#a9d18e':fallback;}
 function CompletionHistory(file){this.file=file;this.rows={};if(file){const fs=require('node:fs');try{this.rows=JSON.parse(fs.readFileSync(file,'utf8'));}catch{}}}

@@ -2,3 +2,6 @@
 #adibClockNotice[hidden]{display:none!important}.adib-clock-dialog{width:min(680px,90vw);border:1px solid var(--line,#ddd);border-radius:14px;background:var(--surface,#fff);color:var(--text,#222);padding:20px}.adib-clock-dialog textarea{width:100%;height:240px;font:14px/1.6 monospace;padding:12px;resize:vertical;color:inherit;background:var(--soft,#f8f8f8);border:1px solid var(--line,#ddd)}.adib-clock-dialog button{margin:8px 6px 0 0}.adib-clock-dialog::backdrop{background:#0006}
 
 #adibPersistentSide #adibClockNotice{position:static;flex:0 0 auto;max-width:100%;width:100%;margin-top:8px;text-align:left;white-space:normal;overflow-wrap:anywhere;font-size:11px;z-index:auto}
+#adibTimeWait{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:24px;background:var(--surface,#fff);color:var(--text,#222)}
+#adibTimeWait>div{max-width:480px;border:1px solid var(--line,#ddd);border-radius:12px;padding:28px;background:var(--soft,#f9f9f9)}
+#adibTimeWait h2{margin-top:0;font-size:22px}#adibTimeWait p{line-height:1.6;font-size:14px}#adibTimeWait button{min-height:44px;padding:8px 18px}

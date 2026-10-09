@@ -1,35 +1,49 @@
 {
-  "release": "1.1.41",
-  "browserFullInterfaceGroups": {
-    "passed": 12,
+  "version": "1.1.42",
+  "package": "full-online-server",
+  "networkPolicy": "network-only",
+  "defaultTimeZone": "Asia/Baku",
+  "nodeTests": {
+    "passed": 19,
     "failed": 0,
-    "targets": [
-      "Windows full web shell",
-      "full online server served assets"
+    "command": "npm test"
+  },
+  "browser": {
+    "environment": "Chromium on Linux",
+    "api": "fixture Notion and time responses; no live workspace writes",
+    "passed": [
+      "wrong computer date/year",
+      "wrong browser timezone Pacific/Honolulu",
+      "wall-clock jumps ignored",
+      "network time 13:18 Asia/Baku",
+      "calendar properties time",
+      "drag and resize persistence",
+      "week and network-day rollover",
+      "offline monotonic holdover",
+      "cold offline gate and retry",
+      "no page errors"
     ]
   },
-  "nodeTests": {
-    "server": 9,
-    "windowsProtocol": 5,
-    "failed": 0
+  "visualQA": {
+    "passed": [
+      "day",
+      "week",
+      "properties",
+      "offline holdover",
+      "dark theme",
+      "cold offline",
+      "mobile"
+    ],
+    "notes": "Individually inspected; readable time badge, marker, fields and retry. Mobile footer uses existing floating control."
   },
-  "nativeWindowsExecuted": false,
-  "liveNotionWrites": false,
-  "deployedToUserServer": false,
-  "androidChanged": false,
-  "reproducedBug": "When interval capabilities were false, the timed-event card had no click handler and returned before tracking a tap. Verified against the full shell.",
-  "checks": [
-    "Body move, both resize edges, actual editor visible after click",
-    "15-minute cards retain a drag body",
-    "Escape cancels and errors roll back",
-    "Click opens properties even with dateRange=false",
-    "Release-specific JS/CSS URLs and no-store headers",
-    "Every full-shell asset has correct MIME; private server paths not exposed"
-  ],
-  "visualReview": [
-    "full Windows day/week",
-    "online day/week",
-    "task editor",
-    "online dark/mobile"
+  "liveNetworkProbe": {
+    "trusted": true,
+    "source": "www.cloudflare.com",
+    "policy": "network-only"
+  },
+  "notVerified": [
+    "deployment on user server",
+    "live Notion writes",
+    "physical Windows EXE"
   ]
 }
