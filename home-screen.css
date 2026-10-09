@@ -1,0 +1,111 @@
+/* New default home. Existing editors are docked, never duplicated. */
+.adib-home[hidden],.adib-home-return[hidden]{display:none!important}
+body.adib-home-open>.app{display:none!important}
+.adib-home{position:fixed;inset:0;background:var(--bg);color:var(--text);z-index:4;display:flex;flex-direction:column}
+.adib-home-top{height:64px;flex:0 0 64px;display:flex;align-items:center;gap:12px;padding:10px 22px;background:var(--soft);border-bottom:1px solid var(--line)}
+.adib-home-brand{background:#4776ef!important;color:white!important;width:38px;height:38px;padding:0;border:0;border-radius:12px;font-weight:700;font-size:20px}
+.adib-home-status{margin-left:auto;font-size:12px;color:var(--muted);max-width:55%;overflow-wrap:anywhere}
+.adib-home-refresh{background:transparent!important;border:0!important;color:var(--blue)!important;width:44px;min-height:44px;font-size:24px}
+.adib-home-layout{flex:1;min-height:0;display:grid;grid-template-columns:210px 340px minmax(0,1fr)}
+.adib-home-side{background:var(--soft);border-right:1px solid var(--line);padding:22px 12px;display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+.adib-home-heading{font-size:10px;font-weight:700;color:var(--muted);padding:10px 8px;letter-spacing:.04em}
+.adib-home-nav,.adib-home-container,.adib-home-tools button,.adib-home-theme{min-height:44px;text-align:left;border:0!important;background:transparent!important;padding:10px 12px!important;color:var(--text)!important;font-size:14px;border-radius:10px!important}
+.adib-home-nav:first-of-type,.adib-home-container.active{background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:600}
+.adib-home-containers{display:flex;flex-direction:column;gap:4px}.adib-home-tools{font-size:12px;color:var(--muted);padding:8px 0}.adib-home-tools summary{cursor:pointer;padding:8px}.adib-home-tools button{width:100%;font-size:12px}.adib-home-theme{margin-top:auto;font-size:12px}
+.adib-home-list{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;padding:22px 16px 0}
+.adib-home-list-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.adib-home-list-head h1{font-size:24px;margin:0 0 12px;letter-spacing:-.025em}.adib-home-add{width:38px;height:38px;padding:0;border:0;background:#4776ef!important;color:white!important;border-radius:10px;font-size:25px;flex:0 0 auto}
+.adib-home-search{background:var(--soft)!important;color:var(--text)!important;border:1px solid var(--line);border-radius:12px;height:46px;padding:10px 13px;width:100%;font:inherit;margin-top:10px}
+.adib-home-scope{display:flex;padding:20px 6px 12px;font-size:12px;color:var(--muted);font-weight:600}
+.adib-home-rows{flex:1;min-height:0;overflow:auto;padding-bottom:24px}
+.adib-home-row{display:flex;align-items:flex-start;border-radius:14px;padding:10px 4px;margin-bottom:8px;border:1px solid transparent}
+.adib-home-row:hover{background:var(--soft)}.adib-home-row.active{background:var(--blue-soft);border-color:var(--line)}
+.adib-home-check{flex:0 0 38px;height:44px;width:38px;padding:0;border:0!important;background:transparent!important;color:var(--blue)!important;font-size:25px}
+.adib-home-task-open{flex:1;min-width:0;border:0!important;background:transparent!important;color:var(--text)!important;text-align:left;display:flex;flex-direction:column;padding:7px 4px!important;gap:7px;min-height:72px}
+.adib-home-task-open strong{font-size:15px;line-height:1.4;overflow-wrap:anywhere}.adib-home-task-open small{font-size:12px;color:var(--muted);line-height:1.4}.adib-home-task-open .adib-home-due{color:var(--blue)}
+.adib-home-detail{background:var(--surface);padding:40px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.adib-home-detail h2{font-size:22px;color:var(--text);margin:0 0 12px}.adib-home-detail p{max-width:350px}
+.adib-home.has-task .adib-home-detail{visibility:hidden}
+body.adib-home-open #taskModal.adib-home-docked.open{position:fixed!important;inset:64px 0 0 550px!important;padding:14px!important;z-index:25!important;background:var(--surface)!important;backdrop-filter:none!important;align-items:stretch!important;justify-content:stretch!important;width:auto!important;height:auto!important}
+body.adib-home-open #taskModal.adib-home-docked>.modal{width:100%!important;height:100%!important;max-height:100%!important;min-width:0!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+body.adib-home-open #taskModal.adib-home-docked .modal-head{padding:8px 8px 12px!important}
+body.adib-home-open #taskModal.adib-home-docked .task-list{padding:10px 8px!important;flex:1;min-height:0}
+.adib-home-add-menu{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);width:min(360px,90vw)}.adib-home-add-menu::backdrop{background:#18223566}.adib-home-add-menu h2{font-size:19px;margin:0 0 16px}.adib-home-add-menu button{display:block;width:100%;min-height:48px;margin-top:8px;background:var(--soft);border-color:var(--line);color:var(--text);text-align:left}
+.adib-home-return{position:fixed;z-index:19;right:18px;bottom:18px;background:var(--surface)!important;color:var(--blue)!important;border-color:var(--line)!important;box-shadow:var(--shadow);min-height:44px}
+@media(max-width:1050px) and (min-width:751px){.adib-home-layout{grid-template-columns:180px 290px minmax(0,1fr)}body.adib-home-open #taskModal.adib-home-docked.open{left:470px!important;padding:8px!important}.adib-home-list{padding:20px 10px 0}}
+@media(max-width:750px){.adib-home-layout{grid-template-columns:140px minmax(0,1fr)}.adib-home-detail{display:none}.adib-home-side{padding:12px 5px}.adib-home-nav,.adib-home-container{font-size:12px;padding:8px!important}.adib-home-top{padding:10px 12px}.adib-home-list{padding:16px 12px 0}body.adib-home-open #taskModal.adib-home-docked.open{inset:64px 0 0 0!important;padding:0!important}.adib-home-status{font-size:11px}}
+body.adib-home-open .tm-launchers{display:none!important}
+body.adib-home-open #taskModal.adib-home-docked>.modal{max-width:none!important}
+.adib-home-check{font-size:0!important;display:grid;place-items:center}
+.adib-home-check::before{content:'';display:block;width:18px;height:18px;border-radius:50%;border:2px solid var(--blue)}
+.adib-home-refresh:not(:disabled){font-size:0!important;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M20 8A8 8 0 1 0 20 16M20 3v5h-5' fill='none' stroke='%234776ef' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center!important}
+
+/* Persistent desktop navigation, including overlays and full-screen chats. */
+body.adib-side-ready{--adib-side-width:210px;padding-left:var(--adib-side-width)}
+body.adib-side-collapsed{--adib-side-width:56px}
+#adibPersistentSide{position:fixed;inset:0 auto 0 0;width:var(--adib-side-width);z-index:12000;background:var(--soft)}
+.adib-side-toggle{min-height:40px;border:0;background:transparent;color:var(--text);font-size:22px;text-align:left}
+body.adib-side-collapsed #adibPersistentSide>:not(.adib-side-toggle){display:none!important}
+body.adib-side-ready .adib-home{left:var(--adib-side-width)}
+body.adib-side-ready .adib-home-layout{grid-template-columns:340px minmax(0,1fr)}
+body.adib-side-ready .adib-home-docked{left:calc(var(--adib-side-width) + 340px)!important}
+body.adib-side-ready .tm-layer,body.adib-side-ready .personal-kanban-modal,body.adib-side-ready .personal-eisenhower-modal,body.adib-side-ready .adib-chat-overlay{left:var(--adib-side-width)!important;width:calc(100% - var(--adib-side-width))!important}
+body.adib-chat-open #adibChatOverlay{position:fixed;inset:0 0 0 var(--adib-side-width,0px);padding:0!important;z-index:11000}
+#adibChatOverlay .adib-chat-window{width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;border-radius:0!important;min-height:0}
+#adibChatOverlay .adib-chat-main{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#adibChatOverlay .adib-chat-messages{flex:1;min-height:0;overflow:auto}
+#adibChatOverlay .adib-chat-compose{flex-shrink:0}
+.adib-autosave-status{font-size:12px;color:var(--muted);padding:6px 10px;flex-basis:100%;overflow-wrap:anywhere}
+.adib-autosave-status.error{color:var(--red)}
+.tm-launchers{display:none!important}
+@media(max-width:750px){body.adib-side-ready .adib-home-layout{grid-template-columns:1fr}body.adib-side-ready .adib-home-docked{left:var(--adib-side-width)!important}}
+
+#adibChatOverlay .adib-chat-conversation{min-height:0;overflow:hidden}
+/* Keep the form's footer outside its independent scrolling fields. */
+.adib-task-properties .task-list:has(.adib-task-detail){overflow:hidden!important;min-height:0!important}
+.adib-task-properties .task-editor:has(.adib-task-detail){height:100%!important;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.adib-task-properties .adib-task-detail{height:100%!important;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.adib-task-properties .adib-task-detail-header,.adib-task-properties .adib-task-tabs{flex-shrink:0;position:static!important}
+.adib-task-properties .adib-task-panes{flex:1;min-height:0;overflow:auto}
+.adib-task-properties .adib-task-footer{position:static!important;flex:0 0 auto!important}
+.personal-relations{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 14px}
+.personal-relations label{min-width:0;display:block}.personal-relations select{display:block;width:100%;margin-top:4px}
+@media(max-width:1100px){.personal-relations{grid-template-columns:1fr}}
+
+.drop-target{outline:2px dashed var(--blue)!important;background:var(--blue-soft)!important}.adib-home-row[draggable=true]{cursor:grab}.adib-subtask-row{display:flex;align-items:center;gap:8px;margin:6px 0}.adib-subtask-row>[data-task-open-child]{flex:1;min-width:0}.adib-subtask-check{flex:0 0 24px!important;width:24px!important;height:24px!important;padding:0!important;border:2px solid var(--blue)!important;border-radius:50%!important;background:transparent!important;color:var(--blue)!important}.adib-subtask-row.completed [data-task-open-child]{text-decoration:line-through;opacity:.65}
+
+/* All full-window views reserve a real content area beside the persistent sidebar. */
+body.adib-side-ready>.app{left:var(--adib-side-width)!important;right:0!important;width:calc(100% - var(--adib-side-width))!important;max-width:calc(100% - var(--adib-side-width))!important}
+body.adib-side-ready #taskModal:not(.adib-home-docked),body.adib-side-ready .kanban-task-editor-layer,body.adib-side-ready .personal-kanban-editor-layer{left:var(--adib-side-width)!important;right:0!important;width:calc(100% - var(--adib-side-width))!important}
+body.adib-side-ready>.app .search-results,body.adib-side-ready>.app .task-filters-panel,body.adib-side-ready>.app .mobile-search-panel{left:calc(var(--adib-side-width) + 10px)!important;max-width:calc(100vw - var(--adib-side-width) - 20px)!important}
+body.adib-side-ready #layout,body.adib-side-ready .canvas-card,body.adib-side-ready .canvas-wrap{min-width:0!important;max-width:100%!important}
+body.adib-side-ready #layout,body.adib-side-ready #personalMode{left:var(--adib-side-width)!important;right:0!important;width:calc(100% - var(--adib-side-width))!important}
+body.adib-side-ready header.compact-top{left:calc(var(--adib-side-width) + 10px)!important;right:10px!important}
+body.adib-side-ready :is(#equipmentBackButton,#personalBackButton){left:calc(var(--adib-side-width) + 12px)!important}
+body.adib-side-ready .crumbs{left:calc(var(--adib-side-width) + 64px)!important}
+body.adib-side-ready :is(#syncError,#personalError):not(:empty),body.adib-side-ready #canvasActionsPanel{left:calc(var(--adib-side-width) + 12px)!important;max-width:calc(100vw - var(--adib-side-width) - 24px)!important}
+body.adib-side-ready :is(.personal-board-search-wrap,.personal-board-search-results){left:calc(var(--adib-side-width) + 10px)!important;max-width:calc(100vw - var(--adib-side-width) - 20px)!important}
+body.adib-side-ready #miroMobileDock{left:calc(50% + var(--adib-side-width)/2)!important;max-width:calc(100vw - var(--adib-side-width) - 24px)!important}
+/* Legacy canvas rules include two collapsed-panel classes. The content inset must win them too. */
+body.adib-side-ready #layout#layout,body.adib-side-ready #personalMode#personalMode{left:var(--adib-side-width)!important;right:0!important;width:calc(100% - var(--adib-side-width))!important;min-width:0!important;max-width:calc(100% - var(--adib-side-width))!important}
+body.adib-side-ready #layout #plan#plan{width:100%!important;min-width:0!important;max-width:100%!important}
+#adibPersistentSide{z-index:250}
+/* The top bar belongs to the inset app, so do not add the sidebar offset a second time. */
+body.adib-side-ready>.app>header.compact-top{position:absolute!important;left:10px!important;right:10px!important;width:auto!important;min-width:0!important;max-width:calc(100% - 20px)!important}
+/* Compact properties, two columns only when the actual editor has enough space. */
+html .adib-task-detail .adib-task-detail-header{padding:10px 12px!important;min-height:0!important}
+html .adib-task-detail .adib-task-title-group strong{font-size:20px!important}
+html .adib-task-detail .adib-task-tabs{min-height:38px!important;padding:0 8px!important}
+html .adib-task-detail .adib-task-tabs button{min-height:38px!important;padding:8px 12px!important}
+html .adib-task-detail .adib-task-panes{container-type:inline-size;min-height:0!important}
+html .adib-task-detail .adib-task-panes>section[data-task-pane=task]:not([hidden]){display:grid!important;grid-template-columns:minmax(0,1fr);align-content:start!important;align-items:start!important;gap:10px 14px!important;padding:10px 12px!important}
+html .adib-task-detail .adib-task-panes>section[data-task-pane=task]>label{min-width:0;margin:0!important;font-size:12px!important;line-height:1.35!important}
+html .adib-task-detail .adib-task-panes>section[data-task-pane=task] :is(input:not([type=checkbox]),select){min-height:34px!important;height:34px!important;padding:6px 10px!important;margin-top:3px!important;border-radius:8px!important;font-size:13px!important}
+html .adib-task-detail .personal-relations{gap:10px 14px!important;margin:0!important}
+html .adib-task-detail .personal-property-picker summary{padding:6px 10px!important;min-height:34px!important}
+html .adib-task-detail .adib-task-footer{padding:6px 10px!important}
+html .adib-task-detail .adib-task-footer .editor-actions{gap:6px!important;margin:0!important;padding:0!important}
+html .adib-task-detail .adib-task-footer .editor-actions button{min-height:34px!important;padding:6px 10px!important}
+html .adib-task-detail .adib-autosave-status{padding:3px 6px!important}
+@container(min-width:620px){html .adib-task-detail .adib-task-panes>section[data-task-pane=task]:not([hidden]){grid-template-columns:repeat(2,minmax(0,1fr))}html .adib-task-detail [data-task-pane=task]>.personal-relations,html .adib-task-detail [data-task-pane=task]>label:has(#personalEditTitle),html .adib-task-detail [data-task-pane=task]>label:has(#taskTitle){grid-column:1/-1}}
+body.adib-side-ready.adib-home-open #taskModal.adib-home-docked.adib-properties-expanded.open{left:var(--adib-side-width)!important;inset:0 0 0 var(--adib-side-width)!important;width:calc(100% - var(--adib-side-width))!important;padding:8px!important;height:100dvh!important}
+html .adib-task-detail [data-task-pane=task] [hidden]{display:none!important}
+@container(min-width:620px){html .adib-task-detail [data-task-pane=task]>label:has(#personalEditEstimate),html .adib-task-detail [data-task-pane=task]>label:has(#taskEstimate){grid-column:1/-1}}

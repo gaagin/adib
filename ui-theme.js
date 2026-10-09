@@ -1,0 +1,2 @@
+/* Native desktop windows share the main renderer's selected theme through same-origin storage. */
+(function(){function apply(){try{typeof window.setTheme==='function'?window.setTheme(localStorage.getItem('ela-theme')==='dark'):document.documentElement.classList.toggle('dark',localStorage.getItem('ela-theme')==='dark')}catch{}}apply();addEventListener('storage',e=>{if(e.key==='ela-theme')apply()});})();

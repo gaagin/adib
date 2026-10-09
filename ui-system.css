@@ -1,0 +1,236 @@
+/* ADIB UI system 1 — all views share tokens and components. Loaded last.
+   Canvas coordinates, drag transforms and semantic urgent colours are not changed. */
+:root,html:not(.dark){--bg:#edf2fb;--surface:#fff;--soft:#f5f7fc;--text:#23334f;--muted:#6f809a;--line:#dce5f3;--blue:#4776ef;--blue-soft:#eaf0ff;--danger:#b65461;--red:var(--danger);--shadow:0 12px 38px #24375313;--ui-radius:9px;--ui-card-radius:12px;--ui-control:36px;--ui-gap:14px;--ui-font:'Segoe UI',Arial,sans-serif;--notion-bg:var(--bg);--notion-surface:var(--surface);--notion-sidebar:var(--soft);--notion-text:var(--text);--notion-muted:var(--muted);--notion-border:var(--line);--notion-blue:var(--blue);--notion-hover:var(--soft);--notion-selected:var(--blue-soft);color-scheme:light}
+html.dark{--bg:#161e2c;--surface:#222d40;--soft:#2c3a50;--text:#e7ecf5;--muted:#a9b7cb;--line:#3b4a63;--blue:#98b6ff;--blue-soft:#314d76;--danger:#ffacb7;--shadow:0 12px 38px #0003;color-scheme:dark}
+html body{font-family:var(--ui-font)!important;color:var(--text)!important;background:var(--bg)!important;font-size:14px;line-height:1.45}
+html :is(button,input,select,textarea){font-family:var(--ui-font)!important}
+html button{border:1px solid var(--line);border-radius:var(--ui-radius);font-size:13px;line-height:1.3;color:var(--text);background:var(--surface);cursor:pointer}
+html button:not(:disabled):hover{filter:brightness(.98)}html.dark button:not(:disabled):hover{filter:brightness(1.08)}
+html button:disabled{cursor:wait;opacity:.55}html :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--blue)!important;outline-offset:2px}
+html :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea){box-sizing:border-box;background:var(--soft)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:var(--ui-radius)!important;padding:8px 11px;font-size:13px}
+html :is(input,textarea)::placeholder{color:var(--muted);opacity:.85}html :is(input[type=checkbox],input[type=radio]){accent-color:#4776ef}
+html :is(.primary,.tm-primary,#saveTask,#personalEditorSave,.adib-home-add,.adib-chat-compose button[type=submit]){background:#4776ef!important;border-color:#4776ef!important;color:white!important;border-radius:var(--ui-radius)!important}
+html :is(.modal,.personal-kanban-dialog,.personal-eisenhower-dialog,.tm-panel,.adib-chat-window,.adib-home-add-menu,.adib-clock-dialog){background:var(--surface)!important;color:var(--text)!important;border-color:var(--line)!important;box-shadow:var(--shadow)!important}
+html :is(.modal-head,.tm-head,.personal-eisenhower-head,.personal-kanban-head,.adib-calendar-bar,.adib-chat-head,.adib-chat-conversation-head){background:var(--surface)!important;border-color:var(--line)!important;color:var(--text)!important;padding:12px 18px!important;min-height:58px;gap:12px}
+html :is(.modal-head h2,.tm-head h2,.personal-eisenhower-head h2,.personal-kanban-head h2,.adib-calendar-bar h2){font-size:21px!important;letter-spacing:-.025em;color:var(--text)!important}
+html :is(.tm-actions,.kanban-controls,.personal-eisenhower-head-actions,.personal-kanban-head-actions){gap:8px!important}
+html :is(.tm-actions,.tm-head,.tm-tabs,.tm-settings,.kanban-controls,.personal-eisenhower-head-actions,.personal-kanban-head-actions,.adib-calendar-bar,.task-filters-panel,.kanban-filter-fields,.kanban-columns-panel,.adib-nav-menu,.adib-settings-menu) :is(button,select,input:not([type=checkbox])){min-height:var(--ui-control)!important;padding:8px 12px!important;border-radius:var(--ui-radius)!important;box-shadow:none!important;font-size:13px!important;color:var(--text);border-color:var(--line)}
+html :is(.tm-panel,.tm-body,.tm-main,.tm-day-grid,.tm-flow,.kanban-board,.personal-kanban-board,.personal-eisenhower-grid,.personal-board-shell){background:var(--bg)!important;color:var(--text)!important;border-color:var(--line)!important}
+html :is(.tm-summary,.tm-settings,.tm-task,.tm-review-row,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-subtask-property,.kanban-column,.personal-kanban-column){border-color:var(--line)!important;border-radius:var(--ui-card-radius)!important}
+html :is(.tm-summary,.tm-settings){background:var(--soft)!important;padding:16px!important;box-shadow:none!important}
+html :is(.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card):not(.urgent-task-card){background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:var(--ui-card-radius)!important;box-shadow:none!important}
+html :is(.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card){padding:14px!important}
+html :is(.tm-task-title,.tm-review-row strong,.kanban-task-head,.personal-kanban-title,.kanban-list-title){font-size:14px!important;line-height:1.4!important;color:var(--text)!important}
+html :is(.tm-muted,.tm-task-meta,.tm-sync-status,.kanban-task-meta,.personal-kanban-meta,.kanban-check-due,.personal-task-meta){font-size:12px!important;color:var(--muted)!important;line-height:1.5}
+html :is(.kanban-column,.personal-kanban-column,.personal-eisenhower-grid>section){background:var(--soft)!important;border:1px solid var(--line)!important;padding:12px!important;border-radius:12px!important}
+html :is(.kanban-column>header,.personal-kanban-column-header){background:transparent!important;color:var(--text)!important;font-size:14px!important;border-color:var(--line)!important}
+html :is(.kanban-property-chip,.tm-badge,.adib-chat-count){background:var(--blue-soft)!important;color:var(--blue)!important;border-radius:7px!important;font-size:11px!important;padding:4px 8px!important}
+html :is(.search-results,.task-filters-panel,.personal-board-search-results,.kanban-columns-panel,.personal-eisenhower-filter-panel,.adib-settings-menu,.adib-nav-menu){background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:var(--shadow)!important}
+html :is(.search-results-head,.kanban-columns-panel-head){background:var(--soft)!important;border-color:var(--line)!important;color:var(--text)!important}
+html header.compact-top{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow)!important;border-radius:12px!important;min-height:58px!important}
+html .compact-top h1{font-size:20px!important;letter-spacing:-.02em}
+html :is(#layout,#personalMode,.canvas-wrap,.canvas-card){background:var(--bg)!important}
+html svg :is(text,.object-label){font-family:var(--ui-font)!important}
+html .adib-home-top{background:var(--surface)!important;min-height:58px}
+html #adibPersistentSide{background:var(--soft)!important;border-right:1px solid var(--line);padding:16px 12px!important;gap:5px!important}
+html .adib-home-heading{padding:10px 8px 6px!important;font-size:10px!important;letter-spacing:.045em}
+html :is(.adib-home-nav,.adib-home-container,.adib-home-tools button){min-height:38px!important;border-radius:9px!important;font-size:13px!important;padding:9px 12px!important}
+html .adib-home-row{border:1px solid var(--line)!important;background:var(--surface);border-radius:12px!important;padding:10px 6px!important;margin-bottom:10px}
+html .adib-home-row.active{background:var(--blue-soft)!important}
+html .adib-home-list{padding:20px 16px 0!important}html .adib-home-search{height:38px!important;min-height:38px!important;border-radius:9px!important;font-size:13px!important}
+html .adib-home-list-head h1{font-size:23px!important}
+html .adib-task-panes{scrollbar-gutter:stable;overscroll-behavior:contain}
+html .adib-task-detail .adib-task-panes>section[data-task-pane=task]:not([hidden]){gap:10px 14px!important;padding:12px 14px!important}
+html .adib-task-detail .adib-task-panes>section[data-task-pane=task] :is(input:not([type=checkbox]),select){height:34px!important;min-height:34px!important;padding:6px 10px!important;font-size:13px!important;border-radius:9px!important}
+html .adib-task-detail .adib-task-tabs{border-color:var(--line)!important;gap:4px;min-height:40px!important}
+html .adib-task-detail .adib-task-tabs button{background:transparent!important;border:0!important;border-radius:0!important;border-bottom:3px solid transparent!important;font-size:13px!important;min-height:40px!important;color:var(--muted)!important}
+html .adib-task-detail .adib-task-tabs [aria-selected=true]{color:var(--blue)!important;border-bottom-color:var(--blue)!important}
+html .adib-task-title-group strong{font-size:21px!important;letter-spacing:-.02em}
+html .adib-task-detail .adib-task-footer{background:var(--surface)!important;border-top:1px solid var(--line)!important;padding:8px 12px!important}
+html .adib-task-detail .adib-task-footer .editor-actions button{font-size:13px!important;border-radius:9px!important}
+html .adib-subtask-row{gap:10px!important;margin:10px 0!important}
+html .adib-subtask-row>[data-task-open-child]{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line)!important;border-radius:9px!important;min-height:38px!important;padding:9px 12px!important}
+html .personal-task-subtask-property{background:var(--soft)!important;padding:14px!important}
+html .adib-calendar-grid{background:var(--surface)!important}
+html .adib-calendar-cell{border-width:0 1px 1px 0!important;border-color:var(--line)!important}
+html .adib-calendar-task{background:var(--blue-soft)!important;color:var(--text)!important;border-color:var(--line)!important;border-radius:7px!important;padding:8px!important}
+html .adib-calendar-status{color:var(--muted)!important;font-size:12px}
+html .adib-calendar-undated{background:var(--soft)!important}
+html :is(.adib-chat-sidebar,.adib-chat-conversation-head,.adib-chat-compose){background:var(--surface)!important;border-color:var(--line)!important}
+html .adib-chat-messages{background:var(--bg)!important;padding:20px!important}
+html .adib-chat-bubble{border:1px solid var(--line)!important;border-radius:13px!important;background:var(--surface)!important;color:var(--text)!important;padding:12px 16px!important;line-height:1.5!important}
+html .adib-chat-bubble.mine{background:var(--blue-soft)!important}
+html .adib-chat-thread{border-radius:11px!important;border:1px solid transparent!important;padding:14px!important}
+html .adib-chat-thread.active{border-color:var(--line)!important;background:var(--blue-soft)!important}
+html .adib-chat-compose textarea{border-radius:11px!important;background:var(--soft)!important;padding:11px 13px!important}
+html .adib-clock-dialog{border-radius:12px!important}.adib-autosave-status.error,.tm-error{color:var(--danger)!important}
+html .adib-clock-dialog textarea{font-size:13px!important}html dialog::backdrop{background:#14223a55;backdrop-filter:blur(2px)}
+@container(min-width:620px){html .adib-task-detail [data-task-pane=task]>label:has(#personalEditEstimate),html .adib-task-detail [data-task-pane=task]>label:has(#taskEstimate){grid-column:auto!important}}
+@media(prefers-reduced-motion:reduce){html *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Override high-specificity legacy properties chrome only, never canvas geometry. */
+html body :is(#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties>.adib-task-properties-panel>:is(.modal-head,.kanban-task-editor-head,.personal-kanban-editor-head){background:var(--surface)!important;padding:12px 16px!important;min-height:60px!important;border-color:var(--line)!important}
+html .adib-task-detail-header.unified-heading .adib-task-title-group>strong,html .adib-task-detail-header.unified-heading .adib-task-title-group>small{display:none!important}
+html .adib-task-detail-header.unified-heading{padding:4px 12px!important;min-height:0!important}
+html .adib-task-detail-header.unified-heading:not(:has(.adib-task-parent-link)):not(:has(.adib-task-notion-link)){display:none!important}
+html .adib-task-detail-header.unified-heading .adib-task-parent-link{min-height:30px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;color:var(--blue);background:var(--soft)}
+html .adib-task-detail .personal-relations{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@container(max-width:420px){html .adib-task-detail .personal-relations{grid-template-columns:1fr!important}}
+html .adib-task-detail :is(input,select){font-weight:400!important}
+/* High-specificity legacy dark controls must not keep pale grey fills. */
+html.dark body #adibPersistentSide .adib-home-container.active{background:var(--blue-soft)!important;color:var(--blue)!important}
+html.dark body #taskModal#taskModal .task-editor button:not(.primary):not(.adib-subtask-check):not([role=tab]){background:var(--soft)!important;color:var(--text)!important;border-color:var(--line)!important}
+html body #taskModal#taskModal.adib-task-properties>.adib-task-properties-panel>.modal-head{background:var(--surface)!important;border-color:var(--line)!important}
+html body #taskModal#taskModal :is(.adib-properties-size-toggle,#closeModal){background:var(--soft)!important;color:var(--text)!important;border-color:var(--line)!important}
+html body .tm-layer button:not(.tm-primary){background:var(--surface)!important;color:var(--text)!important;border-color:var(--line)!important}
+html body .tm-layer input{background:var(--soft)!important;color:var(--text)!important;border-color:var(--line)!important;min-height:36px!important}
+html body .tm-layer{padding:0!important;backdrop-filter:none!important;background:var(--bg)!important}
+html body .tm-layer>.tm-panel{width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+html body .tm-task.tm-main{background:var(--blue-soft)!important;color:var(--text)!important}
+/* The legacy toolbar can be reparented from .app; still reserve the sidebar. */
+html body.adib-side-ready header.compact-top.compact-top{left:calc(var(--adib-side-width) + 10px)!important;right:10px!important;width:calc(100% - var(--adib-side-width) - 20px)!important;max-width:calc(100% - var(--adib-side-width) - 20px)!important}
+html body .tm-layer button.tm-task-title{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;font-size:14px!important}
+
+html body.adib-side-ready:has(#personalMode) header.compact-top.compact-top{left:calc(var(--adib-side-width) + 10px)!important;right:10px!important}
+html #adibPersistentSide .adib-side-brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 38px 0 8px;margin-bottom:10px;font-size:14px;color:var(--text)}
+html #adibPersistentSide .adib-side-brand span{display:grid;place-items:center;width:28px;height:28px;color:white;background:#4776ef;border-radius:8px;font-size:14px}
+html #adibPersistentSide .adib-side-toggle{position:absolute;right:12px;top:18px;width:28px;min-height:36px;padding:4px!important;border-radius:8px}
+html body.adib-side-collapsed #adibPersistentSide .adib-side-brand{display:none!important}
+
+/* Concept workspace, phase 1. Scoped to the home and PERSONAL properties;
+   never changes canvas geometry, equipment colours or native timer windows. */
+html body.adib-side-ready{--adib-side-width:232px;--adib-home-list-width:340px;--adib-home-top-height:72px}
+html body.adib-side-collapsed{--adib-side-width:58px}
+html body #adibPersistentSide{padding:0 14px 14px!important;gap:6px!important}
+html #adibPersistentSide .adib-side-top{display:flex;align-items:center;justify-content:space-between;min-height:var(--adib-home-top-height,72px);gap:8px;margin:0 -2px 18px}
+html #adibPersistentSide .adib-side-brand{padding:0!important;margin:0!important;font-size:19px;gap:10px;min-height:44px}
+html #adibPersistentSide .adib-side-brand span{width:38px;height:38px;border-radius:11px;font-size:22px;font-weight:500}
+html #adibPersistentSide .adib-side-toggle{position:static!important;min-height:36px;width:32px;padding:5px!important;display:grid;place-items:center;border:0;background:transparent}
+html .adib-nav-icon{display:inline-flex;flex:0 0 19px;width:19px;height:19px;color:inherit}
+html .adib-nav-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+html #adibPersistentSide .adib-home-heading{font-size:10px!important;letter-spacing:.06em;margin:6px 0 2px;padding:8px 12px!important}
+html #adibPersistentSide .adib-home-nav{display:flex;align-items:center;gap:12px;min-height:42px!important;font-size:14px!important;padding:10px 12px!important;font-weight:400}
+html #adibPersistentSide .adib-home-nav:first-of-type{background:transparent!important;color:var(--text)!important;font-weight:400}
+html #adibPersistentSide .adib-home-nav.active{background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:600}
+html #adibPersistentSide .adib-home-container{font-size:14px!important;min-height:38px!important;padding:9px 12px!important}
+html #adibPersistentSide .adib-side-bottom{margin-top:auto;display:grid;gap:2px;padding-top:12px}
+html #adibPersistentSide .adib-home-theme{margin:0;padding:8px 12px!important;min-height:32px;font-size:11px!important;color:var(--muted)!important}
+html #adibPersistentSide .adib-home-clock{border:0!important;background:transparent!important;color:var(--muted)!important;min-height:32px;text-align:left;padding:6px 12px;font-size:11px}
+html #adibPersistentSide .adib-home-tools summary{padding:12px;color:var(--muted);font-size:12px}
+html body.adib-side-collapsed #adibPersistentSide>.adib-side-top{display:flex!important;justify-content:center}
+html body.adib-side-collapsed #adibPersistentSide .adib-side-top .adib-side-brand{display:none!important}
+html body .adib-home-top{height:var(--adib-home-top-height);flex-basis:var(--adib-home-top-height);padding:12px 24px;gap:16px}
+html .adib-home-heading-group{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+html .adib-home-heading-group h1{margin:0;font-size:25px;letter-spacing:-.025em;line-height:1.2;font-weight:700}
+html .adib-home-status{margin:0;max-width:100%;font-size:12px;line-height:1.35}
+html .adib-home-status.error{color:var(--danger)}
+html .adib-home-top-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+html .adib-home-top-actions button{min-height:38px;border-radius:10px!important;padding:8px 14px;background:var(--surface)}
+html .adib-home-top-actions .adib-home-add{width:auto;height:38px;min-height:38px;font-size:14px;padding:8px 16px!important;font-weight:500}
+html .adib-home-top-actions .adib-home-refresh{width:36px;padding:0!important;min-height:36px}
+html .adib-home-filter.active{background:var(--blue-soft)!important;color:var(--blue)!important}
+html body.adib-side-ready .adib-home-layout{grid-template-columns:var(--adib-home-list-width) minmax(0,1fr)}
+html body .adib-home-list{padding:22px 20px 0!important}
+html body .adib-home-search{height:42px!important;min-height:42px!important;margin-top:0!important;font-size:14px!important;padding:10px 12px!important;border-radius:10px!important}
+html .adib-home-quick-scopes{display:flex;align-items:center;gap:6px;overflow:auto;flex:0 0 auto;padding:13px 0 2px;scrollbar-width:thin}
+html .adib-home-quick-scopes button{white-space:nowrap;border:0;background:var(--soft);color:var(--muted);font-size:13px;min-height:32px;padding:7px 12px;border-radius:8px}
+html .adib-home-quick-scopes button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue)}
+html .adib-home-scope{padding:14px 0 12px;font-size:12px;font-weight:500;flex-shrink:0}
+html .adib-home-rows{padding-bottom:20px;scrollbar-width:thin}
+html body .adib-home-row{padding:12px 10px!important;margin-bottom:10px;border-radius:12px!important;align-items:flex-start;min-height:92px}
+html .adib-home-check{flex-basis:30px;width:30px;height:38px;min-height:38px!important;margin:0;font-size:0!important;position:relative}
+html .adib-home-check::before{width:19px;height:19px;border-width:1.5px}
+html .adib-home-row.completed .adib-home-check::before{background:#4776ef;border-color:#4776ef}
+html .adib-home-row.completed .adib-home-check::after{content:'✓';position:absolute;color:white;font-size:16px;line-height:1}
+html .adib-home-row.completed .adib-home-task-open strong{text-decoration:line-through;color:var(--muted)}
+html .adib-home-task-open{min-height:64px;padding:5px 5px!important;gap:3px}
+html .adib-home-task-open strong{font-size:15px;line-height:1.4;margin-bottom:3px}
+html .adib-home-task-open small{font-size:11.5px;line-height:1.4;font-weight:400}
+html .adib-home-empty{padding:20px 2px;color:var(--muted);font-size:13px;line-height:1.6}
+html .adib-home-popover{width:min(360px,calc(100vw - 32px));border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+html .adib-home-popover-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:16px;font-size:17px}
+html .adib-home-popover-head button{min-width:30px;min-height:30px;background:transparent;border:0;font-size:21px}
+html .adib-home-popover>label{display:block;color:var(--muted);font-size:13px;margin-bottom:16px}
+html .adib-home-popover select{display:block;width:100%;margin-top:6px;min-height:40px}
+html .adib-home-popover>.adib-home-filter-check{display:flex;gap:8px;align-items:center}
+html .adib-home-popover>button{min-height:38px;margin:4px 6px 0 0;padding:8px 14px}
+html .adib-home-popover>.adib-home-menu-item{display:block;width:100%;margin:4px 0;text-align:left}
+html .adib-home-menu-item[aria-pressed=true]{color:var(--blue);background:var(--blue-soft)}
+/* Dock and expanded properties use the same header, fields and footer. */
+html body.adib-home-open #taskModal#taskModal.adib-home-docked.open{inset:var(--adib-home-top-height) 0 0 calc(var(--adib-side-width) + var(--adib-home-list-width))!important;width:auto!important;height:auto!important;padding:0!important;background:var(--surface)!important}
+html body.adib-home-open #taskModal#taskModal.adib-home-docked.adib-properties-expanded.open{inset:0 0 0 var(--adib-side-width)!important;width:auto!important;height:100dvh!important;padding:0!important}
+html body #taskModal#taskModal.adib-concept-properties>.adib-task-properties-panel{padding:0!important;border-radius:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+html body #taskModal#taskModal.adib-concept-properties>.adib-task-properties-panel>.modal-head{padding:20px 24px 16px!important;min-height:82px!important;align-items:center!important;gap:8px!important;flex-shrink:0}
+html body #taskModal#taskModal.adib-concept-properties .modal-head>div:first-child{flex:1;min-width:0}
+html body #taskModal#taskModal.adib-concept-properties #modalTitle{font-size:22px!important;line-height:1.3!important;margin:0!important;overflow-wrap:anywhere;letter-spacing:-.025em}
+html body #taskModal#taskModal.adib-concept-properties #modalSub{font-size:12px!important;color:var(--muted)!important;margin-top:4px!important}
+html body #taskModal#taskModal.adib-concept-properties #closeModal{display:none!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-concept-back{order:1;display:flex!important;width:auto!important;white-space:nowrap;align-items:center;justify-content:center;border:1px solid var(--line)!important;background:var(--surface)!important;color:var(--text)!important;min-height:38px;padding:8px 12px!important;font-size:13px!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-properties-size-toggle{order:2;display:flex!important;align-items:center;gap:7px;width:auto!important;height:38px!important;min-height:38px!important;padding:8px 12px!important;background:var(--surface)!important;color:var(--text)!important;font-size:13px!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-properties-size-toggle svg{width:17px;height:17px;flex-shrink:0}
+html body #taskModal#taskModal.adib-concept-properties:not(.adib-properties-expanded) .adib-size-label{display:none}
+html body #taskModal#taskModal.adib-concept-properties:not(.adib-properties-expanded) .adib-concept-back{display:none!important}
+html body #taskModal#taskModal.adib-concept-properties .task-list{padding:0!important;overflow:hidden!important;flex:1;min-height:0!important}
+html body #taskModal#taskModal.adib-concept-properties .personal-task-editor{padding:0!important;margin:0!important;width:100%!important;max-width:none!important;height:100%!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-detail{min-height:0!important;height:100%!important;border-radius:0!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-detail-header.unified-heading:not(:has(.adib-task-parent-link)){display:none!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-tabs{padding:0 24px!important;min-height:46px!important;gap:12px!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-tabs button{min-height:46px!important;padding:12px 4px!important;font-size:14px!important;font-weight:500!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-panes{flex:1;min-height:0;overflow:auto;container-type:inline-size;scrollbar-width:thin}
+html body #taskModal#taskModal.adib-concept-properties [data-task-pane=task]:not([hidden]){display:block!important;padding:20px 24px 24px!important}
+html .adib-personal-form-grid{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:14px 16px}
+html .adib-personal-form-grid>.adib-personal-field{display:block;margin:0!important;min-width:0;font-size:13px!important;font-weight:400!important;color:var(--muted)!important;line-height:1.4}
+html body #taskModal#taskModal.adib-concept-properties .adib-personal-field :is(input:not([type=checkbox]),select){display:block!important;width:100%!important;height:40px!important;min-height:40px!important;padding:8px 12px!important;margin:5px 0 0!important;border-radius:10px!important;font-size:14px!important;font-weight:400!important;line-height:1.3!important}
+html .adib-personal-field :is(input,select):focus{outline:2px solid var(--blue);outline-offset:1px}
+html .adib-help-toggle{border:0;background:transparent;padding:0 6px;min-height:0;margin:0;font-size:13px;color:var(--muted);vertical-align:baseline}
+html .adib-field-help{display:block;font-size:11px;font-weight:400;line-height:1.5;margin-top:6px}.adib-field-help[hidden]{display:none!important}
+html .adib-time-field{min-width:0;position:relative}
+html body #taskModal#taskModal.adib-concept-properties .adib-time-option{display:flex!important;align-items:center;gap:6px;font-size:13px;font-weight:400!important;color:var(--muted)!important;margin:0!important;min-height:18px;line-height:1.4}
+html .adib-time-option input{width:14px!important;height:14px!important;margin:0!important}
+html .adib-time-field .adib-personal-field{display:block!important;font-size:0!important;line-height:0!important;margin:0!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-time-field input[type=time]{margin-top:5px!important}
+html .adib-personal-form-grid .personal-property-picker{margin-top:5px;border-radius:10px!important;font-weight:400}
+html body #taskModal#taskModal.adib-concept-properties .personal-property-picker summary{min-height:42px!important;padding:7px 12px!important;display:flex;align-items:center;flex-wrap:wrap;gap:6px;justify-content:flex-start!important;line-height:1.3!important;font-size:14px;color:var(--text);position:relative;padding-right:30px!important}
+html .adib-personal-form-grid .personal-property-picker summary::after{content:''!important;position:absolute;right:12px;top:15px;width:10px;height:6px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%236f809a' stroke-width='1.5'/%3E%3C/svg%3E") center/contain no-repeat}
+html .adib-personal-form-grid .personal-property-picker summary::marker{content:''}
+html .adib-person-chip{border-radius:6px;background:var(--blue-soft);color:var(--blue);padding:4px 7px;font-size:12px}
+html .adib-person-avatar{width:26px;height:26px;display:inline-grid;place-items:center;flex:0 0 26px;border-radius:50%;background:var(--blue-soft);color:var(--blue);font-size:11px}
+html .adib-personal-bottom{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:22px;align-items:center}
+html .adib-personal-timer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 18px;min-height:92px}
+html .adib-timer-time-group,html .adib-timer-total-group{display:flex;flex-direction:column;gap:4px;min-width:0}
+html .adib-timer-time-group{margin-right:auto}
+html .adib-timer-time-group small,html .adib-timer-total-group small{font-size:12px;font-weight:400;color:var(--muted)}
+html .adib-workspace-clock{font-size:29px;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--text)}
+html .adib-workspace-total{font-size:16px;color:var(--text);line-height:1.4}
+html body #taskModal#taskModal.adib-concept-properties button.adib-workspace-timer-start{background:#4776ef!important;color:white!important;border-color:#4776ef!important;min-height:40px;padding:9px 14px!important;font-size:14px!important;border-radius:10px!important;white-space:nowrap}
+html .adib-workspace-timer-feedback{flex-basis:100%;color:var(--danger);font-size:12px;font-weight:400}.adib-workspace-timer-feedback:empty{display:none}
+html .adib-personal-checks{display:grid;gap:12px;font-size:12px}
+html body #taskModal#taskModal.adib-concept-properties .adib-personal-checks label{display:flex!important;align-items:center!important;gap:8px!important;margin:0!important;font-size:12px!important;font-weight:400!important;line-height:1.45!important;color:var(--text)!important}
+html .adib-personal-checks input{flex:0 0 17px!important;width:17px!important;height:17px!important;min-height:17px!important;margin:0!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-footer,html .adib-personal-create-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;flex-wrap:wrap;gap:8px!important;min-height:64px!important;margin:0!important;padding:12px 24px!important;flex-shrink:0;background:var(--surface);border-top:1px solid var(--line)}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-footer>.adib-autosave-status{font-size:12px;line-height:1.4;padding:0!important;flex:1 1 180px;color:var(--muted);overflow-wrap:anywhere}
+html body #taskModal#taskModal.adib-concept-properties .adib-task-footer>.adib-autosave-status.error{color:var(--danger)!important}
+html body #taskModal#taskModal.adib-concept-properties .editor-actions{display:flex!important;align-items:center;justify-content:flex-end;gap:8px!important;flex:0 0 auto;margin:0!important;padding:0!important}
+html body #taskModal#taskModal.adib-concept-properties .editor-actions>button,html .adib-personal-actions-menu>summary{min-height:38px!important;font-size:13px!important;padding:8px 14px!important;border-radius:10px!important;background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line)!important;font-weight:400}
+html .adib-personal-actions-menu{position:relative;order:1}.adib-personal-actions-menu>summary{cursor:pointer;list-style:none;display:flex;align-items:center}
+html .adib-personal-actions-menu>summary::marker{content:''}
+html .adib-personal-actions-pop{position:absolute;bottom:calc(100% + 8px);right:0;width:240px;border:1px solid var(--line);background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:8px;z-index:10}
+html body #taskModal#taskModal.adib-concept-properties .adib-personal-actions-pop>:is(button,a){display:block!important;width:100%!important;text-align:left!important;border:0!important;background:transparent!important;color:var(--text)!important;padding:10px!important;margin:0!important;min-height:38px!important;font-size:13px!important;text-decoration:none;border-radius:7px}
+html .adib-personal-actions-pop>:is(button,a):hover{background:var(--soft)!important}
+html body #taskModal#taskModal.adib-concept-properties #personalDeleteTask{order:0;color:var(--danger)!important}
+html body #taskModal#taskModal.adib-concept-properties #personalEditorCancel{order:2;background:#4776ef!important;color:white!important;border-color:#4776ef!important}
+html body #taskModal#taskModal.adib-concept-properties #personalEditorError:empty{display:none!important}
+html body #taskModal#taskModal.adib-concept-properties #personalEditorError:not(:empty){flex-basis:100%;order:4;font-size:12px;line-height:1.45;color:var(--danger)}
+html body #taskModal#taskModal.adib-concept-properties #personalEditorBoard,html body #taskModal#taskModal.adib-concept-properties #personalEditorBack{display:none!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-personal-workspace:not(:has(.adib-task-detail)){padding:20px 24px 0!important;overflow:auto!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-personal-create-footer{margin:20px -24px 0!important;position:sticky;bottom:0}
+@container(min-width:520px){html .adib-personal-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}html .adib-personal-form-grid>.adib-field-wide{grid-column:1/-1}}
+@container(min-width:850px){html .adib-personal-bottom{grid-template-columns:minmax(0,1fr) 245px}}
+@media(max-width:1150px){html body.adib-side-ready{--adib-side-width:200px;--adib-home-list-width:280px}html body.adib-side-collapsed{--adib-side-width:58px}html .adib-home-top-actions button{padding:8px 10px}html .adib-home-heading-group h1{font-size:22px}html .adib-home-top-actions{gap:6px}}
+@media(max-width:850px){html body.adib-side-ready{--adib-side-width:180px;--adib-home-list-width:260px}html body.adib-side-collapsed{--adib-side-width:58px}html .adib-home-sort,html .adib-home-refresh{display:none!important}html body .adib-home-list{padding:18px 12px 0!important}html body #taskModal#taskModal.adib-concept-properties .modal-head{padding:16px!important}html body #taskModal#taskModal.adib-concept-properties [data-task-pane=task]:not([hidden]){padding:18px 16px!important}html body #taskModal#taskModal.adib-concept-properties .adib-task-footer{padding:12px 16px!important}}
+@media(max-width:750px){html body.adib-side-ready .adib-home-layout{grid-template-columns:1fr}html body.adib-home-open #taskModal#taskModal.adib-home-docked.open{left:var(--adib-side-width)!important}html .adib-home-top-actions .adib-home-add{font-size:12px;padding:8px 10px!important}html .adib-home-heading-group h1{font-size:20px}}
+@media(max-width:560px){html body.adib-side-ready{--adib-side-width:58px}html body #adibPersistentSide>:not(.adib-side-top){display:none!important}html #adibPersistentSide .adib-side-brand{display:none!important}html body #adibPersistentSide>.adib-side-top{display:flex!important;justify-content:center}html body .adib-home-top{padding:12px 14px}html .adib-home-filter{display:none!important}html .adib-home-status{font-size:11px}html body #taskModal#taskModal.adib-concept-properties .adib-task-tabs{padding:0 14px!important;gap:8px!important}html body #taskModal#taskModal.adib-concept-properties .adib-task-tabs button{font-size:12px!important}html .adib-timer-total-group{margin-right:auto}html body #taskModal#taskModal.adib-concept-properties .adib-task-footer>.adib-autosave-status{flex-basis:100%}html body #taskModal#taskModal.adib-concept-properties .editor-actions{flex:1;justify-content:flex-end}}
+/* The retained time label is empty; suppress its legacy line box, not the input text. */
+html body #taskModal#taskModal.adib-concept-properties #personalTimeWrap{font-size:0!important;line-height:0!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-time-option{height:18px!important;padding:0!important}
+html body #taskModal#taskModal.adib-concept-properties .adib-time-option input[type=checkbox]{min-height:14px!important;min-width:14px!important;width:14px!important;height:14px!important;padding:0!important;flex:0 0 14px!important}

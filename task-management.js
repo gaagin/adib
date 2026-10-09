@@ -7,11 +7,15 @@ function integer(value,min,max,name){if(!Number.isInteger(value)||value<min||val
 function working(task){return !task.completed&&['in progress','is gedir'].includes(String(task.status||task.process||'').trim().toLowerCase())}
 class TaskManagementStore{
  constructor(file){this.file=file;this.state={version:1,revision:0,settings:{dailyTaskLimit:4,wipLimit:2,budgetMinutes:120,staleDays:14},days:{},tasks:{}};if(file&&fs.existsSync(file)){const saved=JSON.parse(fs.readFileSync(file,'utf8'));if(saved.version!==1||!saved.settings||!saved.days||!saved.tasks)throw Error('Некорректный файл task-management.json');this.state=saved}}
+ getEstimate(id){const value=this.state.tasks[String(id)]?.estimateMinutes;return Number.isInteger(value)&&value>=1&&value<=43200?value:null}
  snapshot(){return structuredClone(this.state)}
  commit(next){next.revision=this.state.revision+1;if(this.file){fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.tmp';fs.writeFileSync(temp,JSON.stringify(next),{mode:0o600});fs.renameSync(temp,this.file)}this.state=next;return this.snapshot()}
  update(body){if(!body||typeof body!=='object')throw problem('Нет команды');if(body.expectedRevision!==undefined&&body.expectedRevision!==this.state.revision)throw problem('План изменён на другом устройстве. Обновите экран и повторите.','MANAGEMENT_CONFLICT',409);const next=this.snapshot();const type=body.type;
   if(type==='settings'){for(const [name,min,max] of [['dailyTaskLimit',1,12],['wipLimit',1,10],['budgetMinutes',15,1440],['staleDays',1,180]])if(body[name]!==undefined)next.settings[name]=integer(body[name],min,max,name)}
-  else if(type==='estimate'){const id=taskId(body.id);next.tasks[id]={...next.tasks[id],estimateMinutes:integer(body.minutes,1,1440,'Оценка времени')}}
+  else if(type==='completion'){const id=taskId(body.id),old=next.tasks[id]||{};next.tasks[id]={...old,completed:body.completed===true,completedAt:body.completed===true?(old.completed&&old.completedAt||((typeof body.completedAt==='string'&&Number.isFinite(Date.parse(body.completedAt)))?body.completedAt:new Date().toISOString())):null,completionDateSource:body.completionDateSource||old.completionDateSource||'recorded'};}
+  else if(type==='archive'){const id=taskId(body.id);next.tasks[id]={...next.tasks[id],deleted:true,deletedAt:new Date().toISOString()};}
+  else if(type==='parent'){const id=taskId(body.id),parent=body.parentId?taskId(body.parentId):'';const seen=new Set([id]);let p=parent;while(p){if(seen.has(p))throw problem('Подзадача не может содержать своего родителя');seen.add(p);p=next.tasks[p]?.parentId||'';}next.tasks[id]={...next.tasks[id],parentId:parent};}
+  else if(type==='estimate'){const id=taskId(body.id);if(body.minutes===null){next.tasks[id]={...next.tasks[id]};delete next.tasks[id].estimateMinutes}else next.tasks[id]={...next.tasks[id],estimateMinutes:integer(body.minutes,1,43200,'Оценка времени')}}
   else if(type==='day-add'||type==='day-remove'||type==='main'){
    const id=taskId(body.id),day=dateKey(body.day),plan=next.days[day]||{ids:[],mainId:''};next.days[day]=plan;
    if(type==='day-remove'){plan.ids=plan.ids.filter(x=>x!==id);if(plan.mainId===id)plan.mainId=''}
@@ -19,7 +23,7 @@ class TaskManagementStore{
   }else if(type==='review'){
    const id=taskId(body.id);if(!['later','waiting','active'].includes(body.disposition))throw problem('Некорректное решение по задаче');const checkDate=body.checkDate?dateKey(body.checkDate):'';if(body.disposition!=='active'&&!checkDate)throw problem('Укажите дату следующей проверки');if(body.disposition==='waiting'&&!String(body.owner||'').trim())throw problem('Укажите ответственного');next.tasks[id]={...next.tasks[id],disposition:body.disposition,checkDate,owner:String(body.owner||'').trim().slice(0,200),reviewedAt:new Date().toISOString()};if(body.disposition!=='active')for(const plan of Object.values(next.days)){plan.ids=plan.ids.filter(x=>x!==id);if(plan.mainId===id)plan.mainId=''}
   }else if(type==='finish'){
-   const id=taskId(body.id);for(const plan of Object.values(next.days)){plan.ids=plan.ids.filter(x=>x!==id);if(plan.mainId===id)plan.mainId=''}
+   const id=taskId(body.id);const old=next.tasks[id]||{};next.tasks[id]={...old,completed:true,completedAt:old.completed&&old.completedAt||new Date().toISOString()};for(const plan of Object.values(next.days)){plan.ids=plan.ids.filter(x=>x!==id);if(plan.mainId===id)plan.mainId=''}
   }else throw problem('Неизвестная команда');
   return this.commit(next)
  }

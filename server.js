@@ -529,6 +529,7 @@ function progressiveSnapshot(scope){
  const state=snapshotProgress[scope];
  const pomodoroTasks=scope==='personal'?[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask):null;
  const data=scope==='personal'?{tasks:pomodoroTasks.filter(recentTask),containers:[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer),pomodoroTasks,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB}:buildSnapshotFromRawCache();
+ if(scope==='personal')applyPersonalContainerDefaults(data.pomodoroTasks,data.containers);
  return {...data,cache:{...cacheHealth},sync:state?{...state,partial:state.pending.length>0||state.errors.length>0}:{revision:0,running:false,successful:[],errors:[],pending:[],partial:true}};
 }
 function equipmentSnapshotSpecs(){return [{key:'plans',label:'Планы',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Оборудование',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId}))];}
@@ -798,6 +799,7 @@ function notionDateStart(value) {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) ? text + ':00' : text;
 }
 
+
 // A calendar range lives in the existing Notion Tarix date property; no separate timer or estimate.
 function personalCalendarDate(body,previous={}) {
  const invalid=message=>{throw Object.assign(new Error(message),{statusCode:400,code:'INVALID_CALENDAR_RANGE'});};
@@ -999,6 +1001,44 @@ function personalNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+
+// Only independent personal tasks require a container. Subtasks may remain containerless.
+function inboxContainerId(containers) {
+ const matches=containers.filter(c=>String(c.name||'').trim().toLowerCase()==='inbox'&&c.id);
+ if(matches.length!==1)throw Object.assign(new Error(matches.length?'Найдено несколько INBOX. Укажите один контейнер INBOX.':'Контейнер INBOX недоступен. Обновите данные и проверьте доступ интеграции. Задача не создана.'),{code:'INBOX_UNAVAILABLE',statusCode:409});
+ return matches[0].id;
+}
+async function personalInboxId(){
+ const cached=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
+ if(cached.some(c=>String(c.name||'').trim().toLowerCase()==='inbox'))return inboxContainerId(cached);
+ const pages=await queryDatabase(PERSONAL_CONTAINERS_DB,PERSONAL_CONTAINERS_DS);
+ const live=pages.filter(p=>!p.archived&&!p.in_trash);for(const page of live)personalRaw.containers.set(page.id,page);
+ return inboxContainerId(live.map(mapPersonalContainer));
+}
+async function resolvePersonalTaskContainer(body){
+ if(String(body.containerId||'').trim())return cleanId(String(body.containerId).trim());
+ if(String(body.parentId||'').trim())return '';
+ return personalInboxId();
+}
+const personalContainerRepairs=new Set();let personalContainerRepairQueue=Promise.resolve();
+function applyPersonalContainerDefaults(tasks,containers){
+ let inbox;try{inbox=inboxContainerId(containers)}catch{return tasks}
+ for(const task of tasks){if(task.containerId||task.parentId||taskManagement.state.tasks[task.id]?.parentId||!recentTask(task))continue;task.containerId=inbox;task.containerAssignmentPending=true;schedulePersonalContainerRepair(task.id);}
+ return tasks;
+}
+function schedulePersonalContainerRepair(id){
+ if(personalContainerRepairs.has(id))return;personalContainerRepairs.add(id);
+ personalContainerRepairQueue=personalContainerRepairQueue.then(async()=>{
+  // Re-read immediately before writing: never move a newly assigned task or a new subtask.
+  const page=await notion('/pages/'+encodeURIComponent(id));
+  if(page.archived||page.in_trash||taskManagement.state.tasks[id]?.parentId)return;
+  if(relationIds(page,'Personal Container').length||relationIds(page,'Parent item').length){personalRaw.tasks.set(id,page);personalTasksCache=null;return;}
+  const containerId=await personalInboxId();
+  const patched=await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties:{'Personal Container':{relation:[{id:containerId}]}}})});
+  personalRaw.tasks.set(id,patched);personalTasksCache=null;personalTasksCacheAt=0;saveRawSnapshotCache();
+ }).catch(()=>{/* Keep pending presentation in INBOX; retry after the next refresh. */}).finally(()=>personalContainerRepairs.delete(id));
+}
+
 async function personalSnapshot(force=false,fresh=false,retry=false,light=false){
  if(!force&&!fresh&&personalTasksCache&&Date.now()-personalTasksCacheAt<5000)return personalTasksCache;
  if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshot(force,fresh,retry,light);}
@@ -1012,6 +1052,7 @@ async function personalSnapshot(force=false,fresh=false,retry=false,light=false)
   const errors=results.filter(x=>x.status==='rejected').map(x=>x.reason),successful=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
   if(!successful.length&&errors.length)throw Object.assign(new Error(errors.map(x=>x.part+': '+x.error).join('; ')),{statusCode:503,code:'SNAPSHOT_READ_FAILED'});
   const pomodoroTasks=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),tasks=pomodoroTasks.filter(recentTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
+  applyPersonalContainerDefaults(pomodoroTasks,containers);
   const result={tasks,containers,pomodoroTasks,fetchedAt:new Date().toISOString(),database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB,sync:{mode:force?'full':'incremental',successful,errors,partial:errors.length>0}};personalTasksCache=result;personalTasksCacheAt=Date.now();saveRawSnapshotCache();return result;
  })().then(result=>result||personalSnapshotAfterMutation(force,fresh,retry,light)).finally(()=>{personalTasksInFlight=null;});
  return personalTasksInFlight;
@@ -1054,11 +1095,11 @@ async function savePersonalLayout(body) {
       'Personal Height': { number: personalNumber(body.height, 105) },
       'Personal Order': { number: personalNumber(body.order, 0) }
     };
-    if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+    if (body.containerId !== undefined) { const parentId=relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
   }
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   invalidatePersonalTasks();
-  return { ok: true, kind, id, savedAt: new Date().toISOString() };
+  return { ok: true, kind, id, ...(kind==='task'&&properties['Personal Container']?{containerId:properties['Personal Container'].relation[0]?.id||''}:{}), savedAt: new Date().toISOString() };
 }
 
 async function deletePersonalContainer(id) {
@@ -1235,6 +1276,7 @@ async function createPersonalTask(body) {
   if (Array.isArray(body.assignees) && body.assignees.length) properties.Tapsirildi = { multi_select: body.assignees.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
   if (body.parentId) properties['Parent item'] = { relation: [{ id: cleanId(String(body.parentId)) }] };
   if (body.containerId) properties['Personal Container'] = { relation: [{ id: cleanId(String(body.containerId)) }] };
+  const destination=await resolvePersonalTaskContainer(body);properties['Personal Container']={relation:destination?[{id:destination}]:[]};
   const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
   await persistTaskEstimate(body,page.id,true);
@@ -1289,7 +1331,7 @@ async function savePersonalTaskUnlocked(body) {
     const parentId = cleanId(String(body.parentId || '').trim());
     properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
   }
-  if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+  if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
   if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined) throw new Error('Нет изменений задачи');
   if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
@@ -1297,7 +1339,7 @@ async function savePersonalTaskUnlocked(body) {
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
   invalidatePersonalTasks();
-  return { ok: true, id,...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id,...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
@@ -1409,6 +1451,14 @@ const server = http.createServer(async (request, response) => {
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
+    // Versioned, no-store UI assets; never serve server sources or private data.
+    const publicAssets=new Set(["autosave.js", "calendar-time.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
+      const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
+      return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
+    }
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.41',calendarVersion:'1.1.41',dateRange:true});
+
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
       try { enforceAiRateLimit(); return json(response, 200, await aiChat(body)); }
@@ -1459,7 +1509,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.41'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       return json(response, 200, withTaskEstimates(await personalSnapshot(url.searchParams.get('force') === '1',url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')));
     }
@@ -1516,7 +1566,6 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
     if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = withTaskEstimates(await snapshot(full, baseUrl,url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
-    if(url.pathname==='/task-history.js')return file(response,path.join(__dirname,'task-history.js'),'application/javascript; charset=utf-8');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
     if (url.pathname === '/icons/icon-512.png') return file(response, path.join(__dirname, 'icons/icon-512.png'), 'image/png', 'public, max-age=31536000, immutable');
@@ -1528,5 +1577,4 @@ const server = http.createServer(async (request, response) => {
     return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
   }
 });
-
-server.listen(PORT, () => console.log('Ela plan server: http://localhost:' + PORT));
+server.listen(PORT, () => console.log('ADIB Online 1.1.41: http://localhost:'+server.address().port));

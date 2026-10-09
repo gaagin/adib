@@ -1,0 +1,7 @@
+/* Completion is a separate control, never nested in the open-task button. */
+.adib-subtask-row{display:flex!important;align-items:center;gap:10px;margin:6px 0;min-width:0;width:100%}
+.adib-subtask-row>[data-task-open-child]{flex:1;min-width:0;margin:0!important}
+.adib-subtask-row>.adib-subtask-check{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 26px!important;box-sizing:border-box!important;width:26px!important;min-width:26px!important;height:26px!important;min-height:26px!important;margin:0!important;padding:0!important;border:2px solid var(--blue,#4776ef)!important;border-radius:50%!important;background:transparent!important;color:var(--blue,#4776ef)!important;font-size:16px!important;line-height:1!important;cursor:pointer}
+.adib-subtask-check[aria-checked=true]{background:var(--blue,#4776ef)!important;color:#fff!important}
+.adib-subtask-check:focus-visible{outline:2px solid var(--blue,#4776ef);outline-offset:3px}
+.adib-subtask-row.completed [data-task-open-child]{text-decoration:line-through;opacity:.65}

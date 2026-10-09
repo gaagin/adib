@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-pwa-v35-separate-back-buttons';
+const CACHE_NAME = 'adib-online-v141-calendar-clicks';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
@@ -29,20 +29,8 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match('/ela-nov-paketleme-dynamic.html').then(response => response || caches.match('/'))));
     return;
   }
-  event.respondWith(caches.match(request).then(cached => {
-    const network = fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-      return response;
-    }).catch(() => cached);
-    return cached || network;
-  }));
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
-    const appWindow = windows.find(client => new URL(client.url).origin === self.location.origin);
-    if (appWindow) return appWindow.focus();
-    return self.clients.openWindow('/');
-  }));
+  event.respondWith(fetch(request).then(response=>{
+    if(response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(request,response.clone()));
+    return response;
+  }).catch(()=>caches.match(request)));
 });

@@ -50,3 +50,11 @@
 .calendar-now-line{position:absolute;left:0;right:0;height:2px;background:#d94b42;z-index:7;pointer-events:none;transform:translateY(-1px)}
 .calendar-now-today::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#d94b42}
 .calendar-now-label{position:absolute;right:3px;color:#fff;background:#c43d34;border-radius:4px;padding:2px 3px;font-size:11px;line-height:14px;transform:translateY(-50%);z-index:7;pointer-events:none}
+
+/* Short events retain a body between resize hit zones. */
+.calendar-time-event.calendar-short .calendar-resize{height:6px}
+.calendar-time-event.calendar-medium:not(.calendar-short) .calendar-resize{height:8px}
+.calendar-event-title,.calendar-event-time{cursor:grab}
+
+/* Theme tokens keep the calendar's navigation readable in dark mode as well. */
+html body #adibCalendar .adib-calendar-bar button{background:var(--soft)!important;color:var(--text)!important;border:1px solid var(--line)!important}
