@@ -1,0 +1,31 @@
+'use strict';
+const crypto=require('node:crypto');
+const SCOPES=['personal','equipment','management'];
+function clean(data){const value=structuredClone(data);delete value.fetchedAt;delete value.etag;delete value.sync;delete value.historyNow;return value;}
+function fingerprint(data){return crypto.createHash('sha256').update(JSON.stringify(clean(data))).digest('hex');}
+function delta(before,after){const set={},collections={};for(const [key,value] of Object.entries(after)){
+ if(Array.isArray(value)&&value.every(x=>x&&typeof x.id==='string')&&Array.isArray(before[key])&&before[key].every(x=>x&&typeof x.id==='string')){
+ const old=new Map(before[key].map(x=>[x.id,x])),ids=new Set(value.map(x=>x.id));collections[key]={upsert:value.filter(x=>JSON.stringify(old.get(x.id))!==JSON.stringify(x)),remove:before[key].filter(x=>!ids.has(x.id)).map(x=>x.id)};
+ }else if(JSON.stringify(before[key])!==JSON.stringify(value))set[key]=value;
+ }return {set,collections,unset:Object.keys(before).filter(k=>!(k in after))};}
+class RealtimeHub{
+ constructor({load,local,origin='*',pollMs=60000,debounceMs=200,heartbeatMs=20000,maxClients=200,maxHistoryBytes=16*1024*1024}){
+ Object.assign(this,{load,local,origin,pollMs,debounceMs,heartbeatMs,maxClients,maxHistoryBytes});this.epoch=crypto.randomUUID();this.clients=new Set();this.states=new Map();this.dirty=new Set();this.timer=null;this.pollTimer=null;this.closed=false;this.failures=new Map();this.blockedUntil=new Map();
+ }
+ state(scope){if(!SCOPES.includes(scope))throw Object.assign(Error('Unknown scope'),{statusCode:400});if(!this.states.has(scope))this.states.set(scope,{revision:0,data:null,hash:'',history:new Map(),flight:null,loaded:false,dirtyVersion:0});return this.states.get(scope);}
+ publish(scope,data){const s=this.state(scope),hash=fingerprint(data);if(s.hash===hash)return false;s.hash=hash;s.data=structuredClone(data);s.revision++;s.history.set(s.revision,s.data);let bytes=[...s.history.values()].reduce((n,item)=>n+Buffer.byteLength(JSON.stringify(item)),0);while(s.history.size>1&&(s.history.size>8||bytes>this.maxHistoryBytes)){const rev=s.history.keys().next().value;bytes-=Buffer.byteLength(JSON.stringify(s.history.get(rev)));s.history.delete(rev);}
+ this.send('change',{epoch:this.epoch,scope,revision:s.revision});return true;}
+ async ensure(scope,{remote=false}={}){const s=this.state(scope);if(s.flight)return s.flight;if((remote||!s.loaded)&&Date.now()<(this.blockedUntil.get(scope)||0)){if(s.data)return s.data;throw Object.assign(Error('Realtime snapshot retry pending'),{statusCode:503});}
+ s.flight=(async()=>{try{const data=remote||!s.loaded?await this.load(scope):await this.local(scope);if(!data)throw Error('Snapshot unavailable');if(data.sync?.partial)throw Error('Partial snapshot: retry without replacing clients');s.loaded=true;this.publish(scope,data);this.failures.delete(scope);this.blockedUntil.delete(scope);return data;}catch(error){const n=(this.failures.get(scope)||0)+1;this.failures.set(scope,n);this.blockedUntil.set(scope,Date.now()+Math.min(300000,5000*2**Math.min(n,6)));this.send('warning',{scope,retry:true});throw error;}finally{s.flight=null;}})();return s.flight;}
+ invalidate(scopes){if(this.closed)return;for(const scope of scopes){this.state(scope).dirtyVersion++;this.dirty.add(scope);}if(this.timer)return;this.timer=setTimeout(()=>this.flush(),this.debounceMs);this.timer.unref?.();}
+ async flush(){this.timer=null;const scopes=[...this.dirty];this.dirty.clear();for(const scope of scopes){const s=this.state(scope),v=s.dirtyVersion;try{if(s.flight)await s.flight.catch(()=>{});await this.ensure(scope);}catch{}if(v!==s.dirtyVersion)this.dirty.add(scope);}if(this.dirty.size&&!this.closed){this.timer=setTimeout(()=>this.flush(),this.debounceMs);this.timer.unref?.();}}
+ async read(scope,revision,epoch){const s=this.state(scope);if(!s.data)await this.ensure(scope);const base=epoch===this.epoch?s.history.get(Number(revision)):null;if(base)return {epoch:this.epoch,scope,revision:s.revision,kind:'delta',baseRevision:Number(revision),...delta(base,s.data)};return {epoch:this.epoch,scope,revision:s.revision,kind:'full',data:s.data};}
+ send(event,data){for(const client of this.clients){if(data.scope&&!client.scopes.includes(data.scope))continue;this.write(client,`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);}}
+ write(client,text){if(client.response.destroyed||client.response.writableLength>256*1024){client.response.destroy();client.close();return;}try{client.response.write(text);}catch{client.close();}}
+ connect(request,response,scopes=SCOPES){scopes=[...new Set(scopes.filter(s=>SCOPES.includes(s)))];if(!scopes.length)return false;if(this.clients.size>=this.maxClients){response.writeHead(503,{'Retry-After':'30','Content-Type':'application/json'});response.end('{"error":"Too many realtime connections"}');return true;}
+ response.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no','Access-Control-Allow-Origin':this.origin});response.flushHeaders?.();const client={response,scopes,close:()=>{clearInterval(client.beat);this.clients.delete(client);if(!this.clients.size){clearTimeout(this.pollTimer);this.pollTimer=null;}}};this.clients.add(client);client.beat=setInterval(()=>this.write(client,': heartbeat\n\n'),this.heartbeatMs);client.beat.unref?.();response.on('close',client.close);this.write(client,`retry: 5000\nevent: ready\ndata: ${JSON.stringify({epoch:this.epoch,scopes})}\n\n`);
+ for(const scope of scopes)this.ensure(scope).catch(()=>{});this.schedulePoll();return true;}
+ schedulePoll(){if(this.closed||!this.clients.size||this.pollTimer)return;this.pollTimer=setTimeout(async()=>{this.pollTimer=null;if(!this.clients.size||this.closed)return;const scopes=[...new Set([...this.clients].flatMap(c=>c.scopes))];for(const scope of scopes)try{await this.ensure(scope,{remote:true});}catch{}this.schedulePoll();},this.pollMs);this.pollTimer.unref?.();}
+ close(){this.closed=true;clearTimeout(this.timer);clearTimeout(this.pollTimer);for(const c of [...this.clients]){c.close();c.response.end();}}
+}
+module.exports={RealtimeHub,delta,fingerprint,SCOPES};

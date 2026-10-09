@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
 const crypto = require('node:crypto');
+const {RealtimeHub}=require('./realtime-server');
+const {NotionRateGate}=require('./notion-rate');
+const notionRate=new NotionRateGate();
 
 loadDotEnv(path.join(__dirname, '.env'));
 
@@ -70,7 +73,7 @@ async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   checkConfig();
   const uploadOptions=TOKEN==='native'?options:prepareNotionUpload('https://api.notion.com/v1'+endpoint,options);
   const readStarted=Date.now();
-  const response = await fetch('https://api.notion.com/v1' + endpoint, {
+  const response = await notionRate.request('https://api.notion.com/v1' + endpoint, {
     ...uploadOptions,
     headers: {
       Authorization: 'Bearer ' + TOKEN,
@@ -85,6 +88,7 @@ async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   const remoteDate=Date.parse(response.headers?.get?.('date')||'');
   if(body&&typeof body==='object'&&Number.isFinite(remoteDate))Object.defineProperty(body,'__readBarrier',{value:new Date(remoteDate-Math.max(0,Date.now()-readStarted)).toISOString()});
   if (!response.ok) throw new Error('Notion API ' + response.status + ': ' + (body.message || text));
+  if(response.ok&&['PATCH','POST','DELETE'].includes(options.method))observeWrittenPage(endpoint,body);
   return body;
 }
 
@@ -503,9 +507,11 @@ function buildSnapshotFromRawCache(baseUrl = '') {
   return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat() };
 }
 
+const realtimeTombstones=new Map();
 function mergePages(target, pages) {
   for (const page of pages) {
-    if (page.archived) {
+    const deletedUntil=realtimeTombstones.get(page.id)||0;if(deletedUntil>Date.now()&&!page.archived&&!page.in_trash)continue;if(deletedUntil&&deletedUntil<=Date.now())realtimeTombstones.delete(page.id);
+    if (page.archived||page.in_trash) {
       target.delete(page.id);
       continue;
     }
@@ -699,6 +705,7 @@ function json(response, status, body, extraHeaders = {}) {
     ...extraHeaders
   });
   response.end(JSON.stringify(body));
+  if(status>=200&&status<300&&body?.ok!==false&&response.__realtimeScopes?.length)realtime.invalidate(response.__realtimeScopes);
 }
 
 function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store') {
@@ -1447,6 +1454,34 @@ async function notionUsers(force = false) {
   return userCache.value;
 }
 
+
+function observeWrittenPage(endpoint,page){
+ if(!page?.id||page.object!=='page'||!page.properties)return;
+ const parent=page.parent||{},parentId=parent.data_source_id||parent.database_id||'';
+ if(page.archived||page.in_trash)realtimeTombstones.set(page.id,Date.now()+10*60*1000);else realtimeTombstones.delete(page.id);
+ let targets=[];
+ if(personalRaw.tasks.has(page.id)||[TASKS_DS,TASKS_DB].includes(parentId))targets.push(personalRaw.tasks);
+ if(personalRaw.containers.has(page.id)||[PERSONAL_CONTAINERS_DS,PERSONAL_CONTAINERS_DB].includes(parentId))targets.push(personalRaw.containers);
+ if(rawCache.plans.has(page.id)||[PLAN_DS,PLAN_DB].filter(Boolean).includes(parentId))targets.push(rawCache.plans);
+ if(rawCache.machines.has(page.id)||[MAKINA_DS,MAKINA_DB].filter(Boolean).includes(parentId))targets.push(rawCache.machines);
+ for(const source of taskSources())if(rawCache.tasks.get(source.key)?.has(page.id)||[source.dataSourceId,source.databaseId].filter(Boolean).includes(parentId)){if(!rawCache.tasks.has(source.key))rawCache.tasks.set(source.key,new Map());targets.push(rawCache.tasks.get(source.key));}
+ for(const target of targets)mergePages(target,[page]);
+ if(targets.length){snapshotCache=null;personalTasksCache=null;taskCache.clear();saveRawSnapshotCache();}
+}
+function mutationScopes(method,p){
+ if(!['POST','PATCH','DELETE'].includes(method))return [];
+ if(p==='/api/task-management')return ['management','personal','equipment'];
+ if(p==='/api/personal-pomodoro')return ['personal','equipment'];
+ if(['/api/personal-task','/api/personal-container','/api/personal-layout','/api/personal-task-blocks'].includes(p))return ['personal'];
+ if(['/api/task','/api/plan','/api/equipment','/api/layout'].includes(p))return ['equipment'];
+ return [];
+}
+function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
+const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000),
+ load:async scope=>scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
+ local:async scope=>scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
+});
+
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'OPTIONS') {
@@ -1454,15 +1489,19 @@ const server = http.createServer(async (request, response) => {
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
+    response.__realtimeScopes=mutationScopes(request.method,url.pathname);
+    if(request.method==='GET'&&url.pathname==='/api/events')return realtime.connect(request,response,(url.searchParams.get('scopes')||'personal,equipment,management').split(','))||json(response,400,{error:'Unknown scopes'});
+    if(request.method==='GET'&&url.pathname==='/api/realtime/state')return json(response,200,await realtime.read(url.searchParams.get('scope')||'personal',url.searchParams.get('revision'),url.searchParams.get('epoch')));
+    if(request.method==='GET'&&url.pathname==='/api/realtime/status')return json(response,200,{enabled:true,transport:'sse',externalPollMs:realtime.pollMs});
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["autosave.js", "zoned-time.js", "filter-memory.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.46',calendarVersion:'1.1.46',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.47',calendarVersion:'1.1.47',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1514,9 +1553,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.46'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.47'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
-      return json(response, 200, withTaskEstimates(await personalSnapshot(url.searchParams.get('force') === '1',url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')));
+      const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
     if (request.method === 'GET' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.snapshot()});
     if (request.method === 'POST' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.update(await readBody(request))});
@@ -1569,7 +1608,7 @@ const server = http.createServer(async (request, response) => {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
     if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = withTaskEstimates(await snapshot(full, baseUrl,url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
@@ -1582,4 +1621,5 @@ const server = http.createServer(async (request, response) => {
     return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
   }
 });
-server.listen(PORT, () => console.log('ADIB Online 1.1.46: http://localhost:'+server.address().port));
+server.on?.('close',()=>realtime.close());
+server.listen(PORT, () => console.log('ADIB Online 1.1.47: http://localhost:'+server.address().port));
