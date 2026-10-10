@@ -14,7 +14,7 @@ class NetworkTime {
    if(!response.ok||!Number.isFinite(epoch)||epoch<1577836800000||epoch>7258118400000||age>30||after-before>this.timeoutMs)throw Error('Unconfirmed Date header');
    this.anchor={epoch:epoch+(after-before)/2,mono:after,source:new URL(url).hostname};this.error='';return this.snapshot();
   }catch(e){failures.push(new URL(url).hostname+': '+(e.name==='AbortError'?'timeout':e.message));}finally{clearTimeout(timer);}}
-  this.error='Не удалось подтвердить сетевое время';return this.snapshot();
+  this.error='Şəbəkə vaxtını təsdiqləmək alınmadı';return this.snapshot();
  })().finally(()=>this.inflight=null);return this.inflight;}
 }
 module.exports={NetworkTime,DEFAULT_SOURCES};

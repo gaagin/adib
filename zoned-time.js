@@ -10,9 +10,9 @@ class ZonedDate extends Date{
  getTimezoneOffset(){const p=this._p();return (this.getTime()-Date.UTC(p.year,p.month,p.day,p.hour,p.minute,p.second,p.millisecond))/60000;}
  _set(kind,args){const p=this._p();if(!Number.isFinite(p.year))return this.setTime(NaN);const d=new Date(Date.UTC(p.year,p.month,p.day,p.hour,p.minute,p.second,p.millisecond));d['setUTC'+kind](...args);return this.setTime(wallEpoch({year:d.getUTCFullYear(),month:d.getUTCMonth(),day:d.getUTCDate(),hour:d.getUTCHours(),minute:d.getUTCMinutes(),second:d.getUTCSeconds(),millisecond:d.getUTCMilliseconds()},this.zone));}
  setFullYear(...a){return this._set('FullYear',a);}setMonth(...a){return this._set('Month',a);}setDate(...a){return this._set('Date',a);}setHours(...a){return this._set('Hours',a);}setMinutes(...a){return this._set('Minutes',a);}setSeconds(...a){return this._set('Seconds',a);}setMilliseconds(...a){return this._set('Milliseconds',a);}
- toLocaleDateString(locale='ru-RU',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleDateString(locale,{...options,timeZone:this.zone}):'Время не подтверждено';}
- toLocaleTimeString(locale='ru-RU',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleTimeString(locale,{...options,timeZone:this.zone}):'Время не подтверждено';}
- toLocaleString(locale='ru-RU',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleString(locale,{...options,timeZone:this.zone}):'Время не подтверждено';}
+ toLocaleDateString(locale='az-AZ',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleDateString(locale,{...options,timeZone:this.zone}):'Vaxt təsdiqlənməyib';}
+ toLocaleTimeString(locale='az-AZ',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleTimeString(locale,{...options,timeZone:this.zone}):'Vaxt təsdiqlənməyib';}
+ toLocaleString(locale='az-AZ',options={}){return Number.isFinite(this.getTime())?new Date(this.getTime()).toLocaleString(locale,{...options,timeZone:this.zone}):'Vaxt təsdiqlənməyib';}
  toDateString(){const p=this._p();return Number.isFinite(p.year)?[p.year,p.month+1,p.day].join('-'):'unconfirmed';}
  clone(){return new ZonedDate(this.getTime(),this.zone);}
 }

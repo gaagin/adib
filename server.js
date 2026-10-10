@@ -68,7 +68,7 @@ function checkConfig() {
   if (!TOKEN) missing.push('NOTION_TOKEN');
   if (!PLAN_DB && !PLAN_DS) missing.push('PLAN_DATABASE_ID or PLAN_DATA_SOURCE_ID');
   if (!MAKINA_DB && !MAKINA_DS) missing.push('MAKINA_DATABASE_ID or MAKINA_DATA_SOURCE_ID');
-  if (missing.length) throw new Error('Не заполнены переменные: ' + missing.join(', '));
+  if (missing.length) throw new Error('Dəyişənlər doldurulmayıb: ' + missing.join(', '));
 }
 
 async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
@@ -114,8 +114,8 @@ function mapComment(comment) {
     text: authored ? authored[2] : rawText,
     createdAt: comment.created_time || '',
     authorId: author.id || '',
-    authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'Пользователь Notion'),
-    attachments: (comment.attachments||[]).filter(a=>a.category==='image').map(a=>({category:'image',url:a.file?.url||a.file?.file?.url||'',expiryTime:a.file?.expiry_time||'',name:a.file?.name||'Изображение'})).filter(a=>/^https:\/\//.test(a.url))
+    authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'İstifadəçi Notion'),
+    attachments: (comment.attachments||[]).filter(a=>a.category==='image').map(a=>({category:'image',url:a.file?.url||a.file?.file?.url||'',expiryTime:a.file?.expiry_time||'',name:a.file?.name||'Şəkil'})).filter(a=>/^https:\/\//.test(a.url))
   };
 }
 
@@ -135,7 +135,7 @@ async function resolveCommentAuthor(comment) {
 
 async function listTaskComments(body) {
   const pageId = cleanId(String(body.id || '').trim());
-  if (!pageId) throw new Error('Не указан ID страницы задачи');
+  if (!pageId) throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
   const result = await notion('/comments?block_id=' + encodeURIComponent(pageId), { method: 'GET' });
   const comments = await Promise.all((result.results || []).map(resolveCommentAuthor));
   return { ok: true, id: pageId, comments };
@@ -146,7 +146,7 @@ async function requestedCommentAuthor(body) {
   if (requestedId) {
     try {
       const user = (await notionUsers()).find(item => item.id === requestedId);
-      if (user) return user.name || user.email || 'Пользователь сервиса';
+      if (user) return user.name || user.email || 'Tətbiq istifadəçisi';
     } catch (error) {
       console.warn('Comment profile lookup failed:', error.message);
     }
@@ -158,9 +158,9 @@ async function addTaskComment(body) {
   const pageId = cleanId(String(body.id || '').trim());
   const text = String(body.text || '').trim().slice(0, 1850);
   const attachments=await validatedCommentAttachments(body.attachments);
-  if (!pageId || (!text&&!attachments.length)) throw new Error('Нужны ID задачи и текст или изображение');
+  if (!pageId || (!text&&!attachments.length)) throw new Error('Lazımdır ID tapşırıqlar və mətn və ya şəkil');
   const authorName = body.__account?.name || await requestedCommentAuthor(body);
-  const storedText = '[' + authorName.replace(/[\\[\\]]/g, '') + '] ' + (text||'Изображение');
+  const storedText = '[' + authorName.replace(/[\\[\\]]/g, '') + '] ' + (text||'Şəkil');
   const comment = await notion('/comments', {
     method: 'POST',
     body: JSON.stringify({
@@ -171,14 +171,14 @@ async function addTaskComment(body) {
   return { ok: true, comment: await resolveCommentAuthor(comment), savedAt: new Date().toISOString() };
 }
 
-function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Некорректный ID загруженного изображения'),{statusCode:400});return id}
-async function ensureUploadedImage(value){const id=imageUploadId(value),file=await notion('/file_uploads/'+id,{method:'GET'});if(file.status!=='uploaded'||!['image/jpeg','image/png','image/gif','image/webp'].includes(file.content_type))throw Object.assign(new Error('Изображение ещё не загружено или формат не поддерживается'),{statusCode:400});return id}
-async function validatedCommentAttachments(value){if(value===undefined)return[];if(!Array.isArray(value)||value.length>3)throw Object.assign(new Error('В комментарий можно добавить до 3 изображений'),{statusCode:400});const result=[];for(const a of value){const id=await ensureUploadedImage(a?.file_upload_id);if(!result.some(x=>x.file_upload_id===id))result.push({type:'file_upload',file_upload_id:id});}return result}
-async function uploadTaskImageFile(body){const image=validateImage(body.image);if(body.id&&image.bytes.length>200*1024)throw Object.assign(new Error('Фото задачи нужно сжать до 200 КБ перед отправкой'),{statusCode:400});const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion не подтвердил загрузку. Изображение не прикреплено.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
+function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Etibarsızdır ID '),{statusCode:400});return id}
+async function ensureUploadedImage(value){const id=imageUploadId(value),file=await notion('/file_uploads/'+id,{method:'GET'});if(file.status!=='uploaded'||!['image/jpeg','image/png','image/gif','image/webp'].includes(file.content_type))throw Object.assign(new Error('Şəkil hələ yüklənməyib və ya format dəstəklənmir'),{statusCode:400});return id}
+async function validatedCommentAttachments(value){if(value===undefined)return[];if(!Array.isArray(value)||value.length>3)throw Object.assign(new Error('Şərhə 3-ə qədər şəkil əlavə edə bilərsiniz'),{statusCode:400});const result=[];for(const a of value){const id=await ensureUploadedImage(a?.file_upload_id);if(!result.some(x=>x.file_upload_id===id))result.push({type:'file_upload',file_upload_id:id});}return result}
+async function uploadTaskImageFile(body){const image=validateImage(body.image);if(body.id&&image.bytes.length>200*1024)throw Object.assign(new Error('Tapşırıq şəkli göndərilməzdən əvvəl 200 KB-a qədər sıxılmalıdır'),{statusCode:400});const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion yükləməni təsdiq etmədi. Şəkil əlavə edilməyib.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
 const taskPhotos=require('./task-photos').create({notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}]});
 function mappedTaskImage(block){const image=block.image||{},url=image.file?.url||image.external?.url||'';return {id:block.id,url:/^https:\/\//.test(url)?url:'',expiryTime:image.file?.expiry_time||'',caption:(image.caption||[]).map(x=>x.plain_text||x.text?.content||'').join('')}}
-async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Не указан ID задачи');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
-async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Сначала сохраните задачу');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Прикрепление могло выполниться. Обновите изображения перед повторной отправкой.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Нет подтверждения прикрепления. Обновите изображения перед повторной отправкой.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
+async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
+async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Əvvəlcə tapşırığı yadda saxlayın');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Qoşma uğur qazana bilər. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Qoşma təsdiqi yoxdur. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
 
 async function listChatThreads(body) {
   const raw = Array.isArray(body.tasks) ? body.tasks : [];
@@ -186,7 +186,7 @@ async function listChatThreads(body) {
     const id = cleanId(String(item?.id || '').trim());
     return [id, id ? {
       id,
-      title: String(item?.title || 'Задача').trim().slice(0, 240) || 'Задача',
+      title: String(item?.title || 'Tapşırıq').trim().slice(0, 240) || 'Tapşırıq',
       source: String(item?.source || '').trim().slice(0, 80),
       machineName: String(item?.machineName || '').trim().slice(0, 160)
     } : null];
@@ -229,11 +229,11 @@ async function listCommentNotifications(body) {
 const taskOptionCache = new Map(), taskOptionFlights = new Map();
 async function taskSourceOptions(key, force=false) {
   const specs = {personal:[TASKS_DS,TASKS_DB,{tags:'Tag',assignees:'Tapsirildi'}],todo:[TODO_DS,TODO_DB,{tapsirildi:'Tapsirildi'}],gorulen:[GORULEN_DS,GORULEN_DB,{tapsirildi:'Tapsirildi'}]};
-  const spec=specs[key];if(!spec)throw Object.assign(new Error('Неизвестный источник вариантов'),{statusCode:400});
+  const spec=specs[key];if(!spec)throw Object.assign(new Error('Naməlum variant mənbəyi'),{statusCode:400});
   const cached=taskOptionCache.get(key);if(!force&&cached&&Date.now()-cached.at<300000)return cached.value;
   if(taskOptionFlights.has(key))return taskOptionFlights.get(key);
   const job=(async()=>{let schema;try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
-    const value={};for(const [field,name] of Object.entries(spec[2])){const prop=schema.properties?.[name];if(!prop||!['multi_select','select'].includes(prop.type))throw new Error('Поле '+name+' отсутствует или не является списком вариантов');value[field]={type:prop.type,options:[...new Set((prop[prop.type]?.options||[]).map(o=>o.name).filter(x=>typeof x==='string'&&x.trim()))]};}
+    const value={};for(const [field,name] of Object.entries(spec[2])){const prop=schema.properties?.[name];if(!prop||!['multi_select','select'].includes(prop.type))throw new Error('Sahə '+name+' yoxdur və ya seçim siyahısı deyil');value[field]={type:prop.type,options:[...new Set((prop[prop.type]?.options||[]).map(o=>o.name).filter(x=>typeof x==='string'&&x.trim()))]};}
     taskOptionCache.set(key,{at:Date.now(),value});return value;})();
   taskOptionFlights.set(key,job);try{return await job;}finally{taskOptionFlights.delete(key);}
 }
@@ -322,7 +322,7 @@ function linkPropertyName(sourceKey) {
 function mapPlans(pages, baseUrl = '') {
   return pages.map(page => ({
     id: page.id,
-    name: title(page, 'Plan') || 'Без названия',
+    name: title(page, 'Plan') || 'Adsız',
     parentId: relationIds(page, 'Parent Plan')[0] || null,
     type: select(page, 'Tip'),
     x: number(page, 'X') || 0,
@@ -339,7 +339,7 @@ function mapPlans(pages, baseUrl = '') {
 function mapEquipment(pages, tasks, baseUrl = '') {
   return pages.map(page => ({
     id: page.id,
-    name: title(page, 'Makina') || 'Без названия',
+    name: title(page, 'Makina') || 'Adsız',
     planId: relationIds(page, 'Plan')[0] || null,
     type: select(page, 'Tip'),
     status: select(page, 'Status'),
@@ -440,7 +440,7 @@ function editedSinceFilter(since) {
 }
 function changedCursor(pages,previous=''){let max=Date.parse(previous)||0;for(const p of pages)max=Math.max(max,Date.parse(p.last_edited_time)||0);return max?new Date(max).toISOString():previous;}
 function collectionNeedsFull(cursor,force){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000;}
-function syncError(part,error){return {part,error:String(error?.message||error||'Нет ответа Notion').slice(0,700)};}
+function syncError(part,error){return {part,error:String(error?.message||error||'Cavab yoxdur Notion').slice(0,700)};}
 
 
 async function queryTaskPages(machineIds = [], since = '', restrictToMachines = true) {
@@ -470,8 +470,8 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted 
       if (source.key === 'gorulen' && select(page, source.periodicName).trim().toLowerCase() === String(source.periodicValue).trim().toLowerCase()) continue;
       if (source.key === 'todo' && select(page, source.gtdName).trim().toLowerCase() === String(source.gtdValue).trim().toLowerCase()) continue;
       if(page.archived||page.in_trash)continue;
-      const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Задача';
-      const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Открыта';
+      const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Tapşırıq';
+      const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
       const assignee = person(page, source.assigneeName);
       const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
       task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!recentTask(task))continue;
@@ -549,8 +549,8 @@ function progressiveSnapshot(scope){
  if(scope==='personal')applyPersonalContainerDefaults(data.pomodoroTasks,data.containers);
  return {...data,cache:{...cacheHealth},sync:state?{...state,partial:state.pending.length>0||state.errors.length>0}:{revision:0,running:false,successful:[],errors:[],pending:[],partial:true}};
 }
-function equipmentSnapshotSpecs(){return [{key:'plans',label:'Планы',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Оборудование',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId}))];}
-function personalSnapshotSpecs(){return [{key:'tasks',label:'Мои задачи',db:TASKS_DB,ds:TASKS_DS},{key:'containers',label:'Контейнеры',db:PERSONAL_CONTAINERS_DB,ds:PERSONAL_CONTAINERS_DS}];}
+function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId}))];}
+function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',db:TASKS_DB,ds:TASKS_DS},{key:'containers',label:'Qovluqlar',db:PERSONAL_CONTAINERS_DB,ds:PERSONAL_CONTAINERS_DS}];}
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
@@ -658,7 +658,7 @@ async function patchServiceLink(page, propertyName, link) {
 async function syncServiceLinks(baseUrl, force = false) {
   const normalized = normalizeBaseUrl(baseUrl);
   if (!normalized || (isLocalBaseUrl(normalized) && !PUBLIC_APP_URL)) {
-    return { ok: true, skipped: true, reason: 'Нужен публичный PUBLIC_APP_URL' };
+    return { ok: true, skipped: true, reason: 'İctimaiyyətə ehtiyac var PUBLIC_APP_URL' };
   }
   if (!force && linkSyncState.baseUrl === normalized && Date.now() - linkSyncState.at < LINK_SYNC_TTL_MS) {
     return { ok: true, skipped: true, updated: 0 };
@@ -704,8 +704,10 @@ const SECURITY_HEADERS = {
 };
 
 function json(response, status, body, extraHeaders = {}) {
+  if(status>=400&&typeof body?.error==='string'&&/^Notion API \d+:/i.test(body.error)){body={...body,technicalDetails:body.error,error:'Notion əməliyyatı alınmadı. HTTP '+(body.error.match(/Notion API (\d+)/)?.[1]||status)+'. Yenidən cəhd edin.'};}
+
   if(response.__accountRequest&&status<300)accounts.user(response.__accountRequest);
-  if(response.__account&&status<300&&response.__account.disabled)throw accessError('Доступ отключён',401);
+  if(response.__account&&status<300&&response.__account.disabled)throw accessError('Giriş qeyri-aktivdir',401);
   if(response.__account&&status<300&&response.__accountScope)body=projectAccount(response.__account,response.__accountScope,body);
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -741,7 +743,7 @@ function readBody(request) {
       bytes += Buffer.byteLength(chunk);
       if (bytes > (String(request.url||'').split('?')[0]==='/api/image-upload'?8*1024*1024:100000)) {
         settled = true;
-        reject(requestError('Размер запроса превышает допустимый предел', 413));
+        reject(requestError('Sorğunun ölçüsü icazə verilən limiti keçir', 413));
         request.resume();
         return;
       }
@@ -750,7 +752,7 @@ function readBody(request) {
     request.on('end', () => {
       if (settled) return;
       try { resolve(JSON.parse(body || '{}')); }
-      catch { reject(requestError('Некорректный JSON в запросе', 400)); }
+      catch { reject(requestError('Etibarsızdır JSON sorğuda', 400)); }
     });
     request.on('error', error => { if (!settled) reject(error); });
   });
@@ -760,7 +762,7 @@ function enforceAiRateLimit() {
   const now = Date.now();
   while (aiRequestTimes.length && now - aiRequestTimes[0] >= AI_RATE_WINDOW_MS) aiRequestTimes.shift();
   if (aiRequestTimes.length >= AI_REQUESTS_PER_MINUTE) {
-    const error = requestError('Слишком много запросов к AI. Попробуйте ещё раз через минуту.', 429);
+    const error = requestError('Çoxlu sorğular AI. Bir dəqiqə sonra yenidən cəhd edin.', 429);
     error.retryAfter = Math.max(1, Math.ceil((AI_RATE_WINDOW_MS - (now - aiRequestTimes[0])) / 1000));
     throw error;
   }
@@ -791,7 +793,7 @@ async function saveLayout(body) {
   const values = { x: Number(body.x), y: Number(body.y), width: Number(body.width), height: Number(body.height) };
   if (body.planId !== undefined) values.planId = body.planId ? cleanId(String(body.planId)) : null;
   if (!id || Object.values(values).some(value => !Number.isFinite(value))) {
-    throw new Error('Нужны id, x, y, width и height');
+    throw new Error('Lazımdır id, x, y, width və height');
   }
   const properties = {
     X: { number: values.x },
@@ -801,7 +803,7 @@ async function saveLayout(body) {
   };
   if (body.parentId !== undefined) {
     const parentId = body.parentId ? cleanId(String(body.parentId)) : '';
-    if (parentId === id) throw new Error('План нельзя вложить сам в себя');
+    if (parentId === id) throw new Error('Plan öz daxilində yerləşdirilə bilməz');
     properties['Parent Plan'] = { relation: parentId ? [{ id: parentId }] : [] };
     values.parentId = parentId || null;
   }
@@ -825,19 +827,19 @@ function notionDateStart(value) {
 // A calendar range lives in the existing Notion Tarix date property; no separate timer or estimate.
 function personalCalendarDate(body,previous={}) {
  const invalid=message=>{throw Object.assign(new Error(message),{statusCode:400,code:'INVALID_CALENDAR_RANGE'});};
- if(body.date===undefined){if(body.dateEnd!==undefined)invalid('Укажите начало вместе с окончанием');return undefined;}
+ if(body.date===undefined){if(body.dateEnd!==undefined)invalid('Sonu ilə birlikdə başlanğıcı da göstərin');return undefined;}
  const start=notionDateStart(body.date);
- if(!start){if(body.dateEnd)invalid('Для окончания нужно начало');return null;}
+ if(!start){if(body.dateEnd)invalid('Bitirmək üçün başlanğıc lazımdır');return null;}
  let end=body.dateEnd===undefined?null:body.dateEnd?notionDateStart(body.dateEnd):null;
  if(body.dateEnd===undefined&&start.includes('T')&&previous.date&&previous.dateEnd){const duration=Date.parse(previous.dateEnd)-Date.parse(previous.date);if(duration>0&&duration<=7*86400000&&Number.isFinite(Date.parse(start)))end=new Date(Date.parse(start)+duration).toISOString();}
- if(end){if(!start.includes('T')||!end.includes('T')||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>7*86400000)invalid('Интервал календаря: окончание после начала, не больше 7 дней');}
+ if(end){if(!start.includes('T')||!end.includes('T')||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>7*86400000)invalid('Təqvim intervalı: başladıqdan sonra bitir, 7 gündən çox olmayaraq');}
  return {start,end};
 }
 
 function buildTaskProperties(body, config, includeMachine = false) {
   const properties = {};
   const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
-  if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Задача' } }] };
+  if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Tapşırıq' } }] };
   if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
   if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
   if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: notionDateStart(body.date) } : null };
@@ -865,33 +867,33 @@ function createText(value) {
 function createSelect(name,value){const clean=String(value||'').trim();return clean?{[name]:{select:{name:clean}}}:{};}
 function createNumber(name,value,fallback){const n=Number(value);return {[name]:{number:Number.isFinite(n)?n:fallback}};}
 function planCreateProperties(body){
-  const name=String(body.name||'').trim(); if(!name) throw new Error('Нужно название плана');
+  const name=String(body.name||'').trim(); if(!name) throw new Error('Plan adı tələb olunur');
   return {Plan:{title:createText(name)},...createSelect('Tip',body.type||'Zona'),...createSelect('Status',body.status||'Aktiv'),...createNumber('X',body.x,0),...createNumber('Y',body.y,0),...createNumber('Eni',body.width,200),...createNumber('Uzunluğu',body.height,200),...createNumber('Scale',body.scale,1),...(body.object?{Obyekt:{rich_text:createText(body.object)}}:{}),...(body.parentId?{'Parent Plan':{relation:[{id:cleanId(String(body.parentId))}]}}:{})};
 }
 function equipmentCreateProperties(body){
-  const name=String(body.name||'').trim(),planId=cleanId(String(body.planId||'').trim()); if(!name||!planId) throw new Error('Нужны название оборудования и план');
+  const name=String(body.name||'').trim(),planId=cleanId(String(body.planId||'').trim()); if(!name||!planId) throw new Error('Avadanlığın adı və planı tələb olunur');
   return {Makina:{title:createText(name)},...createSelect('Tip',body.type||'Maşın'),...createSelect('Status',body.status||'İşləyir'),...createNumber('X',body.x,0),...createNumber('Y',body.y,0),...createNumber('Eni',body.width,200),...createNumber('Uzunluğu',body.height,200),...createNumber('Dönmə bucağı',body.rotation,0),Plan:{relation:[{id:planId}]},...(body.zone?{Zona:{rich_text:createText(body.zone)}}:{})};
 }
 async function createPlan(body){
-  if(!PLAN_DB&&!PLAN_DS) throw new Error('Не настроена база Plan');
+  if(!PLAN_DB&&!PLAN_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Plan');
   const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(PLAN_DB,PLAN_DS),properties:planCreateProperties(body)})}); snapshotCache=null;
   return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
 }
 async function createEquipment(body){
-  if(!MAKINA_DB&&!MAKINA_DS) throw new Error('Не настроена база Makina');
+  if(!MAKINA_DB&&!MAKINA_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Makina');
   const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(MAKINA_DB,MAKINA_DS),properties:equipmentCreateProperties(body)})}); snapshotCache=null;
   return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
 }
 
-function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Оценка времени: целое число от 1 до 43200 минут или пустое значение'),{statusCode:400,code:'INVALID_ESTIMATE'});}
-async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined)return;try{if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Задача создана ('+id+'), но оценка не сохранена и создание не удалось отменить. Не повторяйте создание; откройте существующую задачу. '+error.message;throw error}}else error.message='Поля задачи сохранены, но оценка времени не записана. Повторите сохранение. '+error.message;throw error}}
+function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Vaxt təxmini: 1-dən 43200 dəqiqəyə qədər tam ədəd və ya boş dəyər'),{statusCode:400,code:'INVALID_ESTIMATE'});}
+async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined)return;try{if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
 function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
 
 async function saveTask(body) {
   validateTaskEstimate(body);
   const id = String(body.id || '').trim();
   const sourceKey = String(body.sourceKey || 'todo');
-  if (!id) throw new Error('Не указан ID задачи');
+  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
   const config = taskConfig(sourceKey);
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, Boolean(body.machineId)) }) });
   await persistTaskEstimate(body,id);
@@ -910,7 +912,7 @@ async function createTask(body, baseUrl = '') {
   const machineId = String(body.machineId || '').trim();
   const planId = String(body.planId || '').trim();
   const titleValue = String(body.title || '').trim();
-  if ((!machineId && !planId) || !titleValue) throw new Error('Укажите название задачи и оборудование или план');
+  if ((!machineId && !planId) || !titleValue) throw new Error('Tapşırığın adını və avadanlıq və ya planı göstərin');
   const config = taskConfig(sourceKey);
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)) }) });
   await persistTaskEstimate(body,page.id,true);
@@ -938,7 +940,7 @@ async function archiveNotionPage(id) {
 async function archiveElement(body) {
   const id = String(body.id || '').trim();
   const kind = body.kind === 'plan' ? 'plan' : 'equipment';
-  if (!id) throw new Error('Не указан ID элемента');
+  if (!id) throw new Error('Müəyyən edilməyib ID elementi');
   await archiveNotionPage(id);
   if (kind === 'plan') rawCache.plans.delete(id); else rawCache.machines.delete(id);
   snapshotCache = null;
@@ -947,7 +949,7 @@ async function archiveElement(body) {
 
 async function deleteTask(body) {
   const id = String(body.id || '').trim();
-  if (!id) throw new Error('Не указан ID задачи');
+  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
   await archiveNotionPage(id);
   if (body.machineId) taskCache.delete(String(body.machineId));
   for (const pages of rawCache.tasks.values()) pages.delete(id);
@@ -964,17 +966,17 @@ const personalRaw={tasks:new Map(),containers:new Map(),cursors:{}};
 function invalidatePersonalTasks(){personalTasksGeneration++;personalTasksCache=null;}
 function snapshotScope(){return [PLAN_DS||PLAN_DB,MAKINA_DS||MAKINA_DB,TASKS_DS||TASKS_DB,PERSONAL_CONTAINERS_DS||PERSONAL_CONTAINERS_DB,...taskSources().map(x=>x.dataSourceId||x.databaseId)].join('|');}
 const cacheHealth={kind:typeof fs.snapshotBatch==='function'?'sqlite':'json',restored:false,error:''};
-function cacheCall(fn){try{const result=fn();cacheHealth.error='';return result;}catch(error){cacheHealth.error='Не сохранён локальный кэш: '+String(error.message||error);error.code='LOCAL_CACHE_WRITE';throw error;}}
+function cacheCall(fn){try{const result=fn();cacheHealth.error='';return result;}catch(error){cacheHealth.error='Yerli keş saxlanılmadı: '+String(error.message||error);error.code='LOCAL_CACHE_WRITE';throw error;}}
 function snapshotMetadata(override=null){const meta={version:2,scope:snapshotScope(),equipment:{cursors:structuredClone(rawCache.cursors||{}),lastSyncAt:rawCache.lastSyncAt,lastFullSyncAt:rawCache.lastFullSyncAt},personal:{cursors:structuredClone(personalRaw.cursors)}};if(override){const [scope,key]=override.key.split(':');meta[scope].cursors[key]=override.cursor;}return meta;}
 function snapshotCollections(){return new Map([['equipment:plans',rawCache.plans],['equipment:machines',rawCache.machines],...[...rawCache.tasks].map(([key,map])=>['equipment:'+key,map]),['personal:tasks',personalRaw.tasks],['personal:containers',personalRaw.containers]]);}
 function saveRawSnapshotCache(){if(!process.env.SNAPSHOT_RAW_CACHE_FILE)return;try{
  if(fs.snapshotSave){cacheCall(()=>fs.snapshotSave(snapshotScope(),snapshotMetadata(),Object.fromEntries([...snapshotCollections()].map(([key,map])=>[key,[...map.keys()]]))));return;}
  const value={version:1,scope:snapshotScope(),equipment:{plans:[...rawCache.plans.values()],machines:[...rawCache.machines.values()],tasks:[...rawCache.tasks].map(([key,map])=>[key,[...map.values()]]),cursors:rawCache.cursors||{},lastSyncAt:rawCache.lastSyncAt,lastFullSyncAt:rawCache.lastFullSyncAt},personal:{tasks:[...personalRaw.tasks.values()],containers:[...personalRaw.containers.values()],cursors:personalRaw.cursors}};const file=process.env.SNAPSHOT_RAW_CACHE_FILE;fs.writeFileSync(file+'.tmp',JSON.stringify(value));fs.renameSync(file+'.tmp',file);cacheHealth.error='';
- }catch(error){cacheHealth.error='Не сохранён локальный кэш: '+String(error.message||error);console.warn('Local raw cache could not be saved:',error.message);}}
+ }catch(error){cacheHealth.error='Yerli keş saxlanılmadı: '+String(error.message||error);console.warn('Local raw cache could not be saved:',error.message);}}
 function restoreRawSnapshotCache(){if(!process.env.SNAPSHOT_RAW_CACHE_FILE)return;try{
- if(fs.snapshotState){const meta=cacheCall(()=>fs.snapshotState(snapshotScope()));if(!meta)return;if(meta.version!==2||meta.scope!==snapshotScope())throw new Error('Несовместимый кэш SQLite');for(const [key,target] of snapshotCollections()){let after='';do{const batch=cacheCall(()=>fs.snapshotRows(snapshotScope(),key,after));mergePages(target,batch.pages||[]);if(!batch.hasMore)break;if(!batch.nextId||batch.nextId===after)throw new Error('Некорректная страница локального кэша');after=batch.nextId;}while(true);}rawCache.cursors=meta.equipment.cursors||{};rawCache.lastSyncAt=meta.equipment.lastSyncAt||'';rawCache.lastFullSyncAt=meta.equipment.lastFullSyncAt||0;personalRaw.cursors=meta.personal.cursors||{};cacheHealth.restored=true;return;}
+ if(fs.snapshotState){const meta=cacheCall(()=>fs.snapshotState(snapshotScope()));if(!meta)return;if(meta.version!==2||meta.scope!==snapshotScope())throw new Error('Uyğun olmayan keş SQLite');for(const [key,target] of snapshotCollections()){let after='';do{const batch=cacheCall(()=>fs.snapshotRows(snapshotScope(),key,after));mergePages(target,batch.pages||[]);if(!batch.hasMore)break;if(!batch.nextId||batch.nextId===after)throw new Error('Yanlış yerli keş səhifəsi');after=batch.nextId;}while(true);}rawCache.cursors=meta.equipment.cursors||{};rawCache.lastSyncAt=meta.equipment.lastSyncAt||'';rawCache.lastFullSyncAt=meta.equipment.lastFullSyncAt||0;personalRaw.cursors=meta.personal.cursors||{};cacheHealth.restored=true;return;}
  const value=JSON.parse(fs.readFileSync(process.env.SNAPSHOT_RAW_CACHE_FILE,'utf8'));if(value.version!==1||value.scope!==snapshotScope())return;const e=value.equipment,p=value.personal;rawCache.plans=new Map(e.plans.map(x=>[x.id,x]));rawCache.machines=new Map(e.machines.map(x=>[x.id,x]));rawCache.tasks=new Map(e.tasks.map(([key,pages])=>[key,new Map(pages.map(x=>[x.id,x]))]));rawCache.cursors=e.cursors||{};rawCache.lastSyncAt=e.lastSyncAt||'';rawCache.lastFullSyncAt=e.lastFullSyncAt||0;personalRaw.tasks=new Map(p.tasks.map(x=>[x.id,x]));personalRaw.containers=new Map(p.containers.map(x=>[x.id,x]));personalRaw.cursors=p.cursors||{};cacheHealth.restored=true;
- }catch(error){cacheHealth.error='Не удалось прочитать локальный кэш: '+String(error.message||error);}}
+ }catch(error){cacheHealth.error='Yerli keşi oxumaq alınmadı: '+String(error.message||error);}}
 restoreRawSnapshotCache();
 
 function checkbox(page, name) { return property(page, name)?.checkbox === true; }
@@ -987,7 +989,7 @@ function mapPersonalTask(page) {
   const prioritet = select(page, 'Prioritet');
   return enrichCompletion({
     id: page.id,
-    title: title(page, 'Adi') || 'Без названия',
+    title: title(page, 'Adi') || 'Adsız',
     status,
     completed: checkbox(page, 'Status 1')||taskHistory.done({status}),
     parentId: parent,
@@ -1022,7 +1024,7 @@ function mapPersonalTask(page) {
 function mapPersonalContainer(page) {
   return {
     id: page.id,
-    name: title(page, 'Name') || 'Контейнер',
+    name: title(page, 'Name') || 'Qovluq',
     parentId: relationIds(page, 'Parent Container')[0] || null,
     x: number(page, 'X') ?? 60,
     y: number(page, 'Y') ?? 60,
@@ -1043,7 +1045,7 @@ function personalNumber(value, fallback = 0) {
 // Only independent personal tasks require a container. Subtasks may remain containerless.
 function inboxContainerId(containers) {
  const matches=containers.filter(c=>String(c.name||'').trim().toLowerCase()==='inbox'&&c.id);
- if(matches.length!==1)throw Object.assign(new Error(matches.length?'Найдено несколько INBOX. Укажите один контейнер INBOX.':'Контейнер INBOX недоступен. Обновите данные и проверьте доступ интеграции. Задача не создана.'),{code:'INBOX_UNAVAILABLE',statusCode:409});
+ if(matches.length!==1)throw Object.assign(new Error(matches.length?'Bir neçə tapıldı INBOX. Bir konteyner göstərin INBOX.':'Qovluq INBOX mövcud deyil. Məlumatlarınızı yeniləyin və inteqrasiya girişinizi yoxlayın. Tapşırıq yaradılmayıb.'),{code:'INBOX_UNAVAILABLE',statusCode:409});
  return matches[0].id;
 }
 async function personalInboxId(){
@@ -1105,14 +1107,14 @@ function personalContainerProperties(body, includeName = false) {
     Height: { number: personalNumber(body.height, 220) },
     Order: { number: personalNumber(body.order, 0) }
   };
-  if (includeName) properties.Name = { title: [{ type: 'text', text: { content: String(body.name || 'Контейнер').trim().slice(0, 2000) || 'Контейнер' } }] };
+  if (includeName) properties.Name = { title: [{ type: 'text', text: { content: String(body.name || 'Qovluq').trim().slice(0, 2000) || 'Qovluq' } }] };
   if (body.parentId !== undefined) properties['Parent Container'] = { relation: body.parentId ? [{ id: cleanId(String(body.parentId)) }] : [] };
   if (body.color !== undefined) properties.Color = body.color ? { select: { name: String(body.color) } } : { select: null };
   return properties;
 }
 
 async function createPersonalContainer(body) {
-  if (!PERSONAL_CONTAINERS_DB && !PERSONAL_CONTAINERS_DS) throw new Error('Не настроена база Personal Containers');
+  if (!PERSONAL_CONTAINERS_DB && !PERSONAL_CONTAINERS_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Personal Containers');
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(PERSONAL_CONTAINERS_DB, PERSONAL_CONTAINERS_DS), properties: personalContainerProperties(body, true) }) });
   invalidatePersonalTasks();
   return { ok: true, container: mapPersonalContainer(page), savedAt: new Date().toISOString() };
@@ -1121,7 +1123,7 @@ async function createPersonalContainer(body) {
 async function savePersonalLayout(body) {
   const kind = body.kind === 'container' ? 'container' : 'task';
   const id = cleanId(String(body.id || '').trim());
-  if (!id) throw new Error('Не указан ID личного элемента');
+  if (!id) throw new Error('Müəyyən edilməyib ID şəxsi element');
   let properties;
   if (kind === 'container') {
     properties = personalContainerProperties(body, false);
@@ -1142,7 +1144,7 @@ async function savePersonalLayout(body) {
 
 async function deletePersonalContainer(id) {
   const containerId = cleanId(String(id || '').trim());
-  if (!containerId) throw new Error('Не указан ID контейнера');
+  if (!containerId) throw new Error('Müəyyən edilməyib ID konteyner');
   try {
     const taskPages = await queryDatabase(TASKS_DB, TASKS_DS);
     const linked = taskPages.filter(page => relationIds(page, 'Personal Container').includes(containerId));
@@ -1180,9 +1182,9 @@ async function blockContentText(block) {
   if (block.has_children) { const children = await listPageBlocks(block.id); const childText = (await Promise.all(children.map(blockContentText))).filter(Boolean).join('\n'); if (childText) text = text ? text + '\n' + childText : childText; }
   return text;
 }
-async function getPersonalTaskContent(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); const blocks = await listPageBlocks(id); return { ok: true, id, content: (await Promise.all(blocks.map(blockContentText))).join('\n') }; }
+async function getPersonalTaskContent(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); const blocks = await listPageBlocks(id); return { ok: true, id, content: (await Promise.all(blocks.map(blockContentText))).join('\n') }; }
 function contentBlocks(value) { return String(value ?? '').replace(/\r\n/g, '\n').split('\n').map(line => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: line ? [{ type: 'text', text: { content: line.slice(0, 2000) } }] : [] } })); }
-async function replacePersonalTaskContent(idValue, value) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); const oldBlocks = await listPageBlocks(id); for (const block of oldBlocks.filter(b=>!['image','file','video','audio','pdf','bookmark','embed','child_page','child_database'].includes(b.type))) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' }); const children = contentBlocks(value); for (let index = 0; index < children.length; index += 100) await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: children.slice(index, index + 100) }) }); return { ok: true, id }; }
+async function replacePersonalTaskContent(idValue, value) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); const oldBlocks = await listPageBlocks(id); for (const block of oldBlocks.filter(b=>!['image','file','video','audio','pdf','bookmark','embed','child_page','child_database'].includes(b.type))) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' }); const children = contentBlocks(value); for (let index = 0; index < children.length; index += 100) await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: children.slice(index, index + 100) }) }); return { ok: true, id }; }
 
 async function listStructuredPageBlocks(pageId) {
   const result = [];
@@ -1228,14 +1230,14 @@ function structuredSimpleBlock(dto) {
   if (type === 'callout') value.icon = { type: 'emoji', emoji: String(dto.icon || '💡') };
   return { object: 'block', type, [type]: value };
 }
-async function getPersonalTaskBlocks(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks'); return { ok: true, id, blocks: await loadStructuredBlockTree(id) }; }
+async function getPersonalTaskBlocks(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); return { ok: true, id, blocks: await loadStructuredBlockTree(id) }; }
 function structuredTablePlan(dto) {
   const inputRows = Array.isArray(dto.rows) && dto.rows.length ? dto.rows : [['']];
-  if (inputRows.some(row => !Array.isArray(row))) throw new Error('Строки таблицы должны быть массивами ячеек');
+  if (inputRows.some(row => !Array.isArray(row))) throw new Error('Cədvəl sətirləri xana massivləri olmalıdır');
   const declaredWidth = Number(dto.width) || 0;
-  if (declaredWidth && (!Number.isInteger(declaredWidth) || declaredWidth < 1)) throw new Error('Некорректная ширина таблицы');
+  if (declaredWidth && (!Number.isInteger(declaredWidth) || declaredWidth < 1)) throw new Error('Yanlış cədvəl eni');
   const width = Math.max(1, declaredWidth, ...inputRows.map(row => row.length));
-  if (width > 100) throw new Error('Таблица может содержать не более 100 столбцов');
+  if (width > 100) throw new Error('Cədvəldə 100-dən çox sütun ola bilməz');
   const normalized = inputRows.map(row => Array.from({length: width}, (_, i) => row[i] ?? ''));
   const rows = structuredTableRows({rows: normalized});
   return {
@@ -1246,11 +1248,11 @@ function structuredTablePlan(dto) {
   };
 }
 async function replacePersonalTaskBlocks(idValue, blocks) {
-  const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Не указан ID задачи Tasks');
+  const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   const items = Array.isArray(blocks) && blocks.length ? blocks : [{type: 'paragraph', html: ''}];
   // Validate/build the entire payload before making changes in Notion.
   const plan = items.filter(dto=>!dto?.preserveId).map(dto => {
-    if (!dto || typeof dto !== 'object') throw new Error('Некорректный блок содержимого задачи');
+    if (!dto || typeof dto !== 'object') throw new Error('Etibarsız tapşırıq məzmun bloku');
     return dto.type === 'table' ? structuredTablePlan(dto) : {block: structuredSimpleBlock(dto), extraRows: []};
   });
   const oldBlocks = await listStructuredPageBlocks(id), createdIds = [], archiveAttempted = [];
@@ -1259,7 +1261,7 @@ async function replacePersonalTaskBlocks(idValue, blocks) {
     for (const item of plan) {
       const created = await notion('/blocks/' + encodeURIComponent(id) + '/children', {method: 'PATCH', body: JSON.stringify({children: [item.block]})});
       const blockId = created.results?.[0]?.id;
-      if (!blockId) throw new Error('Notion не вернул ID созданного блока; старое содержимое не удалено');
+      if (!blockId) throw new Error('Notion qaytarılmadı ID ; köhnə məzmun silinmir Yaradılmış tapşırığın');
       createdIds.push(blockId);
       for (let offset = 0; offset < item.extraRows.length; offset += 100) {
         await notion('/blocks/' + encodeURIComponent(blockId) + '/children', {method: 'PATCH', body: JSON.stringify({children: item.extraRows.slice(offset, offset + 100)})});
@@ -1280,7 +1282,7 @@ async function replacePersonalTaskBlocks(idValue, blocks) {
       try {await notion('/blocks/' + encodeURIComponent(blockId), {method: 'DELETE'});}
       catch (recovery) {recoveryErrors.push(recovery.message);}
     }
-    if (recoveryErrors.length) error.message += ' · Не удалось полностью отменить частичное сохранение. Не закрывайте редактор и сохраните копию текста.';
+    if (recoveryErrors.length) error.message += ' · Qismən qənaəti tamamilə geri qaytarmaq mümkün olmadı. Redaktoru açıq saxlayın və mətnin surətini saxlayın.';
     throw error;
   }
   return {ok: true, id};
@@ -1289,10 +1291,10 @@ async function replacePersonalTaskBlocks(idValue, blocks) {
 const autosaveCreates=new Map();
 async function guardedAutosaveCreate(kind,body,create){
  const op=String(body.autosaveOperationId||'');if(!op)return create(body);
- if(!/^[a-zA-Z0-9-]{16,100}$/.test(op))throw Error('Некорректный ключ создания');
+ if(!/^[a-zA-Z0-9-]{16,100}$/.test(op))throw Error('Yaradılma açarı etibarsızdır');
  const key=kind+'-'+op,file=path.join(__dirname,'data','autosave-'+key+'.json');
  if(autosaveCreates.has(key))return autosaveCreates.get(key);
- const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior){const e=Error('Создание уже отправлено. Сверьте список задач перед повторным созданием.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
+ const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify({pending:true,at:Date.now()}));
  const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
 }
@@ -1300,7 +1302,7 @@ async function createPersonalTask(body) {
  if(body.autosaveOperationId)return guardedAutosaveCreate('personal',body,b=>createPersonalTask({...b,autosaveOperationId:undefined}));
   validateTaskEstimate(body);
   const titleValue = String(body.title || '').trim().slice(0, 2000);
-  if (!titleValue) throw new Error('Введите название задачи');
+  if (!titleValue) throw new Error('Tapşırığın adını daxil edin');
   const properties = {
     Adi: { title: createText(titleValue) },
     Status: { status: { name: String(body.status || 'Not started').trim() || 'Not started' } },
@@ -1326,7 +1328,7 @@ async function createPersonalTask(body) {
 
 async function deletePersonalTask(idValue) {
   const id = cleanId(String(idValue || '').trim());
-  if (!id) throw new Error('Не указан ID задачи Tasks');
+  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   await archiveNotionPage(id);
   personalRaw.tasks.delete(id);taskManagement.update({type:'archive',id});saveRawSnapshotCache();invalidatePersonalTasks();
   return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
@@ -1346,13 +1348,13 @@ async function savePersonalTask(body){
 async function savePersonalTaskUnlocked(body) {
   validateTaskEstimate(body);
   const id = cleanId(String(body.id || '').trim());
-  if (!id) throw new Error('Не указан ID задачи Tasks');
+  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   if(body.autosaveBase&&typeof body.autosaveBase==='object'){
     const current=mapPersonalTask(await notion('/pages/'+encodeURIComponent(id)));
     for(const [key,expected]of Object.entries(body.autosaveBase)){
       if(['pageBlocks','pageContent','estimateMinutes'].includes(key)||current[key]===undefined)continue;
       const normalize=value=>{if(['date','dateEnd'].includes(key)&&typeof value==='string'&&value.includes('T')&&Number.isFinite(Date.parse(value)))return 'instant:'+Date.parse(value);return Array.isArray(value)?JSON.stringify([...value].sort()):String(value??'');};
-      if(normalize(current[key])!==normalize(expected)&&normalize(current[key])!==normalize(body[key])){const e=Error('Поле «'+key+'» изменено на другом устройстве. Обновите задачу и сверьте изменения.');e.code='AUTOSAVE_CONFLICT';e.statusCode=409;throw e}
+      if(normalize(current[key])!==normalize(expected)&&normalize(current[key])!==normalize(body[key])){const e=Error('Sahəsi “'+key+'» başqa cihazda dəyişdirildi. Tapşırığı yeniləyin və dəyişiklikləri yoxlayın.');e.code='AUTOSAVE_CONFLICT';e.statusCode=409;throw e}
     }
   }
   const properties = {};
@@ -1370,7 +1372,7 @@ async function savePersonalTaskUnlocked(body) {
     properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
   }
   if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
-  if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined) throw new Error('Нет изменений задачи');
+  if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
   if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
@@ -1392,14 +1394,14 @@ async function sharedPomodoroSnapshot(){
 }
 const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
-  const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Не указан ID задачи Tasks');
+  const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   const lockId='all-timers';const previous=personalPomodoroLocks.get(lockId)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(lockId,current);await previous;
   try{return await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
 }
 async function savePersonalPomodoroUnlocked(body){
  const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
- if(!['open','hide','start','pause','finish','break-finish','reset'].includes(action))throw new Error('Неизвестное действие Pomodoro');
- const global=id==='00000000-0000-4000-8000-000000000001',existing=sharedPomodoro.get(id),now=Date.now(),page=global?null:await notion('/pages/'+encodeURIComponent(id),{method:'GET'}),task=global?{id,title:'Помодоро',pomodoroRunning:existing?.running||false,pomodoroStartedAt:existing?.startedAt||'',pomodoroCount:existing?.pomodoroCount||0,pomodoroMinutes:existing?.pomodoroMinutes||0}:mapPersonalTask(page);
+ if(!['open','hide','start','pause','finish','break-finish','reset'].includes(action))throw new Error('Naməlum əməliyyat Pomodoro');
+ const global=id==='00000000-0000-4000-8000-000000000001',existing=sharedPomodoro.get(id),now=Date.now(),page=global?null:await notion('/pages/'+encodeURIComponent(id),{method:'GET'}),task=global?{id,title:'Pomodoro',pomodoroRunning:existing?.running||false,pomodoroStartedAt:existing?.startedAt||'',pomodoroCount:existing?.pomodoroCount||0,pomodoroMinutes:existing?.pomodoroMinutes||0}:mapPersonalTask(page);
  let timer=existing||timerFromTask(task,now);
  const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
  if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
@@ -1410,7 +1412,7 @@ async function savePersonalPomodoroUnlocked(body){
   if(others.length){
    const confirmationToken=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');
    if(body.__account&&body.__account.role!=='admin')for(const other of others)await accountTask(body.__account,other.id);
-   if(body.confirmationToken!==confirmationToken){const error=requestError('Уже работает помидор. Поставить его на паузу и открыть новый?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
+   if(body.confirmationToken!==confirmationToken){const error=requestError('Pomodoro artıq işləyir. Onu dayandırıb yenisini açmaq?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
    for(const other of others){if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});sharedPomodoro.put({...other,discovered:false,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-Date.now())/1000)),pausedBy:id});}
    if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal','equipment']);
   }
@@ -1441,12 +1443,12 @@ async function savePersonalPomodoroUnlocked(body){
 
 async function aiChat(body) {
   const message=String(body?.message||'').trim();
-  if(!message) throw requestError('Введите сообщение для Gemini', 400);
-  if(message.length > 4000) throw requestError('Сообщение слишком длинное (максимум 4000 символов)', 413);
-  if(!GEMINI_API_KEY){const error=new Error('Gemini не настроен. Добавьте GEMINI_API_KEY и GEMINI_MODEL в файл .env на сервере.');error.statusCode=503;throw error}
+  if(!message) throw requestError('üçün mesaj daxil edin Gemini', 400);
+  if(message.length > 4000) throw requestError('Mesaj çox uzundur (maksimum 4000 simvol)', 413);
+  if(!GEMINI_API_KEY){const error=new Error('Gemini konfiqurasiya edilməyib. əlavə et GEMINI_API_KEY və GEMINI_MODEL üçün .env serverdə.');error.statusCode=503;throw error}
   const context=body?.context&&typeof body.context==='object'?body.context:{};
   const safeContext=JSON.stringify(context).slice(0,12000);
-  const system='Ты AI-помощник сервиса ADIB для ведения задач и оборудования. Отвечай на языке пользователя, кратко и практично. Анализируй переданный контекст, но не выдумывай данные. В этой версии ты только консультируешь: не утверждай, что изменил задачу или базу.';
+  const system='Siz AI-xidmət köməkçisi ADIB tapşırıqların və avadanlıqların saxlanması üçün. İstifadəçinin dilində qısa və praktiki şəkildə cavab verin. Verilmiş konteksti təhlil edin, lakin məlumatları təşkil etməyin. Bu versiyada siz yalnız məsləhət görürsünüz: tapşırığı və ya verilənlər bazasını dəyişdirdiyinizi iddia etməyin.';
   const models=[...new Set([GEMINI_MODEL,GEMINI_MODEL_FALLBACK])];let data=null,usedModel=GEMINI_MODEL,lastStatus=0,lastError='';
   for(const model of models){
     const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
@@ -1454,9 +1456,9 @@ async function aiChat(body) {
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),GEMINI_TIMEOUT_MS);
     try {
-      response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nКонтекст сервиса:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
+      response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nXidmət konteksti:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
     } catch(error) {
-      if(error.name==='AbortError') throw requestError('Gemini не ответил вовремя. Попробуйте ещё раз.',504);
+      if(error.name==='AbortError') throw requestError('Gemini vaxtında cavab vermədi. Yenidən cəhd edin.',504);
       throw error;
     } finally { clearTimeout(timeout); }
     const text=await response.text();try{data=JSON.parse(text)}catch{data={error:{message:text}}}
@@ -1465,7 +1467,7 @@ async function aiChat(body) {
     if(response.status!==404||model===models.at(-1))throw new Error('Gemini API '+response.status+': '+lastError);
   }
   const reply=(data?.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
-  if(!reply)throw new Error('Gemini не вернул ответ'+(lastStatus?' ('+lastStatus+')':''));
+  if(!reply)throw new Error('Gemini cavab vermədi'+(lastStatus?' ('+lastStatus+')':''));
   return {reply,model:usedModel,provider:'gemini'};
 }
 
@@ -1479,7 +1481,7 @@ async function notionUsers(force = false) {
     users.push(...(page.results || []));
     cursor = page.has_more ? page.next_cursor : '';
   } while (cursor);
-  userCache.value = users.filter(user => user.type === 'person').map(user => ({ id: user.id, name: user.name || user.person?.email || 'Без имени', email: user.person?.email || '' }));
+  userCache.value = users.filter(user => user.type === 'person').map(user => ({ id: user.id, name: user.name || user.person?.email || 'Adsız', email: user.person?.email || '' }));
   userCache.at = Date.now();
   return userCache.value;
 }
@@ -1529,11 +1531,11 @@ function projectAccount(u,scope,d){
 async function accountTask(u,id,kind){
  let found;const find=()=>{const tasks=accountTasks();for(const k of kind?[kind]:['personal','equipment']){const t=tasks[k].find(t=>accountKey(t.id)===accountKey(id));if(t){found={task:t,kind:k};return;}}};find();
  if(!found){if(!kind||kind==='personal')await personalSnapshot(false);if(!found&&(!kind||kind==='equipment'))await snapshot(false);find();}
- if(!found||!accounts.task(u,found.task,found.kind))throw accessError('Задача недоступна');return found;
+ if(!found||!accounts.task(u,found.task,found.kind))throw accessError('Tapşırıq mövcud deyil');return found;
 }
 async function accountAuthorize(req,res,url,u,b){
  res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
- const deny=()=>{throw accessError('Нет доступа к этому разделу или действию');};const need=a=>{if(!accounts.action(u,a))deny();};
+ const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
  const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
  if(scopes[p])res.__accountScope=scopes[p];
  if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
@@ -1546,7 +1548,7 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/users'){res.__accountScope='users';return;}
  if(p==='/api/pomodoro-state')return;
  if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
- if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Слишком много задач',400);for(const id of ids)await accountTask(u,id);return;}
+ if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Həddindən artıq tapşırıq',400);for(const id of ids)await accountTask(u,id);return;}
  if(p==='/api/image-upload'){need('edit');if(b.id)await accountTask(u,b.id);return;}
  if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
@@ -1579,8 +1581,8 @@ const server = http.createServer(async (request, response) => {
     await accounts.ready;
     if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
       const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE']};
-      if(!verbs[url.pathname]?.includes(request.method))throw accessError('Метод не разрешён',405);
-      if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Недопустимый источник запроса');}
+      if(!verbs[url.pathname]?.includes(request.method))throw accessError('Metod icazə verilmir',405);
+      if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Yanlış sorğu mənbəyi');}
       const result=await accounts.route(request,url.pathname,request.method==='GET'?{}:await readBody(request));
       const secure=process.env.ADIB_COOKIE_SECURE!=='0';
       const cookie=result.token?'adib_session='+result.token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000'+(secure?'; Secure':''):url.pathname==='/api/auth/logout'?'adib_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'+(secure?'; Secure':''):null;
@@ -1588,7 +1590,7 @@ const server = http.createServer(async (request, response) => {
     }
     if(accounts.enabled&&url.pathname.startsWith('/api/')&&!['/api/health','/api/time'].includes(url.pathname)){
       const u=accounts.user(request);
-      if(!['GET','HEAD'].includes(request.method)&&request.headers.origin&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&o.protocol!=='adib:')throw accessError('Недопустимый источник запроса');}
+      if(!['GET','HEAD'].includes(request.method)&&request.headers.origin&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&o.protocol!=='adib:')throw accessError('Yanlış sorğu mənbəyi');}
       const b=['GET','HEAD'].includes(request.method)?{}:await readBody(request);request.__accountBody=b;Object.defineProperty(b,'__account',{value:u,enumerable:false});await accountAuthorize(request,response,url,u,b);accounts.user(request);
     }
     if(url.pathname==='/account.html')return file(response,path.join(__dirname,'account.html'));
@@ -1600,12 +1602,12 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.54',calendarVersion:'1.1.54',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.55',calendarVersion:'1.1.55',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1660,7 +1662,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.54'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.55'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1729,4 +1731,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.54: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.55: http://localhost:'+server.address().port));
