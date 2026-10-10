@@ -1605,7 +1605,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.53',calendarVersion:'1.1.53',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.54',calendarVersion:'1.1.54',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1623,7 +1623,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
-    if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id')));
+    if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id'),{force:url.searchParams.get('refresh')==='1'}));
     if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
     if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
     if(request.method==='POST'&&url.pathname==='/api/image-upload')return json(response,201,await uploadTaskImageFile(await readBody(request)));
@@ -1660,7 +1660,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.53'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.54'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1729,4 +1729,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.53: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.54: http://localhost:'+server.address().port));
