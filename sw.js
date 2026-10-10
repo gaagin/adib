@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v149-idempotent-delete';
+const CACHE_NAME = 'adib-online-v150-timer-events';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

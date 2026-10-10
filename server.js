@@ -1408,7 +1408,7 @@ async function savePersonalPomodoroUnlocked(body){
    sharedPomodoro.put({...other,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-now)/1000)),pausedBy:id});
   }
  }
- if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=sharedPomodoro.put(timerFromTask(task,now));return answer(timer,{duplicate:true})}
+ if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=timerFromTask(task,now);timer=sharedPomodoro.put({...timer,windowHidden:false,openedAt:now,windowVisibilityId:'start:'+now+':'+timer.revision});return answer(timer,{duplicate:true})}
  if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning&&timer.status!=='paused')return answer(timer,{duplicate:true});
  if(action==='pause'&&!timer.running)return answer(timer,{duplicate:true});
  const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,Math.round(timer.status==='paused'&&timer.mode===mode?timer.plannedDuration||timer.duration:Number(body.plannedDuration||body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
@@ -1492,15 +1492,15 @@ function observeWrittenPage(endpoint,page){
 function mutationScopes(method,p){
  if(!['POST','PATCH','DELETE'].includes(method))return [];
  if(p==='/api/task-management')return ['management','personal','equipment'];
- if(p==='/api/personal-pomodoro')return ['personal','equipment'];
+ if(p==='/api/personal-pomodoro')return ['personal','equipment','pomodoro'];
  if(['/api/personal-task','/api/personal-container','/api/personal-layout','/api/personal-task-blocks'].includes(p))return ['personal'];
  if(['/api/task','/api/plan','/api/equipment','/api/layout'].includes(p))return ['equipment'];
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
 const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000),
- load:async scope=>scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
- local:async scope=>scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
+ load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
+ local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
 });
 
 const server = http.createServer(async (request, response) => {
@@ -1522,7 +1522,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.49',calendarVersion:'1.1.49',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.50',calendarVersion:'1.1.50',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1574,7 +1574,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.49'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.50'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1643,4 +1643,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.49: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.50: http://localhost:'+server.address().port));

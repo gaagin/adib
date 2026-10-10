@@ -1,11 +1,11 @@
-const fs=require('node:fs'),path=require('node:path');
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 function canonicalDuration(raw,mode='work'){const n=Number(raw),fallback=mode==='break'?5:25;return Math.max(1,Math.min(mode==='break'?60:180,Number.isFinite(n)&&n>0&&Number.isInteger(n)?n:fallback));}
 function normalizeTimer(t){return {...t,duration:canonicalDuration(t.plannedDuration??t.duration,t.mode),plannedDuration:canonicalDuration(t.plannedDuration??t.duration,t.mode)};}
 class SharedPomodoroStore{
- constructor(file=''){this.file=file;this.timers=new Map();this.revision=0;if(file)try{const data=JSON.parse(fs.readFileSync(file,'utf8'));for(const t of data.timers||[])if(t.id)this.timers.set(t.id,normalizeTimer(t));this.revision=Number(data.revision)||0}catch{}}
+ constructor(file=''){this.basis='server-timer:'+crypto.randomUUID();this.file=file;this.timers=new Map();this.revision=0;if(file)try{const data=JSON.parse(fs.readFileSync(file,'utf8'));for(const t of data.timers||[])if(t.id)this.timers.set(t.id,normalizeTimer(t));this.revision=Number(data.revision)||0}catch{}}
  get(id){return this.timers.get(id)}
- put(timer){const value={...normalizeTimer(timer),revision:this.revision=Math.max(Date.now(),this.revision+1)};this.timers.set(value.id,value);if(this.timers.size>300){const oldest=[...this.timers.values()].filter(t=>!t.running).sort((a,b)=>a.revision-b.revision)[0];if(oldest)this.timers.delete(oldest.id)}if(this.file){fs.mkdirSync(path.dirname(this.file),{recursive:true});const tmp=this.file+'.tmp';fs.writeFileSync(tmp,JSON.stringify({revision:this.revision,timers:[...this.timers.values()]}));fs.renameSync(tmp,this.file)}return value}
- snapshot(now=Date.now()){return{ok:true,serverNow:now,revision:this.revision,timers:[...this.timers.values()].map(t=>({...t,remainingSeconds:t.running?Math.max(0,Math.ceil((t.endsAt-now)/1000)):t.remainingSeconds}))}}
+ put(timer){const value={...normalizeTimer(timer),revisionBasis:this.basis,revision:this.revision=Math.max(Date.now(),this.revision+1)};this.timers.set(value.id,value);if(this.timers.size>300){const oldest=[...this.timers.values()].filter(t=>!t.running).sort((a,b)=>a.revision-b.revision)[0];if(oldest)this.timers.delete(oldest.id)}if(this.file){fs.mkdirSync(path.dirname(this.file),{recursive:true});const tmp=this.file+'.tmp';fs.writeFileSync(tmp,JSON.stringify({revision:this.revision,timers:[...this.timers.values()]}));fs.renameSync(tmp,this.file)}return value}
+ snapshot(now=Date.now()){return{ok:true,serverNow:now,revisionBasis:this.basis,revision:this.revision,timers:[...this.timers.values()].map(t=>({...t,revisionBasis:this.basis,remainingSeconds:t.running?Math.max(0,Math.ceil((t.endsAt-now)/1000)):t.remainingSeconds}))}}
 }
 function timerFromTask(task,now=Date.now()){
  const mode=String(task.pomodoroMode||'').toLowerCase().includes('перерыв')?'break':'work',raw=Number(task.pomodoroDuration),fallback=mode==='break'&&String(task.pomodoroMode).includes('15')?15:mode==='break'?5:25;
