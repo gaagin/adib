@@ -87,7 +87,12 @@ async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   try { body = JSON.parse(text); } catch { body = { message: text }; }
   const remoteDate=Date.parse(response.headers?.get?.('date')||'');
   if(body&&typeof body==='object'&&Number.isFinite(remoteDate))Object.defineProperty(body,'__readBarrier',{value:new Date(remoteDate-Math.max(0,Date.now()-readStarted)).toISOString()});
-  if (!response.ok) throw new Error('Notion API ' + response.status + ': ' + (body.message || text));
+  if (!response.ok) {
+    const error = new Error('Notion API ' + response.status + ': ' + (body.message || text));
+    error.notionStatus = response.status;
+    error.notionCode = body.code || '';
+    throw error;
+  }
   if(response.ok&&['PATCH','POST','DELETE'].includes(options.method))observeWrittenPage(endpoint,body);
   return body;
 }
@@ -907,11 +912,27 @@ async function createTask(body, baseUrl = '') {
   return { ok: true, id: page.id, estimateMinutes:taskManagement.getEstimate(page.id), url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, machineId ? { machine: machineId } : { plan: planId }), sourceKey, savedAt: new Date().toISOString() };
 }
 
+// Deletion is idempotent, but only after Notion confirms this page is archived.
+// Never unarchive a page, retry another write, or treat permission errors as success.
+async function archiveNotionPage(id) {
+  const endpoint = '/pages/' + encodeURIComponent(id);
+  try {
+    return await notion(endpoint, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  } catch (error) {
+    if (error.notionStatus !== 400 || !/can't edit block that is archived/i.test(error.message || '')) throw error;
+    let page;
+    try { page = await notion(endpoint, { method: 'GET' }); } catch { throw error; }
+    if (!page || page.object !== 'page' || page.id?.replace(/-/g,'') !== id.replace(/-/g,'') || !(page.archived === true || page.in_trash === true)) throw error;
+    observeWrittenPage(endpoint, page);
+    return page;
+  }
+}
+
 async function archiveElement(body) {
   const id = String(body.id || '').trim();
   const kind = body.kind === 'plan' ? 'plan' : 'equipment';
   if (!id) throw new Error('Не указан ID элемента');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   if (kind === 'plan') rawCache.plans.delete(id); else rawCache.machines.delete(id);
   snapshotCache = null;
   return { ok: true, id, kind, deleted: true, savedAt: new Date().toISOString() };
@@ -920,7 +941,7 @@ async function archiveElement(body) {
 async function deleteTask(body) {
   const id = String(body.id || '').trim();
   if (!id) throw new Error('Не указан ID задачи');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   if (body.machineId) taskCache.delete(String(body.machineId));
   for (const pages of rawCache.tasks.values()) pages.delete(id);
   taskManagement.update({type:'archive',id});saveRawSnapshotCache();snapshotCache = null;
@@ -1299,7 +1320,7 @@ async function createPersonalTask(body) {
 async function deletePersonalTask(idValue) {
   const id = cleanId(String(idValue || '').trim());
   if (!id) throw new Error('Не указан ID задачи Tasks');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   personalRaw.tasks.delete(id);taskManagement.update({type:'archive',id});saveRawSnapshotCache();invalidatePersonalTasks();
   return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
 }
@@ -1501,7 +1522,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.48',calendarVersion:'1.1.48',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.49',calendarVersion:'1.1.49',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1553,7 +1574,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.48'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.49'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1622,4 +1643,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.48: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.49: http://localhost:'+server.address().port));
