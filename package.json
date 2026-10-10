@@ -1,6 +1,6 @@
 {
   "name": "adib-online-server",
-  "version": "1.1.56",
+  "version": "1.1.57",
   "private": true,
   "description": "ADIB full online server and web workspace",
   "scripts": {

@@ -227,14 +227,15 @@ async function listCommentNotifications(body) {
 
 // Schema-only reads: never scan task pages or alter Notion data.
 const taskOptionCache = new Map(), taskOptionFlights = new Map();
+const taskStatusOptions=require('./task-status-options').create({notion:(...args)=>notion(...args),config:taskConfig});
 async function taskSourceOptions(key, force=false) {
   const specs = {personal:[TASKS_DS,TASKS_DB,{tags:'Tag',assignees:'Tapsirildi'}],todo:[TODO_DS,TODO_DB,{tapsirildi:'Tapsirildi'}],gorulen:[GORULEN_DS,GORULEN_DB,{tapsirildi:'Tapsirildi'}]};
   const spec=specs[key];if(!spec)throw Object.assign(new Error('Naməlum variant mənbəyi'),{statusCode:400});
   const cached=taskOptionCache.get(key);if(!force&&cached&&Date.now()-cached.at<300000)return cached.value;
   if(taskOptionFlights.has(key))return taskOptionFlights.get(key);
-  const job=(async()=>{let schema;try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
+  const job=(async()=>{let schema;if(key!=='personal')schema=await taskStatusOptions.schema(key,force);else try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
     const value={};for(const [field,name] of Object.entries(spec[2])){const prop=schema.properties?.[name];if(!prop||!['multi_select','select'].includes(prop.type))throw new Error('Sahə '+name+' yoxdur və ya seçim siyahısı deyil');value[field]={type:prop.type,options:[...new Set((prop[prop.type]?.options||[]).map(o=>o.name).filter(x=>typeof x==='string'&&x.trim()))]};}
-    taskOptionCache.set(key,{at:Date.now(),value});return value;})();
+    if(key!=='personal')Object.assign(value,taskStatusOptions.fields(schema,key));taskOptionCache.set(key,{at:Date.now(),value});return value;})();
   taskOptionFlights.set(key,job);try{return await job;}finally{taskOptionFlights.delete(key);}
 }
 async function taskFieldOptions(source='',force=false){
@@ -704,7 +705,7 @@ const SECURITY_HEADERS = {
 };
 
 function json(response, status, body, extraHeaders = {}) {
-  if(status>=400&&typeof body?.error==='string'&&/^Notion API \d+:/i.test(body.error)){body={...body,technicalDetails:body.error,error:'Notion əməliyyatı alınmadı. HTTP '+(body.error.match(/Notion API (\d+)/)?.[1]||status)+'. Yenidən cəhd edin.'};}
+  if(status>=400&&typeof body?.error==='string'&&/^Notion API \d+:/i.test(body.error)){body={...body,technicalDetails:body.error,error:body.error.startsWith('Notion API 400:')?'Notion sahə xətası: '+body.error.slice('Notion API 400:'.length).trim():'Notion əməliyyatı alınmadı. HTTP '+(body.error.match(/Notion API (\d+)/)?.[1]||status)+'. Yenidən cəhd edin.'};}
 
   if(response.__accountRequest&&status<300)accounts.user(response.__accountRequest);
   if(response.__account&&status<300&&response.__account.disabled)throw accessError('Giriş qeyri-aktivdir',401);
@@ -895,7 +896,7 @@ async function saveTask(body) {
   const sourceKey = String(body.sourceKey || 'todo');
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
   const config = taskConfig(sourceKey);
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, Boolean(body.machineId)) }) });
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties(body, config, Boolean(body.machineId))) }) });
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
   if (body.machineId) taskCache.delete(String(body.machineId));
@@ -914,7 +915,7 @@ async function createTask(body, baseUrl = '') {
   const titleValue = String(body.title || '').trim();
   if ((!machineId && !planId) || !titleValue) throw new Error('Tapşırığın adını və avadanlıq və ya planı göstərin');
   const config = taskConfig(sourceKey);
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)) }) });
+  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)),{creating:true}) }) });
   await persistTaskEstimate(body,page.id,true);
   if (machineId) taskCache.delete(machineId);
   snapshotCache = null;
@@ -1294,9 +1295,10 @@ async function guardedAutosaveCreate(kind,body,create){
  if(!/^[a-zA-Z0-9-]{16,100}$/.test(op))throw Error('Yaradılma açarı etibarsızdır');
  const key=kind+'-'+op,file=path.join(__dirname,'data','autosave-'+key+'.json');
  if(autosaveCreates.has(key))return autosaveCreates.get(key);
- const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
+ const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior&&!prior.rejected){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify({pending:true,at:Date.now()}));
- const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
+ if(prior?.rejected){/* Explicit validation rejection: no page was created. */}else if(prior){const e=Error('Yaradılma cavabı məlum deyil. Siyahını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
+ try{const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;}catch(error){if(error.notionStatus===400&&error.notionCode==='validation_error'||['TASK_STATUS_INVALID','TASK_SCHEMA_INVALID'].includes(error.code)){fs.writeFileSync(file,JSON.stringify({rejected:true,at:Date.now()}));error.code='TASK_CREATE_REJECTED';error.statusCode=400;}throw error;}})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
 }
 async function createPersonalTask(body) {
  if(body.autosaveOperationId)return guardedAutosaveCreate('personal',body,b=>createPersonalTask({...b,autosaveOperationId:undefined}));
@@ -1616,7 +1618,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.56',calendarVersion:'1.1.56',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.57',calendarVersion:'1.1.57',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1674,7 +1676,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.56'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.57'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1744,4 +1746,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.56: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.57: http://localhost:'+server.address().port));
