@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v150-timer-events';
+const CACHE_NAME = 'adib-online-v151-timer-confirmation';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

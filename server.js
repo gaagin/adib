@@ -1378,7 +1378,7 @@ const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||pa
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
   if(Date.now()-pomodoroRefreshAt>30000){
-    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
+    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
   return sharedPomodoro.snapshot();
@@ -1397,19 +1397,20 @@ async function savePersonalPomodoroUnlocked(body){
  const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
  if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
  if(action==='hide'&&Object.prototype.hasOwnProperty.call(body,'expectedVisibilityId')&&body.expectedVisibilityId!==(timer.windowVisibilityId||''))return answer(timer,{duplicate:true,stale:true});
- if(action==='hide'){timer=sharedPomodoro.put({...timer,windowHidden:true,windowVisibilityId:'hide:'+now+':'+timer.revision});return answer(timer)}
- if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,openedAt:now,windowHidden:false,windowVisibilityId:'open:'+now+':'+timer.revision,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
- if(action==='start'){
-  // Discover timers after a server restart, then pause the previous session without crediting a Pomodoro.
-  const pages=await queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}});
-  for(const p of pages){const discovered=timerFromTask(mapPersonalTask(p),now);if(discovered.id!==id&&!sharedPomodoro.get(discovered.id)?.running)sharedPomodoro.put(discovered)}
-  for(const other of [...sharedPomodoro.timers.values()])if(other.id!==id&&other.running){
-   if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});
-   sharedPomodoro.put({...other,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-now)/1000)),pausedBy:id});
+ if(action==='open'||action==='start'){
+  await sharedPomodoroSnapshot();
+  const others=[...sharedPomodoro.timers.values()].filter(t=>t.running&&t.id!==id);
+  if(others.length){
+   const confirmationToken=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');
+   if(body.confirmationToken!==confirmationToken){const error=requestError('Уже работает помидор. Поставить его на паузу и открыть новый?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
+   for(const other of others){if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});sharedPomodoro.put({...other,discovered:false,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-Date.now())/1000)),pausedBy:id});}
+   if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal','equipment']);
   }
  }
- if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=timerFromTask(task,now);timer=sharedPomodoro.put({...timer,windowHidden:false,openedAt:now,windowVisibilityId:'start:'+now+':'+timer.revision});return answer(timer,{duplicate:true})}
- if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning&&timer.status!=='paused')return answer(timer,{duplicate:true});
+ if(action==='hide'){timer=sharedPomodoro.put({...timer,windowHidden:true,windowVisibilityId:'hide:'+now+':'+timer.revision});return answer(timer)}
+ if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,discovered:false,openedAt:now,windowHidden:false,windowVisibilityId:'open:'+now+':'+timer.revision,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
+ if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt&&(!existing||existing.running)){if(!existing||!existing.running)timer=timerFromTask(task,now);timer=sharedPomodoro.put({...timer,discovered:false,windowHidden:false,openedAt:now,windowVisibilityId:'start:'+now+':'+timer.revision});return answer(timer,{duplicate:true})}
+ if((action==='finish'||action==='break-finish')&&!timer.running&&timer.status!=='paused')return answer(timer,{duplicate:true});
  if(action==='pause'&&!timer.running)return answer(timer,{duplicate:true});
  const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,Math.round(timer.status==='paused'&&timer.mode===mode?timer.plannedDuration||timer.duration:Number(body.plannedDuration||body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
  if(action==='start'){
@@ -1427,7 +1428,7 @@ async function savePersonalPomodoroUnlocked(body){
  }else{
   properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,completedAt:null,completionReason:'reset',creditedMinutes:null};
  }
- if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();timer=sharedPomodoro.put(timer);return answer(timer);
+ if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();timer=sharedPomodoro.put({...timer,discovered:false});return answer(timer);
 }
 
 async function aiChat(body) {
@@ -1522,7 +1523,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.50',calendarVersion:'1.1.50',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.51',calendarVersion:'1.1.51',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1574,7 +1575,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.50'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.51'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1639,8 +1640,8 @@ const server = http.createServer(async (request, response) => {
   } catch (error) {
     if (error.statusCode && error.statusCode < 500) console.warn('Request rejected:', error.message);
     else console.error(error);
-    return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
+    return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}),...(error.confirmationToken?{confirmationToken:error.confirmationToken}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.50: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.51: http://localhost:'+server.address().port));
