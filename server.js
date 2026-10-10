@@ -1553,6 +1553,9 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
  if(p==='/api/task-photo-schema')deny();
+ if(p==='/api/work-state'){if(!accounts.section(u,'equipment')&&!accounts.section(u,'calendar'))deny();return;}
+ if(p==='/api/work-schema')deny();
+ if(p==='/api/work-timer'){need('timer');const id=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;if(!id)deny();await accountTask(u,id,'equipment');return;}
  const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
  if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
@@ -1570,6 +1573,12 @@ async function accountAuthorize(req,res,url,u,b){
  }
  deny(); // New endpoints are denied until explicitly reviewed.
 }
+
+const {WorkTimerStore}=require('./work-timer');
+const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
+function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
+function workTasks(actor){return accountTasks().equipment.filter(t=>actor.role==='admin'||accounts.task(actor,t,'equipment'));}
+const workFlush=setInterval(()=>void workTimer.flush().catch(e=>console.warn('Work timer sync:',e.message)),30000);workFlush.unref();
 
 const server = http.createServer(async (request, response) => {
   try {
@@ -1602,12 +1611,12 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.55',calendarVersion:'1.1.55',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.56',calendarVersion:'1.1.56',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1625,6 +1634,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
+    if(request.method==='GET'&&url.pathname==='/api/work-state'){await networkTime.sync();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)await snapshot(false);const tasks=workTasks(actor),ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>ids.has(accountKey(id))),tasks,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
+    if(request.method==='POST'&&url.pathname==='/api/work-schema')return json(response,200,await workTimer.setup(workActor(request)));
+    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await networkTime.sync();const b=await readBody(request),actor=workActor(request);let task;if(b.action==='start'){const found=await accountTask(actor,b.id,'equipment');task=found.task;}const result=await workTimer.action(b,actor,task);if(b.action==='save')void workTimer.flush().catch(()=>{});return json(response,200,result);}
     if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id'),{force:url.searchParams.get('refresh')==='1'}));
     if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
     if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
@@ -1662,7 +1674,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.55'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.56'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1692,6 +1704,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/pomodoro-state') return json(response,200,await sharedPomodoroSnapshot());
     if (request.method === 'POST' && url.pathname === '/api/personal-pomodoro') {
       const body = await readBody(request);
+      if(['start','open'].includes(body.action)&&accountTasks().equipment.some(t=>accountKey(t.id)===accountKey(body.id)))throw Object.assign(new Error('Bu tapşırıqda İş taymerindən istifadə edin; tətbiqi yeniləyin'),{statusCode:409,code:'WORK_TIMER_REQUIRED'});
       return json(response, 200, await savePersonalPomodoro(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
@@ -1731,4 +1744,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.55: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.56: http://localhost:'+server.address().port));
