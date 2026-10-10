@@ -174,7 +174,8 @@ async function addTaskComment(body) {
 function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Некорректный ID загруженного изображения'),{statusCode:400});return id}
 async function ensureUploadedImage(value){const id=imageUploadId(value),file=await notion('/file_uploads/'+id,{method:'GET'});if(file.status!=='uploaded'||!['image/jpeg','image/png','image/gif','image/webp'].includes(file.content_type))throw Object.assign(new Error('Изображение ещё не загружено или формат не поддерживается'),{statusCode:400});return id}
 async function validatedCommentAttachments(value){if(value===undefined)return[];if(!Array.isArray(value)||value.length>3)throw Object.assign(new Error('В комментарий можно добавить до 3 изображений'),{statusCode:400});const result=[];for(const a of value){const id=await ensureUploadedImage(a?.file_upload_id);if(!result.some(x=>x.file_upload_id===id))result.push({type:'file_upload',file_upload_id:id});}return result}
-async function uploadTaskImageFile(body){const image=validateImage(body.image);const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion не подтвердил загрузку. Изображение не прикреплено.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
+async function uploadTaskImageFile(body){const image=validateImage(body.image);if(body.id&&image.bytes.length>200*1024)throw Object.assign(new Error('Фото задачи нужно сжать до 200 КБ перед отправкой'),{statusCode:400});const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion не подтвердил загрузку. Изображение не прикреплено.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
+const taskPhotos=require('./task-photos').create({notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}]});
 function mappedTaskImage(block){const image=block.image||{},url=image.file?.url||image.external?.url||'';return {id:block.id,url:/^https:\/\//.test(url)?url:'',expiryTime:image.file?.expiry_time||'',caption:(image.caption||[]).map(x=>x.plain_text||x.text?.content||'').join('')}}
 async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Не указан ID задачи');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
 async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Сначала сохраните задачу');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Прикрепление могло выполниться. Обновите изображения перед повторной отправкой.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Нет подтверждения прикрепления. Обновите изображения перед повторной отправкой.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
@@ -1546,7 +1547,10 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/pomodoro-state')return;
  if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
  if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Слишком много задач',400);for(const id of ids)await accountTask(u,id);return;}
- if(p==='/api/image-upload'){need('edit');return;}
+ if(p==='/api/image-upload'){need('edit');if(b.id)await accountTask(u,b.id);return;}
+ if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
+ if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
+ if(p==='/api/task-photo-schema')deny();
  const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
  if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
@@ -1601,7 +1605,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.52',calendarVersion:'1.1.52',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.53',calendarVersion:'1.1.53',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1619,6 +1623,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
+    if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id')));
+    if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
+    if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
     if(request.method==='POST'&&url.pathname==='/api/image-upload')return json(response,201,await uploadTaskImageFile(await readBody(request)));
     if(request.method==='GET'&&url.pathname==='/api/task-images')return json(response,200,await listTaskImages(url.searchParams.get('id')));
     if(request.method==='POST'&&url.pathname==='/api/task-image')return json(response,201,await attachTaskImage(await readBody(request)));
@@ -1653,7 +1660,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.52'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.53'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1722,4 +1729,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.52: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.53: http://localhost:'+server.address().port));
