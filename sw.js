@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v151-timer-confirmation';
+const CACHE_NAME = 'adib-online-v152-accounts';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
@@ -8,29 +8,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('adib-online-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 
-self.addEventListener('fetch', event => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/')) return;
-  if (request.mode === 'navigate') {
-    event.respondWith(fetch(request,{cache:'no-store'}).then(response => {
-      const copy = response.clone();
-      if(response.ok)caches.open(CACHE_NAME).then(cache => cache.put('/ela-nov-paketleme-dynamic.html', copy));
-      return response;
-    }).catch(() => caches.open(CACHE_NAME).then(cache=>cache.match('/ela-nov-paketleme-dynamic.html').then(response => response || cache.match('/')))));
-    return;
-  }
-  event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{
-    if(response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(request,response.clone()));
-    return response;
-  }).catch(()=>caches.open(CACHE_NAME).then(cache=>cache.match(request))));
-});
+self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(url.origin!==self.location.origin||event.request.method!=='GET'||url.pathname.startsWith('/api/'))return;event.respondWith(fetch(event.request,{cache:'no-store'}));});

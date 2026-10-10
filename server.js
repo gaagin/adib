@@ -10,6 +10,8 @@ const notionRate=new NotionRateGate();
 
 loadDotEnv(path.join(__dirname, '.env'));
 
+const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
+const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -157,7 +159,7 @@ async function addTaskComment(body) {
   const text = String(body.text || '').trim().slice(0, 1850);
   const attachments=await validatedCommentAttachments(body.attachments);
   if (!pageId || (!text&&!attachments.length)) throw new Error('Нужны ID задачи и текст или изображение');
-  const authorName = await requestedCommentAuthor(body);
+  const authorName = body.__account?.name || await requestedCommentAuthor(body);
   const storedText = '[' + authorName.replace(/[\\[\\]]/g, '') + '] ' + (text||'Изображение');
   const comment = await notion('/comments', {
     method: 'POST',
@@ -701,10 +703,13 @@ const SECURITY_HEADERS = {
 };
 
 function json(response, status, body, extraHeaders = {}) {
+  if(response.__accountRequest&&status<300)accounts.user(response.__accountRequest);
+  if(response.__account&&status<300&&response.__account.disabled)throw accessError('Доступ отключён',401);
+  if(response.__account&&status<300&&response.__accountScope)body=projectAccount(response.__account,response.__accountScope,body);
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': CORS_ORIGIN,
-    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
+    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization',
     'Cache-Control': 'no-store',
     ...SECURITY_HEADERS,
     ...extraHeaders
@@ -725,6 +730,7 @@ function requestError(message, statusCode) {
 }
 
 function readBody(request) {
+  if(request.__accountBody!==undefined)return Promise.resolve(request.__accountBody);
   return new Promise((resolve, reject) => {
     let body = '';
     let bytes = 0;
@@ -1402,6 +1408,7 @@ async function savePersonalPomodoroUnlocked(body){
   const others=[...sharedPomodoro.timers.values()].filter(t=>t.running&&t.id!==id);
   if(others.length){
    const confirmationToken=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');
+   if(body.__account&&body.__account.role!=='admin')for(const other of others)await accountTask(body.__account,other.id);
    if(body.confirmationToken!==confirmationToken){const error=requestError('Уже работает помидор. Поставить его на паузу и открыть новый?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
    for(const other of others){if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});sharedPomodoro.put({...other,discovered:false,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-Date.now())/1000)),pausedBy:id});}
    if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal','equipment']);
@@ -1504,13 +1511,84 @@ const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(
  local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
 });
 
+
+function accountTasks(){const data=buildSnapshotFromRawCache(),machines=new Map(data.equipment.map(e=>[accountKey(e.id),e.planId]));return {personal:realtimePersonal().pomodoroTasks||[],equipment:(data.pomodoroTasks||[]).map(t=>({...t,planId:t.planId||machines.get(accountKey(t.machineId))||''}))};}
+function allowedAccountIds(u){const t=accountTasks();return new Set([...t.personal.filter(t=>accounts.task(u,t,'personal')),...t.equipment.filter(t=>accounts.task(u,t,'equipment'))].map(t=>accountKey(t.id)));}
+function projectAccount(u,scope,d){
+ if(u.role==='admin')return d;
+ if(scope==='options'){const tasks=accountTasks(),result={};for(const k of ['personal','todo','gorulen']){if(!d[k])continue;const list=k==='personal'?tasks.personal.filter(t=>accounts.task(u,t,'personal')):tasks.equipment.filter(t=>t.sourceKey===k&&accounts.task(u,t,'equipment'));result[k]={};for(const field of Object.keys(d[k])){const values=[...new Set(list.flatMap(t=>t[field]||[]))];result[k][field]={type:d[k][field].type,options:values};}}return result;}
+ if(scope==='users')return {users:(d.users||[]).filter(x=>[u.rules.assignee,u.name].includes(x.id)||[u.rules.assignee,u.name].includes(x.name)).map(({id,name})=>({id,name}))};
+ if(scope==='realtime'){return {...d,kind:'full',data:projectAccount(u,d.scope,d.data),baseRevision:undefined};}
+ if(scope==='personal'||scope==='equipment')return accounts.filter(u,scope,d);
+ const ids=allowedAccountIds(u);
+ if(scope==='pomodoro'){const result={...d,timers:(d.timers||[]).filter(t=>t.id!=='__global__'&&ids.has(accountKey(t.id)))};if(d.timer&&!ids.has(accountKey(d.timer.id)))delete result.timer;return result;}
+ if(scope==='management'){const v=structuredClone(d);v.tasks=Object.fromEntries(Object.entries(v.tasks||{}).filter(([id])=>ids.has(accountKey(id))));for(const t of Object.values(v.tasks))if(t.parentId&&!ids.has(accountKey(t.parentId)))t.parentId='';for(const day of Object.values(v.days||{})){day.ids=(day.ids||[]).filter(id=>ids.has(accountKey(id)));if(!ids.has(accountKey(day.mainId)))day.mainId='';}return v;}
+ return d;
+}
+async function accountTask(u,id,kind){
+ let found;const find=()=>{const tasks=accountTasks();for(const k of kind?[kind]:['personal','equipment']){const t=tasks[k].find(t=>accountKey(t.id)===accountKey(id));if(t){found={task:t,kind:k};return;}}};find();
+ if(!found){if(!kind||kind==='personal')await personalSnapshot(false);if(!found&&(!kind||kind==='equipment'))await snapshot(false);find();}
+ if(!found||!accounts.task(u,found.task,found.kind))throw accessError('Задача недоступна');return found;
+}
+async function accountAuthorize(req,res,url,u,b){
+ res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
+ const deny=()=>{throw accessError('Нет доступа к этому разделу или действию');};const need=a=>{if(!accounts.action(u,a))deny();};
+ const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
+ if(scopes[p])res.__accountScope=scopes[p];
+ if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
+ if(p==='/api/events'){const requested=(url.searchParams.get('scopes')||'personal,equipment,management,pomodoro').split(',');const allowed=requested.filter(s=>s!=='equipment'||accounts.section(u,'equipment'));url.searchParams.set('scopes',allowed.join(','));accounts.track(req,res,u);return;}
+ if(p==='/api/realtime/state'){const scope=url.searchParams.get('scope')||'personal';if(scope==='equipment'&&!accounts.section(u,'equipment'))deny();res.__accountScope='realtime';url.searchParams.delete('revision');url.searchParams.delete('epoch');return;}
+ if(p==='/api/personal-snapshot')return;
+ if(p==='/api/plan-snapshot'){if(!accounts.section(u,'equipment'))deny();return;}
+ if(p==='/api/calendar-capabilities'){if(!accounts.section(u,'calendar'))deny();return;}
+ if(p==='/api/task-options'){if(!['personal','calendar','day','matrix','equipment'].some(s=>accounts.section(u,s)))deny();res.__accountScope='options';return;}
+ if(p==='/api/users'){res.__accountScope='users';return;}
+ if(p==='/api/pomodoro-state')return;
+ if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
+ if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Слишком много задач',400);for(const id of ids)await accountTask(u,id);return;}
+ if(p==='/api/image-upload'){need('edit');return;}
+ const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
+ if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
+ if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
+ if(['/api/task-image','/api/personal-task-blocks'].includes(p)){need('edit');await accountTask(u,b.id);return;}
+ if(p==='/api/personal-pomodoro'){need('timer');await accountTask(u,b.id);return;}
+ if(['/api/personal-task','/api/task'].includes(p)){
+ const kind=p==='/api/personal-task'?'personal':'equipment';
+ if(method==='POST'){need('create');if(kind==='personal'){if(u.rules.containers!=='*'&&!u.rules.containers.includes(accountKey(b.containerId)))deny();if(u.rules.assignedOnly&&!(b.assignees||[]).includes(u.rules.assignee))deny();}else{if(!accounts.section(u,'equipment')||u.rules.plans!=='*'&&!u.rules.plans.includes(accountKey(b.planId)))deny();if(u.rules.assignedOnly&&![b.assigneeId,b.assigneeName,...(b.tapsirildi||[])].includes(u.rules.assignee))deny();if(b.machineId){const machine=buildSnapshotFromRawCache().equipment.find(e=>accountKey(e.id)===accountKey(b.machineId));if(!machine||accountKey(machine.planId)!==accountKey(b.planId))deny();}}if(b.parentId)await accountTask(u,b.parentId,kind);return;}
+ const found=await accountTask(u,method==='DELETE'?url.searchParams.get('id'):b.id,kind),t=found.task;
+ if(method==='DELETE'){need('delete');if((accountTasks()[kind]||[]).some(x=>accountKey(x.parentId)===accountKey(t.id)))deny();return;}
+ if(method!=='PATCH')deny();
+ if(!accounts.action(u,'edit')){need('status');const safe=['id','status','completed','process','sourceKey','autosaveBase','autosaveOperationId','overrideWip'];for(const k of Object.keys(b))if(!safe.includes(k)&&JSON.stringify(b[k])!==JSON.stringify(t[k]))deny();}
+ if(kind==='equipment'){if(b.sourceKey&&b.sourceKey!==t.sourceKey)deny();if(b.machineId&&!(t.machineIds||[t.machineId]).some(id=>accountKey(id)===accountKey(b.machineId)))deny();if(b.planId&&accountKey(b.planId)!==accountKey(t.planId))deny();}
+ const changed={...t,...b};if(!accounts.task(u,changed,kind))deny();if(b.parentId)await accountTask(u,b.parentId,kind);return;
+ }
+ deny(); // New endpoints are denied until explicitly reviewed.
+}
+
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', ...SECURITY_HEADERS });
+      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', ...SECURITY_HEADERS });
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
+    await accounts.ready;
+    if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
+      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE']};
+      if(!verbs[url.pathname]?.includes(request.method))throw accessError('Метод не разрешён',405);
+      if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Недопустимый источник запроса');}
+      const result=await accounts.route(request,url.pathname,request.method==='GET'?{}:await readBody(request));
+      const secure=process.env.ADIB_COOKIE_SECURE!=='0';
+      const cookie=result.token?'adib_session='+result.token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000'+(secure?'; Secure':''):url.pathname==='/api/auth/logout'?'adib_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'+(secure?'; Secure':''):null;
+      return json(response,200,result,cookie?{'Set-Cookie':cookie}:{});
+    }
+    if(accounts.enabled&&url.pathname.startsWith('/api/')&&!['/api/health','/api/time'].includes(url.pathname)){
+      const u=accounts.user(request);
+      if(!['GET','HEAD'].includes(request.method)&&request.headers.origin&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&o.protocol!=='adib:')throw accessError('Недопустимый источник запроса');}
+      const b=['GET','HEAD'].includes(request.method)?{}:await readBody(request);request.__accountBody=b;Object.defineProperty(b,'__account',{value:u,enumerable:false});await accountAuthorize(request,response,url,u,b);accounts.user(request);
+    }
+    if(url.pathname==='/account.html')return file(response,path.join(__dirname,'account.html'));
+    if(accounts.enabled&&(url.pathname==='/'||url.pathname==='/ela-nov-paketleme-dynamic.html')){try{accounts.user(request)}catch{return file(response,path.join(__dirname,'account.html'));}}
     response.__realtimeScopes=mutationScopes(request.method,url.pathname);
     if(request.method==='GET'&&url.pathname==='/api/events')return realtime.connect(request,response,(url.searchParams.get('scopes')||'personal,equipment,management').split(','))||json(response,400,{error:'Unknown scopes'});
     if(request.method==='GET'&&url.pathname==='/api/realtime/state')return json(response,200,await realtime.read(url.searchParams.get('scope')||'personal',url.searchParams.get('revision'),url.searchParams.get('epoch')));
@@ -1518,12 +1596,12 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.51',calendarVersion:'1.1.51',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.52',calendarVersion:'1.1.52',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1575,7 +1653,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.51'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.52'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1630,7 +1708,7 @@ const server = http.createServer(async (request, response) => {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
     if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
@@ -1644,4 +1722,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.51: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.52: http://localhost:'+server.address().port));

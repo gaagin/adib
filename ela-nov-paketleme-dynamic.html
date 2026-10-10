@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
+<script src="account-client.js?v=1.1.52"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style id="adib-startup-style">
@@ -8,19 +9,19 @@
 </style>
 <script>try{const u=new URL(location.href);if(!u.hash&&!u.searchParams.has('id')&&!u.searchParams.has('element')&&!u.searchParams.has('mode')&&u.searchParams.get('action')!=='quick-add-task')document.documentElement.classList.add('adib-starting')}catch{}</script>
 
-<script src="task-cards.js?v=1.1.51"></script><script src="pomodoro-rollup.js?v=1.1.51"></script>
-<script src="task-history.js?v=1.1.51"></script>
-<script src="autosave.js?v=1.1.51"></script>
-<link rel="stylesheet" href="task-tabs.css?v=1.1.51"><script src="zoned-time.js?v=1.1.51"></script><script src="network-time.js?v=1.1.51"></script><link rel="stylesheet" href="network-time.css?v=1.1.51"><script src="task-tabs.js?v=1.1.51"></script>
-<script src="personal-options.js?v=1.1.51"></script>
+<script src="task-cards.js?v=1.1.52"></script><script src="pomodoro-rollup.js?v=1.1.52"></script>
+<script src="task-history.js?v=1.1.52"></script>
+<script src="autosave.js?v=1.1.52"></script>
+<link rel="stylesheet" href="task-tabs.css?v=1.1.52"><script src="zoned-time.js?v=1.1.52"></script><script src="network-time.js?v=1.1.52"></script><link rel="stylesheet" href="network-time.css?v=1.1.52"><script src="task-tabs.js?v=1.1.52"></script>
+<script src="personal-options.js?v=1.1.52"></script>
 <script>if(/Android/i.test(navigator.userAgent)&&/\bwv\b/i.test(navigator.userAgent))document.documentElement.classList.add('adib-native-android');</script>
 <meta name="theme-color" content="#2383e2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<script src="/comment-state.js?v=1.1.51"></script>
-<script src="/startup-view.js?v=1.1.51"></script>
-<script src="/images.js?v=1.1.51"></script>
+<script src="/comment-state.js?v=1.1.52"></script>
+<script src="/startup-view.js?v=1.1.52"></script>
+<script src="/images.js?v=1.1.52"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <title>ADIB — динамический план</title>
@@ -1402,8 +1403,8 @@ body.adib-chat-open .tm-launchers{display:none!important}
 .adib-task-comment-history{display:flex;flex-direction:column;gap:5px;min-height:120px;margin:8px 0 16px}.adib-task-comment-history .adib-chat-day{align-self:center}.adib-task-comment-history .adib-chat-bubble{color:var(--text)}.adib-task-panes [data-task-pane=chat]>textarea{width:100%;box-sizing:border-box;min-height:46px;border:1px solid var(--line);border-radius:20px;padding:12px;background:var(--soft);color:var(--text);margin:10px 0}.adib-task-panes .comments-section{margin:0;padding:0;border:0}.adib-task-panes .comment-compose{position:sticky;bottom:0;background:var(--surface);padding:10px 0}.adib-task-panes .adib-image-thumbs img{border-radius:12px}
 @media(max-width:650px){.adib-task-tabs{gap:10px;justify-content:space-between}.adib-task-tabs button{font-size:12px;padding:10px 2px!important}.adib-task-detail-header strong{font-size:19px}.adib-task-detail{min-height:360px}}
 </style>
-<script src="filter-memory.js?v=1.1.51"></script>
-<script src="realtime-client.js?v=1.1.51"></script><script src="filter-dialog.js?v=1.1.51"></script>
+<script src="filter-memory.js?v=1.1.52"></script>
+<script src="realtime-client.js?v=1.1.52"></script><script src="filter-dialog.js?v=1.1.52"></script>
 </head>
 <body><section id="adibBootStatus" role="status" aria-live="polite"><div><h2>Открываю рабочее пространство</h2><p>Загружаю интерфейс. Обновление задач выполняется в фоне.</p><button type="button" hidden onclick="location.reload()">Повторить</button></div></section>
 <main class="app">
@@ -1622,7 +1623,7 @@ function closeCommentChat(){const overlay=document.getElementById('adibChatOverl
 function openChatTask(taskId){const id=String(taskId||'');if(!id)return;closeCommentChat();const personal=(window.ADIBHomeBridge?.snapshot().tasks||chatPersonalTasks||[]).find(task=>normalizePageId(task.id)===normalizePageId(id));if(personal){window.__openPersonalChatTask?.(personal.id,personal.containerId||'');return}const info=taskById(id);if(info){setPersonalMode(false);setMobileMode('canvas');openTasks(info.machine.id);setTimeout(()=>openTaskEditor(info.task,info.machine,false),0);return}for(const plan of state.plans||[]){const task=planBoardTasks(plan.id).find(t=>normalizePageId(t.id)===normalizePageId(id));if(task){openTaskEditor(task,null,false);return}}const error=document.getElementById('personalError')||document.getElementById('syncError');if(error)error.textContent='Не удалось найти связанную задачу.'}
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.getElementById('adibChatOverlay')?.hidden){if(overlayHasConversation()) {chatMobileConversationOpen=false;renderCommentChat()} else closeCommentChat()}});function overlayHasConversation(){return window.matchMedia('(max-width:650px)').matches&&chatMobileConversationOpen}document.getElementById('adibChatOverlay')?.addEventListener('click',event=>{if(event.target.id==='adibChatOverlay')closeCommentChat()});
 setTimeout(()=>{if(!chatThreads.length||window.ADIBClock.stamp()-chatCacheAt>60000)fetchChatThreads();if(!chatPollTimer)chatPollTimer=setInterval(()=>{if(window.ADIBDesktop||document.visibilityState==='visible')fetchChatThreads()},45000)},1500);
-async function initCurrentUser(){const select=document.getElementById('currentUser');if(!select)return;try{const users=await loadUsers();const saved=localStorage.getItem('ela-current-user')||'';const preferred=users.find(user=>String(user.name||user.email||'').trim().toLocaleLowerCase()==='ilqar mamedov');select.innerHTML='<option value="">ilqar mamedov</option>'+users.map(user=>'<option value="'+escapeHtml(user.id)+'">'+escapeHtml(user.name||user.email||'Без имени')+'</option>').join('');const chosen=users.find(user=>user.id===saved)||preferred;if(chosen){select.value=chosen.id;currentUser={id:chosen.id,name:chosen.name||chosen.email||'ilqar mamedov'};if(!saved)localStorage.setItem('ela-current-user',chosen.id)}}catch(e){select.innerHTML='<option value="">ilqar mamedov</option>';currentUser={id:'',name:'ilqar mamedov'}}select.onchange=()=>{const user=select.options[select.selectedIndex];currentUser={id:select.value,name:select.value?(user.textContent||''):'ilqar mamedov'};if(currentUser.id)localStorage.setItem('ela-current-user',currentUser.id);else localStorage.removeItem('ela-current-user')}}
+async function initCurrentUser(){if(window.ADIBAccount){await window.ADIBAccount.ready;if(window.ADIBAccount.user){currentUser={id:window.ADIBAccount.user.id,name:window.ADIBAccount.user.name};const selector=document.getElementById('currentUser');if(selector){selector.replaceChildren(new Option(currentUser.name,currentUser.id));selector.value=currentUser.id;selector.disabled=true;}return;}}const select=document.getElementById('currentUser');if(!select)return;try{const users=await loadUsers();const saved=localStorage.getItem('ela-current-user')||'';const preferred=users.find(user=>String(user.name||user.email||'').trim().toLocaleLowerCase()==='ilqar mamedov');select.innerHTML='<option value="">ilqar mamedov</option>'+users.map(user=>'<option value="'+escapeHtml(user.id)+'">'+escapeHtml(user.name||user.email||'Без имени')+'</option>').join('');const chosen=users.find(user=>user.id===saved)||preferred;if(chosen){select.value=chosen.id;currentUser={id:chosen.id,name:chosen.name||chosen.email||'ilqar mamedov'};if(!saved)localStorage.setItem('ela-current-user',chosen.id)}}catch(e){select.innerHTML='<option value="">ilqar mamedov</option>';currentUser={id:'',name:'ilqar mamedov'}}select.onchange=()=>{const user=select.options[select.selectedIndex];currentUser={id:select.value,name:select.value?(user.textContent||''):'ilqar mamedov'};if(currentUser.id)localStorage.setItem('ela-current-user',currentUser.id);else localStorage.removeItem('ela-current-user')}}
 async function refreshCommentNotifications(){if(!CONFIG.syncUrl||!state.equipment.length)return;const ids=[...new Set(state.equipment.flatMap(machine=>(machine.tasks||[]).map(task=>task.id).filter(Boolean)))];if(!ids.length)return;try{const base=new URL(CONFIG.syncUrl,location.href);const response=await fetch(base.origin+'/api/comment-notifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});if(!response.ok)return;const data=await response.json();const initialized=localStorage.getItem(COMMENT_INIT_KEY)==='1';const seen=new Set(readStorage(COMMENT_SEEN_KEY,[]));const stored=new Map(readStorage(COMMENT_UNSEEN_KEY,[]).map(item=>[item.id,item]));for(const comment of data.comments||[]){if(!comment.id)continue;if(!initialized){seen.add(comment.id);continue}if(!seen.has(comment.id)){const info=taskById(comment.taskId);stored.set(comment.id,{...comment,machineId:info?.machine.id||'',machineName:info?.machine.name||'Задача машины',taskTitle:info?.task.title||''})}}writeStorage(COMMENT_SEEN_KEY,[...seen]);writeStorage(COMMENT_UNSEEN_KEY,[...stored.values()]);pendingNotifications=[...stored.values()];syncNotificationState();if(!initialized)localStorage.setItem(COMMENT_INIT_KEY,'1')}catch(e){}}
 function localToday(){if(!window.ADIBClock.trusted)return '';const now=window.ADIBClock.date();const pad=value=>String(value).padStart(2,'0');return now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())}
 function localDateTime(){if(!window.ADIBClock.trusted)return '';const now=window.ADIBClock.date(),pad=value=>String(value).padStart(2,'0');return now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+'T'+pad(now.getHours())+':'+pad(now.getMinutes())}
@@ -3775,23 +3776,23 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 
 <style>.adib-task-images{display:grid;gap:8px;padding:12px 0}.adib-task-images small,.adib-image-picker small{display:block;overflow-wrap:anywhere}.adib-image-picker{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;max-width:100%;padding:6px 0}.adib-image-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0;max-width:100%}.adib-image-thumbs img{width:100px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.adib-image-thumbs span{display:inline-flex;align-items:flex-start}.adib-chat-compose{flex-wrap:wrap}.adib-chat-bubble .adib-image-thumbs img{width:110px;height:100px}.adib-task-images>button{justify-self:start}</style>
 
-<link rel="stylesheet" href="hybrid-theme.css?v=1.1.51">
+<link rel="stylesheet" href="hybrid-theme.css?v=1.1.52">
 
-<link rel="stylesheet" href="home-screen.css?v=1.1.51">
-<script src="day-plan-refresh.js?v=1.1.51"></script>
-<script src="personal-workspace.js?v=1.1.51"></script>
-<script src="home-screen.js?v=1.1.51"></script>
-<link rel="stylesheet" href="calendar-view.css?v=1.1.51"><script src="calendar-time.js?v=1.1.51"></script>
-<script src="calendar-filter.js?v=1.1.51"></script><script src="calendar-view.js?v=1.1.51"></script><script src="widget-hub.js?v=1.1.51"></script>
+<link rel="stylesheet" href="home-screen.css?v=1.1.52">
+<script src="day-plan-refresh.js?v=1.1.52"></script>
+<script src="personal-workspace.js?v=1.1.52"></script>
+<script src="home-screen.js?v=1.1.52"></script>
+<link rel="stylesheet" href="calendar-view.css?v=1.1.52"><script src="calendar-time.js?v=1.1.52"></script>
+<script src="calendar-filter.js?v=1.1.52"></script><script src="calendar-view.js?v=1.1.52"></script><script src="widget-hub.js?v=1.1.52"></script>
 
-<script src="ui-theme.js?v=1.1.51"></script>
-<link rel="stylesheet" href="ui-system.css?v=1.1.51">
+<script src="ui-theme.js?v=1.1.52"></script>
+<link rel="stylesheet" href="ui-system.css?v=1.1.52">
 
 
-<link rel="stylesheet" href="screen-system.css?v=1.1.51"><script src="screens.js?v=1.1.51"></script>
-<link rel="stylesheet" href="workspace-headers.css?v=1.1.51">
-<script src="workspace-headers.js?v=1.1.51"></script>
-<link rel="stylesheet" href="task-cards.css?v=1.1.51"><link rel="stylesheet" href="filter-dialog.css?v=1.1.51">
+<link rel="stylesheet" href="screen-system.css?v=1.1.52"><script src="screens.js?v=1.1.52"></script>
+<link rel="stylesheet" href="workspace-headers.css?v=1.1.52">
+<script src="workspace-headers.js?v=1.1.52"></script>
+<link rel="stylesheet" href="task-cards.css?v=1.1.52"><link rel="stylesheet" href="filter-dialog.css?v=1.1.52">
 <script>
 (async()=>{if(!window.ADIBRealtime)return;let base='';
  if(window.ADIBDesktop){const settings=await window.ADIBDesktop.getSettings();if(settings.mode==='notion')return;}
