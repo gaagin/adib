@@ -73,3 +73,5 @@ html body .calendar-filter-dialog button{min-height:44px;border:1px solid var(--
 @media(max-width:600px){.calendar-filter-form{padding:20px}.calendar-filter-fields{grid-template-columns:1fr;gap:12px}.calendar-filter-head h2{font-size:20px}.calendar-filter-footer{position:sticky;bottom:-20px;background:var(--surface);padding-bottom:20px;margin-bottom:-20px}.calendar-filter-footer button:first-child{margin-right:0}.calendar-filter-dialog select,.calendar-filter-dialog input{font-size:16px!important}}
 
 html.dark body dialog.calendar-filter-dialog{--calendar-filter-muted:#a9b7cb}
+
+body.adib-calendar-open #taskModal.open.adib-task-properties{z-index:70!important}

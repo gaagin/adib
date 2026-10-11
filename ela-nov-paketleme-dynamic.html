@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="az">
 <head>
-<link rel="stylesheet" href="/work-timer-ui.css?v=1.1.57"><script src="/work-timer-ui.js?v=1.1.57"></script>
-<script src="/az-locale.js?v=1.1.57"></script>
-<script src="account-client.js?v=1.1.57"></script>
+<link rel="stylesheet" href="/work-timer-ui.css?v=1.1.58"><script src="/work-timer-ui.js?v=1.1.58"></script>
+<script src="/az-locale.js?v=1.1.58"></script>
+<script src="account-client.js?v=1.1.58"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style id="adib-startup-style">
@@ -11,19 +11,19 @@
 </style>
 <script>try{const u=new URL(location.href);if(!u.hash&&!u.searchParams.has('id')&&!u.searchParams.has('element')&&!u.searchParams.has('mode')&&u.searchParams.get('action')!=='quick-add-task')document.documentElement.classList.add('adib-starting')}catch{}</script>
 
-<script src="task-cards.js?v=1.1.57"></script><script src="pomodoro-rollup.js?v=1.1.57"></script>
-<script src="task-history.js?v=1.1.57"></script>
-<script src="autosave.js?v=1.1.57"></script>
-<link rel="stylesheet" href="task-tabs.css?v=1.1.57"><script src="zoned-time.js?v=1.1.57"></script><script src="network-time.js?v=1.1.57"></script><link rel="stylesheet" href="network-time.css?v=1.1.57"><script src="task-tabs.js?v=1.1.57"></script>
-<script src="personal-options.js?v=1.1.57"></script>
+<script src="task-cards.js?v=1.1.58"></script><script src="pomodoro-rollup.js?v=1.1.58"></script>
+<script src="task-history.js?v=1.1.58"></script>
+<script src="autosave.js?v=1.1.58"></script>
+<link rel="stylesheet" href="task-tabs.css?v=1.1.58"><script src="zoned-time.js?v=1.1.58"></script><script src="network-time.js?v=1.1.58"></script><link rel="stylesheet" href="network-time.css?v=1.1.58"><script src="task-tabs.js?v=1.1.58"></script>
+<script src="personal-options.js?v=1.1.58"></script>
 <script>if(/Android/i.test(navigator.userAgent)&&/\bwv\b/i.test(navigator.userAgent))document.documentElement.classList.add('adib-native-android');</script>
 <meta name="theme-color" content="#2383e2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<script src="/comment-state.js?v=1.1.57"></script>
-<script src="/startup-view.js?v=1.1.57"></script>
-<script src="/images.js?v=1.1.57"></script>
+<script src="/comment-state.js?v=1.1.58"></script>
+<script src="/startup-view.js?v=1.1.58"></script>
+<script src="/images.js?v=1.1.58"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <title>ADIB — dinamik plan</title>
@@ -1405,8 +1405,8 @@ body.adib-chat-open .tm-launchers{display:none!important}
 .adib-task-comment-history{display:flex;flex-direction:column;gap:5px;min-height:120px;margin:8px 0 16px}.adib-task-comment-history .adib-chat-day{align-self:center}.adib-task-comment-history .adib-chat-bubble{color:var(--text)}.adib-task-panes [data-task-pane=chat]>textarea{width:100%;box-sizing:border-box;min-height:46px;border:1px solid var(--line);border-radius:20px;padding:12px;background:var(--soft);color:var(--text);margin:10px 0}.adib-task-panes .comments-section{margin:0;padding:0;border:0}.adib-task-panes .comment-compose{position:sticky;bottom:0;background:var(--surface);padding:10px 0}.adib-task-panes .adib-image-thumbs img{border-radius:12px}
 @media(max-width:650px){.adib-task-tabs{gap:10px;justify-content:space-between}.adib-task-tabs button{font-size:12px;padding:10px 2px!important}.adib-task-detail-header strong{font-size:19px}.adib-task-detail{min-height:360px}}
 </style>
-<script src="filter-memory.js?v=1.1.57"></script>
-<script src="realtime-client.js?v=1.1.57"></script><script src="filter-dialog.js?v=1.1.57"></script>
+<script src="filter-memory.js?v=1.1.58"></script>
+<script src="realtime-client.js?v=1.1.58"></script><script src="filter-dialog.js?v=1.1.58"></script>
 </head>
 <body><section id="adibBootStatus" role="status" aria-live="polite"><div><h2>İş sahəsinin açılması</h2><p>İnterfeys yüklənir. Tapşırıq yeniləmələri fonda həyata keçirilir.</p><button type="button" hidden onclick="location.reload()">Yenidən cəhd et</button></div></section>
 <main class="app">
@@ -1757,7 +1757,7 @@ async function kanbanUpdateGroup(machine,task,key,target){const targetMachine=ta
 async function kanbanUpdateAssignee(machine,task,target){return kanbanUpdateGroup(machine,task,'tapsirildi',target)}
 
 function removePlanBoardTask(taskId){for(const owner of [...(state.equipment||[]),...(state.plans||[])])owner.tasks=(owner.tasks||[]).filter(item=>String(item.id)!==String(taskId))}
-function applyPlanBoardTaskSave(task,changes,savedTask,savedId){const updated={...task,...changes,estimateMinutes:Object.hasOwn(savedTask,'estimateMinutes')?savedTask.estimateMinutes:((changes.estimateMinutes!==undefined?changes.estimateMinutes:task.estimateMinutes)??null),completedAt:Object.hasOwn(savedTask,'completedAt')?savedTask.completedAt:(changes.completed?(task.completedAt||window.ADIBClock.date().toISOString()):null),id:savedId,source:taskSourceLabel(changes.sourceKey),status:changes.process,url:savedTask.url||task.url||'',serviceUrl:savedTask.serviceUrl||task.serviceUrl||''};removePlanBoardTask(task.id||savedId);Object.assign(task,updated);if(!ADIBTaskHistory.visible(updated))return;const owner=changes.machineId?state.equipment.find(item=>String(item.id)===String(changes.machineId)):state.plans.find(item=>String(item.id)===String(changes.planId));if(owner){owner.tasks=owner.tasks||[];owner.tasks.unshift(updated);owner.taskCounts=ADIBTaskHistory.counts(owner.tasks)}if(typeof renderCanvas==='function')renderCanvas()}
+function applyPlanBoardTaskSave(task,changes,savedTask,savedId){const updated={...task,...changes,estimateMinutes:Object.hasOwn(savedTask,'estimateMinutes')?savedTask.estimateMinutes:((changes.estimateMinutes!==undefined?changes.estimateMinutes:task.estimateMinutes)??null),completedAt:Object.hasOwn(savedTask,'completedAt')?savedTask.completedAt:(changes.completed?(task.completedAt||window.ADIBClock.date().toISOString()):null),id:savedId,source:taskSourceLabel(changes.sourceKey),status:changes.process,url:savedTask.url||task.url||'',serviceUrl:savedTask.serviceUrl||task.serviceUrl||''};removePlanBoardTask(task.id||savedId);Object.assign(task,updated);if(!ADIBTaskHistory.visible(updated))return;const owner=changes.machineId?state.equipment.find(item=>String(item.id)===String(changes.machineId)):state.plans.find(item=>String(item.id)===String(changes.planId));if(owner){owner.tasks=owner.tasks||[];owner.tasks.unshift(updated);owner.taskCounts=ADIBTaskHistory.counts(owner.tasks)}if(typeof renderCanvas==='function')renderCanvas();if(window.ADIBWork?.state.tasks){const rows=window.ADIBWork.state.tasks,at=rows.findIndex(t=>String(t.id)===String(savedId));if(at>=0)rows[at]=updated;else rows.push(updated);}window.dispatchEvent(new Event('adib-work-data'))}
 function planBoardPlanIds(planId){const ids=new Set([String(planId)]);let changed=true;while(changed){changed=false;for(const plan of state.plans||[]){const id=String(plan.id||'');if(id&&ids.has(String(plan.parentId||''))&&!ids.has(id)){ids.add(id);changed=true}}}return ids}
 function planBoardMachines(planId){const ids=planBoardPlanIds(planId);return (state.equipment||[]).filter(machine=>ids.has(String(machine.planId||'')))}
 function taskMachineForBoard(task,board){if(!board?.isPlanBoard)return board;if(task.machineId)return state.equipment.find(machine=>String(machine.id)===String(task.machineId))||null;return null}
@@ -2394,6 +2394,7 @@ const optionValues=key=>[...new Set(personalKanbanTasks.map(task=>personalTaskGr
   function openDefaultMyTasksList(){return Promise.resolve(setPersonalMode(true)).then(()=>{if(usePersonalDesktopGrid()){document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal').forEach(modal=>modal.remove());renderPersonalBoard();syncMiroTaskViewHeader();return null}let modal=document.querySelector('.personal-kanban-modal');if(!modal)modal=openPersonalKanbanTool(undefined,'list');else if(!modal.querySelector('.personal-kanban-board')?.classList.contains('personal-kanban-list-mode'))modal.querySelector('.personal-kanban-view-mode-button')?.click();syncMiroTaskViewHeader();return modal})}
   setInterval(()=>{const before=personalTasks.length;personalTasks=personalTasks.filter(t=>ADIBTaskHistory.visible(t));if(before!==personalTasks.length){writePersonalSnapshot();refreshOpenPersonalViews();renderPersonalBoard();}},60000);
   window.ADIBHomeBridge={calendarCapabilities:()=>personalApi('/api/calendar-capabilities'),timerInfo:id=>{const task=pomodoroTaskById(String(id));if(!task)return null;const info=taskPomodoroSummary(task),timer=personalPomodoroData.timers[String(id)];return {...info,remaining:info.status==='idle'?pomodoroDurationLimitSeconds(timer||{mode:'work',workMinutes:25}):info.remaining}},timerAction:async(id,action)=>{if(!['start','pause'].includes(action))throw Error('Yanlış əməliyyat');const ok=await taskPomodoroListAction(id,action);if(!ok)throw Error(taskPomodoroErrors.get(String(id))||'Taymer məşğuldur. Sinxronizasiyadan sonra təkrarlayın.');return true},patch:async(id,changes)=>{const old=[...personalTasks,...(window.ADIBPersonalPomodoroTasks||[])].find(t=>String(t.id)===String(id));if(!old)throw Error('Tapşırıq tapılmadı');if(Object.hasOwn(changes,'containerId')&&changes.containerId&&!personalLayout.containers.some(c=>String(c.id)===String(changes.containerId)))throw Error('Konteyner tapılmadı');await personalApi('/api/personal-task',{method:'PATCH',body:JSON.stringify({id,...changes})});const updated={...old,...changes,...(personalTasks.find(t=>String(t.id)===String(id))||{})};window.ADIBPersonalPomodoroTasks=[...(window.ADIBPersonalPomodoroTasks||[]).filter(t=>String(t.id)!==String(id)),updated];if(ADIBTaskHistory.visible(updated)&&!personalTasks.some(t=>String(t.id)===String(id)))personalTasks.push(updated);if(Object.hasOwn(changes,'containerId')){personalTaskPosition(updated,0).containerId=changes.containerId||null;writePersonalLayout()}writePersonalSnapshot();refreshOpenPersonalViews();renderPersonalBoard();return updated},acceptWidgetTask:task=>{const old=personalTasks.find(t=>String(t.id)===String(task.id))||(window.ADIBPersonalPomodoroTasks||[]).find(t=>String(t.id)===String(task.id))||{};task={...old,...task};window.ADIBPersonalPomodoroTasks=[...(window.ADIBPersonalPomodoroTasks||[]).filter(t=>String(t.id)!==String(task.id)),task];recordPersonalMutation('/api/personal-task',{method:'PATCH',body:JSON.stringify(task)},{id:task.id,task});refreshOpenPersonalViews();renderPersonalBoard()},closeViews:()=>{window.ADIBTaskCards?.closeMenus();document.querySelectorAll('.adib-unified-filter').forEach(d=>{d.close();d.remove()});window.ADIBCalendar?.close();tmClose();closeCommentChat();document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal').forEach(e=>e.remove());const modal=document.getElementById('taskModal');if(modal?.classList.contains('open'))document.getElementById('closeModal')?.click();document.querySelectorAll('.kanban-task-editor-layer,.personal-kanban-editor-layer').forEach(e=>{e.querySelector('.kanban-task-editor-close,.personal-kanban-editor-close')?.click();e.remove()});window.__syncMiroTaskViewHeader?.()},snapshot:()=>({tasks:personalTasks,containers:personalLayout.containers,graph:[...(window.ADIBPersonalPomodoroTasks||[]),...personalTasks],busy:!!personalLoadPromise,ready:personalSnapshotReady,updatedAt:personalLastSyncAt,error:personalError.textContent}),activate:()=>setPersonalMode(true),refresh:full=>loadPersonalTasks({force:true,full:!!full}),openTask:id=>openPersonalTaskEditor(id,false,{}),newTask:preset=>{const inbox=personalLayout.containers.find(c=>String(c.name||'').trim().toLowerCase()==='inbox');openPersonalTaskEditor('',true,{calendar:!!preset?.calendar,containerId:preset?.containerId??inbox?.id??'',date:preset?.date||'',dateEnd:preset?.dateEnd||''})},complete:id=>window.ADIBHomeBridge.patch(id,{completed:true,status:'Done'}),canvas:async()=>{setPersonalMode(false);setMobileMode('canvas');const cached=readSnapshotCache();if(!state.plans.length&&cached)applySnapshot(cached,'cache');if(!state.plans.length)await refresh(true);state.currentPlan=defaultCanvasPlanId();renderAll();requestAnimationFrame(()=>centerVisiblePlanContent());if(!state.plans.length&&!state.equipment.length)document.getElementById('syncError').textContent=document.getElementById('syncError').textContent||'Heç bir plan və ya avadanlıq yüklənməmişdir. Məlumatlarınızı yeniləyin və ya əlaqənizi yoxlayın.'},personalCanvas:()=>setPersonalMode(true),day:()=>tmOpen('day'),review:()=>tmOpen('review'),kanban:()=>openPersonalKanbanTool(),matrix:()=>openPersonalEisenhowerMatrix()};
+  window.ADIBEquipmentCalendar={tasks:()=>{if(window.ADIBAccount&&!window.ADIBAccount.section('equipment'))return [];return [...new Map([...state.equipment.flatMap(m=>m.tasks||[]),...state.plans.flatMap(p=>p.tasks||[]),...(window.ADIBEquipmentPomodoroTasks||[]),...(window.ADIBWork?.state.tasks||[])].filter(t=>['todo','gorulen'].includes(t.sourceKey)).map(t=>[String(t.id),t])).values()];},open:async id=>{const task=window.ADIBEquipmentCalendar.tasks().find(t=>String(t.id)===String(id));if(!task)throw Error('Tapşırıq tapılmadı və ya giriş yoxdur');const machine=state.equipment.find(m=>String(m.id)===String(task.machineId)||(m.tasks||[]).some(t=>String(t.id)===String(id)))||null;const modal=document.getElementById('taskModal');modal.classList.add('open');await openTaskEditor(task,machine,false);const back=()=>{window.ADIBAutosave?.dispose(document.getElementById('taskList'));modal.classList.remove('open');window.ADIBCalendar?.refresh();};for(const name of ['cancelTaskEdit','backToTasks']){const b=document.getElementById(name);if(b)b.onclick=back;}},patch:async(id,changes)=>{const task=window.ADIBEquipmentCalendar.tasks().find(t=>String(t.id)===String(id));if(!task)throw Error('Tapşırıq tapılmadı');const response=await fetch(new URL(CONFIG.syncUrl||location.href,location.href).origin+'/api/task',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,sourceKey:task.sourceKey,...changes})});const result=await response.json();if(!response.ok)throw Error(result.error||'HTTP '+response.status);Object.assign(task,changes);for(const owner of [...state.equipment,...state.plans])for(const row of owner.tasks||[])if(String(row.id)===String(id))Object.assign(row,changes);for(const row of window.ADIBEquipmentPomodoroTasks||[])if(String(row.id)===String(id))Object.assign(row,changes);writeSnapshotCache({plans:state.plans,equipment:state.equipment,pomodoroTasks:window.ADIBEquipmentPomodoroTasks||[]});window.dispatchEvent(new Event('adib-work-data'));return task;}};
   window.__adibOpenDefaultMyTasksList=()=>window.ADIBHome?window.ADIBHome.open():openDefaultMyTasksList();window.__openPersonalKanbanTool=openPersonalKanbanTool;
 
   let tmState=null,tmLayer=null,tmBusy=false,tmTab='day',tmReviewTab='incoming',tmDay=tmLocalDate(),tmQuery='',tmLimit=20,tmFlow=null;
@@ -3778,23 +3779,23 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 
 <style>.adib-task-images{display:grid;gap:8px;padding:12px 0}.adib-task-images small,.adib-image-picker small{display:block;overflow-wrap:anywhere}.adib-image-picker{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;max-width:100%;padding:6px 0}.adib-image-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0;max-width:100%}.adib-image-thumbs img{width:100px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.adib-image-thumbs span{display:inline-flex;align-items:flex-start}.adib-chat-compose{flex-wrap:wrap}.adib-chat-bubble .adib-image-thumbs img{width:110px;height:100px}.adib-task-images>button{justify-self:start}</style>
 
-<link rel="stylesheet" href="hybrid-theme.css?v=1.1.57">
+<link rel="stylesheet" href="hybrid-theme.css?v=1.1.58">
 
-<link rel="stylesheet" href="home-screen.css?v=1.1.57">
-<script src="day-plan-refresh.js?v=1.1.57"></script>
-<script src="personal-workspace.js?v=1.1.57"></script>
-<script src="home-screen.js?v=1.1.57"></script>
-<link rel="stylesheet" href="calendar-view.css?v=1.1.57"><script src="calendar-time.js?v=1.1.57"></script>
-<script src="calendar-filter.js?v=1.1.57"></script><script src="calendar-view.js?v=1.1.57"></script><script src="widget-hub.js?v=1.1.57"></script>
+<link rel="stylesheet" href="home-screen.css?v=1.1.58">
+<script src="day-plan-refresh.js?v=1.1.58"></script>
+<script src="personal-workspace.js?v=1.1.58"></script>
+<script src="home-screen.js?v=1.1.58"></script>
+<link rel="stylesheet" href="calendar-view.css?v=1.1.58"><script src="calendar-time.js?v=1.1.58"></script>
+<script src="calendar-filter.js?v=1.1.58"></script><script src="calendar-view.js?v=1.1.58"></script><script src="widget-hub.js?v=1.1.58"></script>
 
-<script src="ui-theme.js?v=1.1.57"></script>
-<link rel="stylesheet" href="ui-system.css?v=1.1.57">
+<script src="ui-theme.js?v=1.1.58"></script>
+<link rel="stylesheet" href="ui-system.css?v=1.1.58">
 
 
-<link rel="stylesheet" href="screen-system.css?v=1.1.57"><script src="screens.js?v=1.1.57"></script>
-<link rel="stylesheet" href="workspace-headers.css?v=1.1.57">
-<script src="workspace-headers.js?v=1.1.57"></script>
-<link rel="stylesheet" href="task-cards.css?v=1.1.57"><link rel="stylesheet" href="filter-dialog.css?v=1.1.57">
+<link rel="stylesheet" href="screen-system.css?v=1.1.58"><script src="screens.js?v=1.1.58"></script>
+<link rel="stylesheet" href="workspace-headers.css?v=1.1.58">
+<script src="workspace-headers.js?v=1.1.58"></script>
+<link rel="stylesheet" href="task-cards.css?v=1.1.58"><link rel="stylesheet" href="filter-dialog.css?v=1.1.58">
 <script>
 (async()=>{if(!window.ADIBRealtime)return;let base='';
  if(window.ADIBDesktop){const settings=await window.ADIBDesktop.getSettings();if(settings.mode==='notion')return;}
