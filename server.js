@@ -11,7 +11,9 @@ const notionRate=new NotionRateGate();
 loadDotEnv(path.join(__dirname, '.env'));
 
 const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
+const {DirectChats}=require('./direct-chats');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
+const directChats=new DirectChats({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'direct-chats.json')});
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -1538,6 +1540,7 @@ async function accountTask(u,id,kind){
 async function accountAuthorize(req,res,url,u,b){
  res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
  const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
+ if(p==='/api/chat-users'||p==='/api/direct-chats'){if(!accounts.section(u,'chat'))deny();if(p==='/api/chat-users')return;if(method==='GET'){const peerId=url.searchParams.get('with');if(peerId&&!accounts.chatUser(peerId))deny();return;}if(method==='POST'){need('comment');const peerId=String(b.recipientId||'');if(!accounts.chatUser(peerId))deny();if(peerId===u.id)throw accessError('Özünüzə yaza bilməzsiniz',400);return;}deny();}
  const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
  if(scopes[p])res.__accountScope=scopes[p];
  if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
@@ -1620,7 +1623,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.64',calendarVersion:'1.1.64',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.65',calendarVersion:'1.1.65',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1655,6 +1658,9 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       return json(response, 200, await listChatThreads(body));
     }
+    if(request.method==='GET'&&url.pathname==='/api/chat-users'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const u=response.__account;return json(response,200,{ok:true,users:await accounts.chatUsers(u)});}
+    if(request.method==='GET'&&url.pathname==='/api/direct-chats'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const u=response.__account,peerId=url.searchParams.get('with')||'';if(peerId){const peer=accounts.chatUser(peerId);if(!peer)throw accessError('Əməkdaş tapılmadı');return json(response,200,{ok:true,...directChats.messages(u.id,peer.id,peer.name)});}return json(response,200,{ok:true,chats:directChats.list(u.id,id=>accounts.chatUser(id)?.name||'Əməkdaş')});}
+    if(request.method==='POST'&&url.pathname==='/api/direct-chats'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const b=await readBody(request),u=response.__account,peer=accounts.chatUser(b.recipientId);if(!peer)throw accessError('Əməkdaş tapılmadı');return json(response,201,{ok:true,message:directChats.send(u,peer.id,b.text)});}
     if (request.method === 'POST' && url.pathname === '/api/comment-notifications') {
       const body = await readBody(request);
       return json(response, 200, await listCommentNotifications(body));
@@ -1678,7 +1684,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.64'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.65'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1748,4 +1754,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.64: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.65: http://localhost:'+server.address().port));
