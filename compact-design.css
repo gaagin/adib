@@ -7,21 +7,15 @@ html body :is(.adib-side-top,.adib-side-bottom,.adib-home-side){background:var(-
 html body .adib-home-side{padding:20px 14px!important}
 html body .adib-home-nav{font-weight:400!important;border-radius:12px!important;margin:2px 0!important;min-height:48px!important}
 html body .adib-side-brand{font-size:17px!important}
-html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{border:0!important;border-radius:18px!important;box-shadow:0 2px 6px #344d7806!important;padding:12px 12px 12px 4px!important;margin-bottom:10px!important;background:var(--surface)!important;gap:8px!important}
-html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.active{background:var(--blue-soft)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 22%,transparent)!important}
-html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-title{font-size:15px!important;font-weight:400!important;line-height:1.4!important}
 html body .adib-task-card .adib-card-meta{font-size:11px!important;line-height:1.5!important;margin-top:5px!important;color:var(--muted)!important}
 html body .adib-card-chip{border:0!important;font-size:11px!important;padding:4px 8px!important;border-radius:14px!important;background:var(--soft)!important}
 html body .adib-card-chip.worker{background:#f3f6c9!important;color:#667447!important}html.dark body .adib-card-chip.worker{background:#3c483a!important;color:#d1d9b1!important}
 html body .adib-design-group{background:var(--surface);border-radius:18px;padding:12px 12px 4px;margin:0 0 12px}
 html body .adib-design-group>h3{font-size:13px;color:var(--muted);font-weight:600;margin:2px 4px 8px;display:flex;justify-content:space-between}
 html body .adib-design-group>h3 small{font-weight:400}
-html body .adib-design-group .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{margin:0!important;background:transparent!important;border-radius:0!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important;padding:10px 0!important}
-html body .adib-design-group .adib-task-card:last-child{border-bottom:0!important}
 html body .adib-home-rows{padding:8px 14px 90px!important;background:var(--bg)!important}
 html body :is(.personal-eisenhower-grid>section,.personal-eisenhower-quadrant){border:0!important;border-radius:18px!important;background:var(--surface)!important;padding:16px!important}
 html body .personal-eisenhower-grid :is(h3,h4){font-size:13px!important;font-weight:500!important}
-html body .personal-eisenhower-grid .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{border-radius:0!important;box-shadow:none!important;padding:5px 0!important}
 html body :is(.modal,.personal-kanban-editor-layer,.personal-task-details){border-radius:18px!important}
 html body :is(.task-detail-content,.modal-body,#taskProperties,.personal-task-properties){background:var(--bg)!important}
 html body .adib-photo-section{border:0!important;border-radius:16px!important;box-shadow:none!important}
@@ -106,3 +100,42 @@ html body .adib-design-profile{display:flex;align-items:center;gap:12px;backgrou
 .adib-design-avatar{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;background:var(--surface);color:var(--muted);font-size:13px;font-weight:600}.adib-design-username{font-size:15px;font-weight:600;overflow-wrap:anywhere}
 @media(max-width:700px){html body #adibAccountButton{display:none!important}}
 html body:has(.adib-design-profile) #adibAccountButton{display:none!important}
+
+/* One TickTick-inspired card language across every task view. */
+html body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card){background:var(--surface,#fff)!important;color:var(--text,#243450)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:14px!important;box-shadow:0 1px 3px #1d31520b!important}
+html.dark body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card){box-shadow:0 1px 3px #0002!important}
+html body .adib-design-group .adib-task-card{background:var(--surface,#fff)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:14px!important;margin:0 0 8px!important;padding:12px 10px!important;box-shadow:0 1px 3px #1d31520b!important}
+html body .personal-eisenhower-grid .adib-task-card{background:var(--surface,#fff)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;padding:10px!important;margin:0 0 7px!important}
+#adibChatOverlay .adib-chat-tabs{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface);flex:0 0 auto}
+#adibChatOverlay .adib-chat-tabs button{flex:1;min-height:38px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600}
+#adibChatOverlay .adib-chat-tabs button.active{background:var(--blue-soft);color:var(--blue)}
+body.adib-chat-open #adibChatOverlay{position:fixed!important;inset:0!important;left:0!important;width:100vw!important;height:100dvh!important;padding:0!important;z-index:13000!important;background:var(--surface,#fff)!important;place-items:stretch!important}
+body.adib-chat-open #adibPersistentSide{z-index:12999!important}
+body.adib-chat-open #adibChatOverlay .adib-chat-window{width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#adibChatOverlay.direct-mode .adib-chat-conversation-head [data-chat-open-task]{display:none!important}
+@media(max-width:650px){#adibChatOverlay .adib-chat-window{grid-template-columns:minmax(0,1fr)!important}#adibChatOverlay.conversation-open .adib-chat-sidebar{display:none!important}#adibChatOverlay:not(.conversation-open) .adib-chat-conversation{display:none!important}#adibChatOverlay .adib-chat-tabs button{font-size:14px;min-height:44px}}
+
+/* Follow-up: compact, consistent task cards across list, board, matrix and calendar views. */
+html body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card,.adib-calendar-task,.calendar-time-event){box-sizing:border-box!important;background:var(--surface,#fff)!important;color:var(--text,#243450)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;box-shadow:0 1px 3px #1d31520b!important}
+html body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card,.adib-calendar-task){padding:10px 12px!important}
+html.dark body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card,.adib-calendar-task,.calendar-time-event){box-shadow:0 1px 3px #0002!important}
+html body :is(.adib-task-card,.tm-task,.tm-review-row,.kanban-task,.personal-kanban-card,.kanban-list-row,.personal-kanban-list-row,.kanban-check-row,.personal-kanban-check-row,.personal-task-card,.adib-home-row,.adib-task-result,.calendar-task-card,.adib-calendar-task,.calendar-time-event) :is(.adib-card-title,.calendar-task-title,.calendar-event-title){font-size:14px!important;line-height:1.35!important;font-weight:500!important;color:var(--text)!important}
+html body .adib-calendar-task{margin:4px 2px!important;padding:7px 9px!important;background:var(--surface,#fff)!important;border-radius:10px!important}
+html body .calendar-time-event{border-left:3px solid var(--blue)!important;border-radius:10px!important;padding:5px 22px 4px 8px!important;background:var(--blue-soft)!important}
+html body .adib-design-group .adib-task-card{background:var(--surface,#fff)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;margin:0 0 7px!important;padding:10px 12px!important;box-shadow:0 1px 3px #1d31520b!important}
+html body .personal-eisenhower-grid .adib-task-card{background:var(--surface,#fff)!important;border:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;padding:9px 10px!important;margin:0 0 7px!important}
+/* TickTick-inspired compact toolbar; controls remain reachable by horizontal swipe on narrow screens. */
+@media(max-width:700px){
+ html body :is(.adib-home-top,.adib-view-header,.adib-calendar-bar,.personal-kanban-header,.tm-header){min-height:48px!important;height:auto!important;padding:4px 8px!important;gap:4px!important;flex-wrap:nowrap!important;align-items:center!important;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:none}
+ html body :is(.adib-home-top,.adib-view-header,.adib-calendar-bar,.personal-kanban-header,.tm-header)::-webkit-scrollbar{display:none}
+ html body .adib-calendar-bar{justify-content:flex-start!important}
+ html body .adib-calendar-bar h2{font-size:17px!important;line-height:1.2!important;margin:0 4px!important;flex:0 0 auto!important;white-space:nowrap!important}
+ html body .adib-calendar-bar button,html body .adib-calendar-bar select,html body .adib-calendar-bar input{min-height:34px!important;height:34px!important;padding:4px 8px!important;font-size:12px!important;flex:0 0 auto!important;white-space:nowrap!important}
+ html body .adib-calendar-bar .calendar-filter-button{min-width:60px!important;min-height:34px!important}
+ html body .adib-calendar-bar input{max-width:120px!important;width:120px!important}
+ html body .adib-calendar-clock{max-width:100px!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ html body .adib-home-top{height:52px!important;min-height:52px!important;padding:4px 8px!important}
+ html body .adib-home-heading-group h1{font-size:19px!important;white-space:nowrap!important}
+ html body .adib-home-top-actions{gap:2px!important}
+ html body .adib-home-top-actions button{min-height:38px!important}
+}
