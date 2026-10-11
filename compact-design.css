@@ -1,0 +1,108 @@
+/* ADIB approved concept: 01 navigation + 02 task lists + 03 focus/matrix.
+   Theme is inherited except ALWAYS-DARK floating timers. No task/calendar coordinates changed. */
+:root,html:not(.dark){--bg:#f2f3f9;--surface:#fff;--soft:#f7f8fc;--text:#252b35;--muted:#8590a1;--line:#e5e9f1;--blue:#5578ec;--blue-soft:#e8edfc;--ui-card-radius:18px;--ui-radius:10px;--shadow:0 8px 26px #293c5a0c}
+html.dark{--bg:#1c2431;--surface:#263241;--soft:#303e50;--text:#e7ecf5;--muted:#a7b3c5;--line:#3a485a;--blue:#9ab6ff;--blue-soft:#354860;--shadow:0 8px 26px #0002}
+html body :is(.adib-home-top,.adib-view-header){background:var(--bg)!important;box-shadow:none!important;border-color:var(--line)!important}
+html body :is(.adib-side-top,.adib-side-bottom,.adib-home-side){background:var(--surface)!important}
+html body .adib-home-side{padding:20px 14px!important}
+html body .adib-home-nav{font-weight:400!important;border-radius:12px!important;margin:2px 0!important;min-height:48px!important}
+html body .adib-side-brand{font-size:17px!important}
+html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{border:0!important;border-radius:18px!important;box-shadow:0 2px 6px #344d7806!important;padding:12px 12px 12px 4px!important;margin-bottom:10px!important;background:var(--surface)!important;gap:8px!important}
+html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.active{background:var(--blue-soft)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 22%,transparent)!important}
+html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-title{font-size:15px!important;font-weight:400!important;line-height:1.4!important}
+html body .adib-task-card .adib-card-meta{font-size:11px!important;line-height:1.5!important;margin-top:5px!important;color:var(--muted)!important}
+html body .adib-card-chip{border:0!important;font-size:11px!important;padding:4px 8px!important;border-radius:14px!important;background:var(--soft)!important}
+html body .adib-card-chip.worker{background:#f3f6c9!important;color:#667447!important}html.dark body .adib-card-chip.worker{background:#3c483a!important;color:#d1d9b1!important}
+html body .adib-design-group{background:var(--surface);border-radius:18px;padding:12px 12px 4px;margin:0 0 12px}
+html body .adib-design-group>h3{font-size:13px;color:var(--muted);font-weight:600;margin:2px 4px 8px;display:flex;justify-content:space-between}
+html body .adib-design-group>h3 small{font-weight:400}
+html body .adib-design-group .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{margin:0!important;background:transparent!important;border-radius:0!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important;padding:10px 0!important}
+html body .adib-design-group .adib-task-card:last-child{border-bottom:0!important}
+html body .adib-home-rows{padding:8px 14px 90px!important;background:var(--bg)!important}
+html body :is(.personal-eisenhower-grid>section,.personal-eisenhower-quadrant){border:0!important;border-radius:18px!important;background:var(--surface)!important;padding:16px!important}
+html body .personal-eisenhower-grid :is(h3,h4){font-size:13px!important;font-weight:500!important}
+html body .personal-eisenhower-grid .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{border-radius:0!important;box-shadow:none!important;padding:5px 0!important}
+html body :is(.modal,.personal-kanban-editor-layer,.personal-task-details){border-radius:18px!important}
+html body :is(.task-detail-content,.modal-body,#taskProperties,.personal-task-properties){background:var(--bg)!important}
+html body .adib-photo-section{border:0!important;border-radius:16px!important;box-shadow:none!important}
+html body .adib-photo-card{background:var(--soft)!important;border:0!important}
+html body .adib-work-panel{background:transparent!important;border:0!important;border-radius:0!important;padding:8px 0!important;margin:4px 0!important;display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center}
+html body .adib-work-panel h3{font-size:11px!important;font-weight:400;color:var(--muted);margin:0!important}
+html body .adib-work-panel strong{font-size:15px!important;font-weight:500;letter-spacing:.5px;text-align:right}
+html body .adib-work-panel p{font-size:11px!important;grid-column:1/-1;margin:4px 0!important;color:var(--muted)}
+html body .adib-work-panel>div{grid-column:1/-1;display:flex;gap:6px}
+html body .adib-work-panel>small{grid-column:1/-1}
+html body .adib-work-panel button{min-height:36px!important;padding:5px 10px!important;font-size:12px!important;background:var(--soft)!important;color:var(--text)!important;border:1px solid var(--line)!important;box-shadow:none!important}
+/* These tokens are LOCAL: floating timers never inherit light theme. */
+html body :is(.adib-work-floating,.personal-pomodoro-overlay,.personal-pomodoro-fab){--surface:#283342;--soft:#303e50;--text:#e7ecf5;--muted:#a7b3c5;--line:#425269;--blue:#a6bcff;background:#283342!important;color:#e7ecf5!important;border-color:#425269!important;border-radius:16px!important;box-shadow:0 6px 24px #1424372b!important}
+html body :is(.adib-work-floating,.personal-pomodoro-overlay,.personal-pomodoro-fab) :is(button,input){background:#283342!important;color:#e7ecf5!important;border-color:#425269!important;box-shadow:none!important}
+html body :is(.adib-work-floating,.personal-pomodoro-overlay) button:hover{background:#303e50!important}
+html body .adib-design-focus{background:var(--bg);color:var(--text);width:420px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border:1px solid var(--line);border-radius:22px;padding:22px;overflow:auto}
+.adib-design-focus::backdrop{background:#17233566}
+.adib-focus-head{display:flex;gap:10px;align-items:center;justify-content:space-between}.adib-focus-head h2{font-size:20px;margin:0}.adib-focus-head button{min-width:44px;min-height:44px}
+.adib-focus-tabs{display:flex;gap:6px;margin:12px 0}.adib-focus-tabs button{padding:8px 15px;min-height:40px;border-radius:20px}.adib-focus-tabs button[aria-selected=true]{background:var(--blue-soft);color:var(--blue)}
+.adib-focus-title{text-align:center;margin:20px 0 4px;font-size:22px;line-height:1.4;font-weight:500}.adib-focus-worker{text-align:center;font-size:12px;color:var(--muted)}
+.adib-focus-clock{border:2px solid var(--line);width:240px;height:240px;max-width:100%;border-radius:50%;margin:24px auto;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;letter-spacing:1px;font-variant-numeric:tabular-nums;background:var(--surface)}
+.adib-focus-clock small{font-size:11px;letter-spacing:0;color:var(--muted);margin-top:12px}.adib-focus-summary{text-align:center;font-size:13px;color:var(--muted);margin-bottom:18px}.adib-focus-action{width:100%;min-height:48px;background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line)!important}
+.adib-focus-task{display:block;width:100%;text-align:left;padding:12px;margin:8px 0;background:var(--surface);border-radius:12px}
+.adib-design-overflow{position:relative;flex:none}.adib-design-overflow summary{list-style:none;cursor:pointer;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;font-size:23px}.adib-design-overflow summary::-webkit-details-marker{display:none}
+.adib-design-overflow>div{position:absolute;right:0;top:48px;z-index:10001;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px;min-width:210px;box-shadow:0 12px 35px #13243b26;display:flex;flex-direction:column;gap:3px;max-height:70dvh;overflow:auto}
+.adib-design-overflow>div button{width:100%!important;min-height:44px!important;text-align:left!important;border:0!important;background:transparent!important;color:var(--text)!important;padding:10px 12px!important}
+.adib-design-nav{display:none}
+@media(max-width:700px){
+ html body .adib-home-top{height:64px!important;min-height:64px!important;padding:8px 14px!important;gap:8px!important;flex-wrap:nowrap!important}
+ html body .adib-home-heading-group h1{font-size:22px!important}.adib-home-heading-group{flex-basis:0!important}
+ html body .adib-home-status{font-size:10px!important;max-width:100%!important;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+ html body .adib-home-top-actions{gap:0!important;flex:none!important}
+ html body .adib-home-top-actions .adib-home-refresh{width:40px!important}
+ html body .adib-home-add{position:fixed!important;bottom:calc(80px + env(safe-area-inset-bottom))!important;right:18px!important;width:54px!important;height:54px!important;min-height:54px!important;padding:0!important;font-size:28px!important;border-radius:50%!important;box-shadow:0 5px 16px #5578ec33!important;z-index:20}
+ html body .adib-home-search{margin:8px 14px!important;width:calc(100% - 28px)!important;min-height:44px!important;background:var(--surface)!important;border:0!important}
+ html body .adib-home-side{width:min(340px,88vw)!important;max-width:88vw!important;background:var(--surface)!important}
+ html body .adib-home-quick-scopes{padding:0 14px!important;gap:5px!important}
+ html body .adib-home-quick-scope{border:0!important;border-radius:22px!important;background:transparent!important;min-height:40px!important;padding:6px 13px!important}
+ html body .adib-home-quick-scope.active{background:var(--blue-soft)!important}
+ html body .adib-design-nav{position:fixed;bottom:0;left:0;right:0;z-index:25;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);display:flex;background:var(--bg);border-top:1px solid var(--line);align-items:center;justify-content:space-around}
+ html body .adib-design-nav button{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;border:0!important;background:transparent!important;border-radius:10px;min-height:56px;min-width:54px;color:var(--muted);font-size:9px;padding:4px}
+ .adib-design-nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+ html body .adib-design-nav button[aria-current=page]{color:var(--blue)}
+ html body :is(.adib-home-layout,.adib-calendar-body,.personal-eisenhower-grid){padding-bottom:70px!important}
+ html body .adib-home-top .adib-design-menu{min-width:40px;min-height:44px;border:0;background:transparent;padding:8px;color:var(--text)}
+ html body .adib-design-menu svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+ html body .personal-eisenhower-grid{gap:10px!important;padding:12px!important}
+ html body .personal-eisenhower-grid>section{padding:10px!important}
+ html body .personal-eisenhower-grid .adib-card-title{font-size:13px!important}
+ html body .adib-photo-grid{gap:12px!important}
+ html body .adib-work-floating{z-index:9998}
+}
+@media(prefers-reduced-motion:no-preference){.adib-design-nav button,.adib-home-nav{transition:background-color .12s ease,color .12s ease}}
+@media(max-width:700px){
+ html body.adib-side-ready,html body.adib-side-collapsed{--adib-side-width:0px!important}
+ html body .adib-home-side{position:fixed!important;left:0!important;top:0!important;bottom:calc(66px + env(safe-area-inset-bottom))!important;height:auto!important;z-index:60!important;box-shadow:8px 0 36px #172b4d22;transform:translateX(0)!important;display:flex!important}
+ html body.adib-side-collapsed .adib-home-side{transform:translateX(-110%)!important;pointer-events:none}
+ html body .adib-home-side .adib-side-brand strong,html body .adib-home-side :is(.adib-home-heading,.adib-home-containers,.adib-home-tools,.adib-side-bottom){display:revert!important}
+ html body .adib-drawer-backdrop{position:fixed;inset:0;z-index:59;border:0;border-radius:0;background:#1c293e55;padding:0}
+ html body.adib-side-collapsed .adib-drawer-backdrop{display:none}
+ html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions>.adib-design-overflow{display:block!important}
+ html body #adibWorkspaceHeader .adib-design-overflow>div button{width:100%!important;justify-content:flex-start!important}
+}
+.adib-drawer-backdrop{display:none}
+@media(max-width:700px){body:not(.adib-side-collapsed) .adib-drawer-backdrop{display:block}}
+html body .adib-home-list{background:var(--bg)!important}
+html body .adib-card-chip.adib-card-chip.worker{background:#f3f6c9!important;color:#667447!important}
+html.dark body .adib-card-chip.adib-card-chip.worker{background:#3c483a!important;color:#d1d9b1!important}
+@media(max-width:700px){
+ html body .adib-home-top-actions .adib-home-add.adib-home-add{border-radius:50%!important;background:#5578ec!important}
+ html body .adib-design-overflow .adib-home-filter,html body .adib-design-overflow .adib-home-sort{display:block!important}
+ html body #adibPersistentSide#adibPersistentSide>:not(.adib-side-top){display:revert!important}
+ html body #adibPersistentSide#adibPersistentSide .adib-side-brand{display:flex!important}
+ html body #adibPersistentSide#adibPersistentSide .adib-side-top{justify-content:space-between!important}
+}
+html body .adib-design-search{width:44px;min-height:44px;border:0;background:transparent;color:var(--text);padding:9px}
+.adib-design-search svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+html body .adib-home-search[hidden]{display:none!important}
+@media(min-width:701px){html body .adib-design-menu{display:none}.adib-home-search[hidden]{display:block!important}}
+html body .adib-design-nav button[hidden]{display:none!important}
+html body .adib-design-profile{display:flex;align-items:center;gap:12px;background:var(--blue-soft)!important;border:0!important;padding:16px 12px!important;border-radius:14px!important;text-align:left;color:var(--text)!important;width:100%;margin:8px 0 12px}
+.adib-design-avatar{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;background:var(--surface);color:var(--muted);font-size:13px;font-weight:600}.adib-design-username{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+@media(max-width:700px){html body #adibAccountButton{display:none!important}}
+html body:has(.adib-design-profile) #adibAccountButton{display:none!important}

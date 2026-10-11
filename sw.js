@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v163-smooth';
+const CACHE_NAME = 'adib-online-v164-compact';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
