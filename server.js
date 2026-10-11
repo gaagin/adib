@@ -1620,7 +1620,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.61',calendarVersion:'1.1.61',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.62',calendarVersion:'1.1.62',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1640,7 +1640,7 @@ const server = http.createServer(async (request, response) => {
     }
     if(request.method==='GET'&&url.pathname==='/api/work-state'){await workClock();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)void snapshot(false).catch(e=>console.warn('Work background snapshot:',e.message));let tasks=workTasks(actor);if(actor.role!=='admin')for(const session of workTimer.data.sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'))if(!tasks.some(t=>accountKey(t.id)===accountKey(session.taskId)))try{tasks.push((await workAccountTask(actor,session.taskId)).task);}catch(e){if(e.statusCode!==403)throw e;}const ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>actor.role==='admin'||ids.has(accountKey(id))),tasks,tasksLoading:!rawCache.lastSyncAt,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
     if(request.method==='POST'&&url.pathname==='/api/work-schema')return json(response,200,await workTimer.setup(workActor(request)));
-    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await workClock();const b=await readBody(request),actor=workActor(request);let task,prepared;if(b.action==='start'){const found=request.__workTarget||await workAccountTask(actor,b.id);task=found.task;prepared=found.prepared;}const result=await workTimer.action(b,actor,task,prepared);if(b.action==='save')void workTimer.flush().catch(()=>{});return json(response,200,{...result,serverNow:networkTime.snapshot().now,revision:workTimer.data.revision});}
+    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await workClock();const b=await readBody(request),actor=workActor(request);let task,prepared;if(b.action==='start'||b.action==='continue'){const target=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;const found=request.__workTarget||await workAccountTask(actor,target);task=found.task;prepared=found.prepared;}const result=await workTimer.action(b,actor,task,prepared);if(b.action==='save'||b.action==='continue')void workTimer.flush().catch(()=>{});return json(response,200,{...result,serverNow:networkTime.snapshot().now,revision:workTimer.data.revision});}
     if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id'),{force:url.searchParams.get('refresh')==='1'}));
     if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
     if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
@@ -1678,7 +1678,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.61'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.62'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1748,4 +1748,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.61: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.62: http://localhost:'+server.address().port));
