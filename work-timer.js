@@ -13,12 +13,12 @@ class WorkTimerStore{
  total(id){const t=this.data.tasks[key(id)];return Math.round(((t?.baseSeconds||0)+this.data.sessions.filter(s=>key(s.taskId)===key(id)&&s.status==='saved').reduce((n,s)=>n+s.seconds,0))/60*1000)/1000;}
  snapshot(actor,allowed){const sessions=this.data.sessions.filter(s=>allowed(s.taskId));return {ok:true,serverNow:this.now(),revision:this.data.revision,sessions:structuredClone(sessions),own:sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'),totals:Object.fromEntries(Object.values(this.data.tasks).filter(t=>allowed(t.id)).map(t=>[t.id,this.total(t.id)])),syncPending:Object.values(this.data.tasks).filter(t=>t.dirty&&allowed(t.id)).map(t=>t.id),field:FIELD};}
  async flush(){if(this.flushing)return this.flushing;this.flushing=(async()=>{for(const row of Object.values(this.data.tasks)){if(!row.dirty)continue;const id=row.id,total=this.total(id);try{await this.notion('/pages/'+id,{method:'PATCH',body:JSON.stringify({properties:{[FIELD]:{number:total}}})});await this.locked(()=>{const t=this.data.tasks[key(id)];if(this.total(id)===total)this.commit(()=>{t.dirty=false;delete t.syncError;});});}catch(e){await this.locked(()=>{const t=this.data.tasks[key(id)];if(t){t.syncError=String(e.message).slice(0,300);this.save();}});}}})().finally(()=>this.flushing=null);return this.flushing;}
- async action(b,actor,task){let prepared;
+ async action(b,actor,task,provided){let prepared;
  if(b.action==='start'){
  const token=String(b.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(token))throw fail('Əməliyyat ID-si tələb olunur');
  const duplicate=this.data.sessions.find(x=>x.startOperation===token&&x.actorId===actor.id);if(duplicate)return {ok:true,session:structuredClone(duplicate)};
  if(this.data.sessions.some(x=>x.actorId===actor.id&&x.status!=='saved'))throw fail('Əvvəlki işi dayandırın və vaxtı təsdiqləyin',409,'WORK_ALREADY_ACTIVE');
- if(!task||task.completed)throw fail('Tapşırıq tapılmadı və ya tamamlanıb',409);prepared=await this.page(task.id);
+ if(!task||task.completed)throw fail('Tapşırıq tapılmadı və ya tamamlanıb',409);prepared=provided||await this.page(task.id);
  const {p,source}=prepared,assigned=(p.properties?.Tapsirildi?.multi_select||[]).map(x=>x.name),worker=String(b.worker||actor.assignee||actor.name||'').trim();
  if(!assigned.includes(worker))throw fail('İşçi Tapsirildi sahəsində seçilməlidir',409);if(actor.role!=='admin'&&worker!==actor.assignee&&worker!==actor.name)throw fail('Yalnız öz adınızla iş başlada bilərsiniz',403);
  await this.schema(source,p.parent?.data_source_id,actor.role==='admin');

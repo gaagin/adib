@@ -1557,7 +1557,7 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/task-photo-schema')deny();
  if(p==='/api/work-state'){if(!accounts.section(u,'equipment')&&!accounts.section(u,'calendar'))deny();return;}
  if(p==='/api/work-schema')deny();
- if(p==='/api/work-timer'){need('timer');const id=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;if(!id)deny();await accountTask(u,id,'equipment');return;}
+ if(p==='/api/work-timer'){need('timer');const id=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;if(!id)deny();req.__workTarget=await workAccountTask(u,id);return;}
  const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
  if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
@@ -1579,6 +1579,8 @@ async function accountAuthorize(req,res,url,u,b){
 const {WorkTimerStore}=require('./work-timer');
 const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
 function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
+async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
+async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}
 function workTasks(actor){return accountTasks().equipment.filter(t=>actor.role==='admin'||accounts.task(actor,t,'equipment'));}
 const workFlush=setInterval(()=>void workTimer.flush().catch(e=>console.warn('Work timer sync:',e.message)),30000);workFlush.unref();
 
@@ -1618,7 +1620,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.60',calendarVersion:'1.1.60',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.61',calendarVersion:'1.1.61',dateRange:true});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1636,9 +1638,9 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
-    if(request.method==='GET'&&url.pathname==='/api/work-state'){await networkTime.sync();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)await snapshot(false);const tasks=workTasks(actor),ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>ids.has(accountKey(id))),tasks,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
+    if(request.method==='GET'&&url.pathname==='/api/work-state'){await workClock();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)void snapshot(false).catch(e=>console.warn('Work background snapshot:',e.message));let tasks=workTasks(actor);if(actor.role!=='admin')for(const session of workTimer.data.sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'))if(!tasks.some(t=>accountKey(t.id)===accountKey(session.taskId)))try{tasks.push((await workAccountTask(actor,session.taskId)).task);}catch(e){if(e.statusCode!==403)throw e;}const ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>actor.role==='admin'||ids.has(accountKey(id))),tasks,tasksLoading:!rawCache.lastSyncAt,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
     if(request.method==='POST'&&url.pathname==='/api/work-schema')return json(response,200,await workTimer.setup(workActor(request)));
-    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await networkTime.sync();const b=await readBody(request),actor=workActor(request);let task;if(b.action==='start'){const found=await accountTask(actor,b.id,'equipment');task=found.task;}const result=await workTimer.action(b,actor,task);if(b.action==='save')void workTimer.flush().catch(()=>{});return json(response,200,result);}
+    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await workClock();const b=await readBody(request),actor=workActor(request);let task,prepared;if(b.action==='start'){const found=request.__workTarget||await workAccountTask(actor,b.id);task=found.task;prepared=found.prepared;}const result=await workTimer.action(b,actor,task,prepared);if(b.action==='save')void workTimer.flush().catch(()=>{});return json(response,200,{...result,serverNow:networkTime.snapshot().now,revision:workTimer.data.revision});}
     if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id'),{force:url.searchParams.get('refresh')==='1'}));
     if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
     if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
@@ -1676,7 +1678,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
-    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.60'});
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.61'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
@@ -1746,4 +1748,4 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
-server.listen(PORT, () => console.log('ADIB Online 1.1.60: http://localhost:'+server.address().port));
+server.listen(PORT, () => console.log('ADIB Online 1.1.61: http://localhost:'+server.address().port));
