@@ -69,3 +69,5 @@ html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-car
 html body .personal-kanban-modal .personal-kanban-column .personal-kanban-column-body{padding:8px!important}
 
 html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status,html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.main{color:#3157be!important}html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status,html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.main{color:#b4cbff!important}html.dark{--adib-check-ink:#162137}html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status.complete{color:#23785d!important}html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status.complete{color:#9addc1!important}
+
+.adib-create-badge{display:block;margin-top:6px;color:var(--muted);font-size:11px}.adib-task-check:disabled{opacity:.45;cursor:default}
