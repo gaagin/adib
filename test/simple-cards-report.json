@@ -1,0 +1,21 @@
+[
+  {
+    "width": 390,
+    "cards": 7,
+    "worker": true,
+    "emptyTotalsHidden": true,
+    "completedToggle": true,
+    "editorAccessible": true
+  },
+  {
+    "width": 1280,
+    "cards": 7,
+    "worker": true,
+    "emptyTotalsHidden": true,
+    "completedToggle": true,
+    "editorAccessible": true
+  },
+  {
+    "nativeWindowsUnchanged": true
+  }
+]

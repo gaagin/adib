@@ -1,0 +1,32 @@
+{
+  "androidTests": 71,
+  "androidFailures": 0,
+  "nodeRegressionTests": 16,
+  "nodeFailures": 0,
+  "web": [
+    {
+      "width": 390,
+      "cards": 7,
+      "worker": true,
+      "emptyTotalsHidden": true,
+      "completedToggle": true,
+      "editorAccessible": true
+    },
+    {
+      "width": 1280,
+      "cards": 7,
+      "worker": true,
+      "emptyTotalsHidden": true,
+      "completedToggle": true,
+      "editorAccessible": true
+    },
+    {
+      "nativeWindowsUnchanged": true
+    }
+  ],
+  "apkSha256": "ecc5f7be6dbc4fcb5479cc73e3a141b943f8c4d859f96c13a1c4a0dc88fd028f",
+  "apkVersionCode": 125,
+  "nativeWindows": "excluded",
+  "liveDeployment": "not verified",
+  "physicalDevice": "not tested"
+}
