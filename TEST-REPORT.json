@@ -1,22 +1,41 @@
 {
   "baseVersion": "1.1.64",
-  "build": "1.1.64-cost-control-v3",
+  "build": "1.1.64-cost-control-v3-browser-pip-v1",
   "tests": {
-    "passed": 33,
+    "passed": 43,
     "failed": 0,
-    "syntax": "passed"
+    "syntax": "server, browser module and 10 inline scripts passed"
   },
-  "testScope": "actual local server with mocked external services + cache/work-store/SSE unit tests",
-  "examples": {
-    "concurrentCommentCalls": 40,
-    "actualCommentReads": 1,
-    "cachedWorkStateReads": 100,
-    "cachedPomodoroStateReads": 100,
-    "additionalNotionAttemptsAfterWarmup": 0
+  "browserFixture": {
+    "capabilities": {
+      "secure": true,
+      "pip": true,
+      "button": true
+    },
+    "opened": {
+      "open": true,
+      "kind": "pip",
+      "title": "Test task"
+    },
+    "checks": [
+      "injected button click opens real Document Picture-in-Picture",
+      "rendered title",
+      "pause/resume invokes existing adapter",
+      "compact button",
+      "local UI tick",
+      "close does not send timer command"
+    ],
+    "scope": "Local Chromium headless, fixture adapter; not live deployment or Windows OS always-on-top behavior"
+  },
+  "visualQA": {
+    "normal": "PASS: readable controls/clock, no overflow or overlaps",
+    "compact": "PASS: title/clock/controls fit; no overlaps",
+    "narrowLongTitle": "PASS: wraps naturally, no overflow or overlaps"
   },
   "notVerified": [
     "production deployment",
-    "authenticated multi-user HTTP cache access integration (existing auth handlers retained)",
-    "browser/Windows/Android execution"
-  ]
+    "real task/end-to-end authenticated multi-user timer",
+    "Windows OS always-on-top and sleep/notification behavior"
+  ],
+  "costControl": "all v3 tests retained; browser module has no fetch or extra network polling loop"
 }
