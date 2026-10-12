@@ -109,3 +109,4 @@ html body.adib-focused-views #adibChatOverlay [data-chat-search]{min-height:44px
  html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-content{flex:1 1 0!important;width:auto!important;min-width:0!important;max-width:none!important;margin-right:0!important}
  html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-title{width:100%!important;max-width:none!important;padding:0!important;box-sizing:border-box!important;text-align:left!important}
 }
+@media(max-width:700px){html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-task-card{grid-template-columns:44px minmax(0,1fr)!important;column-gap:6px!important}}
