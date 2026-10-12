@@ -2273,7 +2273,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     const isMobile=useMiroMobileShell;
     const modes=[...document.querySelectorAll('.personal-kanban-modal,.personal-eisenhower-modal,.modal-backdrop.open.kanban-modal')],active=modes[modes.length-1]||null;
     const header=document.querySelector('header.compact-top');
-    if(!isMobile||!active){
+    if(!isMobile||!active||!window.ADIBDesktop){
       restoreMiroHeaderModeActions();
       if(header?.__miroHomeParent){const parent=header.__miroHomeParent,next=header.__miroHomeNext;if(parent?.isConnected&&header.parentNode!==parent)parent.insertBefore(header,next?.parentNode===parent?next:null);delete header.__miroHomeParent;delete header.__miroHomeNext}
       window.__syncMiroMobileTitle?.();window.__refreshAdibNavigation?.();window.__updateHeaderModeButtons?.();miroTaskViewHeaderSyncing=false;return;
@@ -2288,7 +2288,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
   }
   window.__syncMiroTaskViewHeader=syncMiroTaskViewHeader;
   function moveTaskViewActionToMiroHeader(modal,selector,label,icon){
-    if(!useMiroMobileShell)return;
+    if(!useMiroMobileShell||!window.ADIBDesktop)return;
     const button=modal.querySelector(selector),host=document.querySelector('.miro-mobile-actions'),more=document.getElementById('miroMobileMore');
     if(!button||!host||button.parentNode===host)return;
     button.__miroModeOwner=modal;button.__miroModeParent=button.parentNode;button.__miroModeNext=button.nextSibling;
@@ -2299,7 +2299,7 @@ function renderPersonalInlineDiagram(root){const board=personalBoard;board.class
     host.insertBefore(button,more||null);
   }
   function addTaskViewToolbarButton(modal,label,icon,action,key){
-    if(!useMiroMobileShell)return;
+    if(!useMiroMobileShell||!window.ADIBDesktop)return;
     const host=document.querySelector('.miro-mobile-actions'),more=document.getElementById('miroMobileMore');if(!host)return;
     if([...host.querySelectorAll('.miro-mobile-mode-action')].some(button=>button.__miroModeOwner===modal&&button.dataset.miroModeAction===key))return;
     const button=document.createElement('button');button.type='button';button.className='miro-mobile-mode-action';button.dataset.miroModeAction=key;button.__miroModeOwner=modal;button.textContent=icon;button.setAttribute('aria-label',label);button.title=label;button.addEventListener('click',action);host.insertBefore(button,more||null);
@@ -3829,4 +3829,4 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
  const resume=()=>{if(document.hidden){client.stop();return;}client.start();};document.addEventListener('visibilitychange',resume);window.addEventListener('pagehide',()=>client.stop());resume();
 })().catch(()=>{});
 </script>
-<script src="pomodoro-session-ui.js?v=1.1.64-sessions-v2"></script><script src="browser-pomodoro.js?v=1.1.64-countdown-v4"></script><link rel="stylesheet" href="compact-design.css?v=1.1.64"><script src="compact-design.js?v=1.1.64"></script></body></html>
+<script src="pomodoro-session-ui.js?v=1.1.64-sessions-v2"></script><script src="browser-pomodoro.js?v=1.1.64-countdown-v4"></script><link rel="stylesheet" href="compact-design.css?v=1.1.64"><script src="compact-design.js?v=1.1.64"></script><link rel="stylesheet" href="focused-views.css?v=focused-v1"><script src="focused-views.js?v=focused-v1"></script></body></html>
