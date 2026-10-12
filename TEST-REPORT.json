@@ -1,49 +1,20 @@
 {
-  "version": "1.1.42",
-  "package": "full-online-server",
-  "networkPolicy": "network-only",
-  "defaultTimeZone": "Asia/Baku",
-  "nodeTests": {
-    "passed": 19,
-    "failed": 0,
-    "command": "npm test"
-  },
-  "browser": {
-    "environment": "Chromium on Linux",
-    "api": "fixture Notion and time responses; no live workspace writes",
-    "passed": [
-      "wrong computer date/year",
-      "wrong browser timezone Pacific/Honolulu",
-      "wall-clock jumps ignored",
-      "network time 13:18 Asia/Baku",
-      "calendar properties time",
-      "drag and resize persistence",
-      "week and network-day rollover",
-      "offline monotonic holdover",
-      "cold offline gate and retry",
-      "no page errors"
-    ]
-  },
-  "visualQA": {
-    "passed": [
-      "day",
-      "week",
-      "properties",
-      "offline holdover",
-      "dark theme",
-      "cold offline",
-      "mobile"
-    ],
-    "notes": "Individually inspected; readable time badge, marker, fields and retry. Mobile footer uses existing floating control."
-  },
-  "liveNetworkProbe": {
-    "trusted": true,
-    "source": "www.cloudflare.com",
-    "policy": "network-only"
-  },
-  "notVerified": [
-    "deployment on user server",
-    "live Notion writes",
-    "physical Windows EXE"
+  "version": "1.1.64",
+  "queryFixBuild": "1.1.64-query-policy-v2",
+  "testsPassed": 15,
+  "testsFailed": 0,
+  "tested": [
+    "complete server startup with real backend modules and mocked external services",
+    "50 simultaneous personal force refreshes: 2 Notion queries",
+    "50 simultaneous equipment force refreshes: 4 Notion queries",
+    "60 subsequent HTTP reads: no additional Notion queries during cooldown",
+    "SSE reconnect and idle shutdown",
+    "latest local mutation propagation",
+    "all shell asset URLs served"
+  ],
+  "notTested": [
+    "production deployment",
+    "authenticated production sessions",
+    "browser-rendered workspace (browser test dependency unavailable)"
   ]
 }

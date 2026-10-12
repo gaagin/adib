@@ -17,6 +17,11 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
+const QUERY_FIX_BUILD='1.1.64-query-policy-v2';
+const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
+const {QueryPolicy}=require('./query-policy');
+const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
+const queryMetrics={notionQueries:0,notionWrites:0};
 const NOTION_VERSION = process.env.NOTION_VERSION || '2025-09-03';
 const PLAN_DB = cleanId(process.env.PLAN_DATABASE_ID);
 const MAKINA_DB = cleanId(process.env.MAKINA_DATABASE_ID);
@@ -73,6 +78,8 @@ function checkConfig() {
 
 async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   checkConfig();
+  if(endpoint.endsWith('/query'))queryMetrics.notionQueries++;
+  else if(['POST','PATCH','DELETE'].includes(options.method))queryMetrics.notionWrites++;
   const uploadOptions=TOKEN==='native'?options:prepareNotionUpload('https://api.notion.com/v1'+endpoint,options);
   const readStarted=Date.now();
   const response = await notionRate.request('https://api.notion.com/v1' + endpoint, {
@@ -555,11 +562,12 @@ function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
+ const readStartedAt=new Date().toISOString();
  let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
  const resumed=!!scan;
  const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||(light?false:collectionNeedsFull(cursor,false)));
  if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
+ if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
  if(resumed)progress.resumedRecords+=scan.loaded||0;
  if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
  const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
@@ -583,7 +591,7 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
  },background?'history':'interactive',scan);
  return read.then(()=>{
   if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||'',fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
+   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
    if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
    else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
   }
@@ -617,7 +625,8 @@ function reconcileSnapshot(scope){
 async function fullSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(true,startedAt,baseUrl,retry,light);}
 async function incrementalSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(false,startedAt,baseUrl,retry,light);}
 
-async function snapshot(full = false, baseUrl = '', fresh=false,retry=false,light=false) {
+function snapshot(full=false,baseUrl='',fresh=false,retry=false,light=false){return queryPolicy.run('equipment',{refresh:full||fresh||retry,cached:()=>snapshotCache?(snapshotCacheBaseUrl===baseUrl?snapshotCache:{...buildSnapshotFromRawCache(baseUrl),sync:snapshotCache.sync}):null,load:()=>snapshotUnbounded(full,baseUrl,fresh,retry,light)});}
+async function snapshotUnbounded(full = false, baseUrl = '', fresh=false,retry=false,light=false) {
   if (snapshotCache && !full && !fresh && snapshotCacheBaseUrl === baseUrl && Date.now() - snapshotCacheAt < SNAPSHOT_CACHE_MS) return snapshotCache;
   if (snapshotInFlight) return snapshotInFlight;
   const startedAt = new Date().toISOString();
@@ -1080,9 +1089,10 @@ function schedulePersonalContainerRepair(id){
  }).catch(()=>{/* Keep pending presentation in INBOX; retry after the next refresh. */}).finally(()=>personalContainerRepairs.delete(id));
 }
 
-async function personalSnapshot(force=false,fresh=false,retry=false,light=false){
+function personalSnapshot(force=false,fresh=false,retry=false,light=false){return queryPolicy.run('personal',{refresh:force||fresh||retry,cached:()=>personalTasksCache,load:()=>personalSnapshotUnbounded(force,fresh,retry,light)});}
+async function personalSnapshotUnbounded(force=false,fresh=false,retry=false,light=false){
  if(!force&&!fresh&&personalTasksCache&&Date.now()-personalTasksCacheAt<5000)return personalTasksCache;
- if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshot(force,fresh,retry,light);}
+ if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshotUnbounded(force,fresh,retry,light);}
  const generation=personalTasksGeneration;personalTasksInFlightGeneration=generation;
  personalTasksInFlight=(async()=>{
   const specs=personalSnapshotSpecs(),failed=specs.filter(x=>personalRaw.cursors[x.key]?.error),selected=retry&&failed.length?failed:specs;
@@ -1098,7 +1108,7 @@ async function personalSnapshot(force=false,fresh=false,retry=false,light=false)
  })().then(result=>result||personalSnapshotAfterMutation(force,fresh,retry,light)).finally(()=>{personalTasksInFlight=null;});
  return personalTasksInFlight;
 }
-async function personalSnapshotAfterMutation(force,fresh,retry,light){personalTasksInFlight=null;return personalSnapshot(force,true,retry,light);}
+async function personalSnapshotAfterMutation(force,fresh,retry,light){personalTasksInFlight=null;return personalSnapshotUnbounded(force,true,retry,light);}
 
 function personalContainerProperties(body, includeName = false) {
   const properties = {
@@ -1388,7 +1398,7 @@ const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
-  if(Date.now()-pomodoroRefreshAt>30000){
+  if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
     if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
@@ -1511,8 +1521,8 @@ function mutationScopes(method,p){
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
-const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000),
- load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
+const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:EXTERNAL_SYNC_MS,
+ load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,false)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),false)):{ok:true,...taskManagement.snapshot()},
  local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
 });
 
@@ -1620,7 +1630,7 @@ const server = http.createServer(async (request, response) => {
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
-    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.64',calendarVersion:'1.1.64',dateRange:true});
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.64',calendarVersion:'1.1.64',dateRange:true,queryFixBuild:QUERY_FIX_BUILD});
 
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
@@ -1733,8 +1743,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/sync-links') {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
-    if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats}});
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS==='1')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
