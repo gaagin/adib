@@ -170,3 +170,48 @@ html.dark body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.
 
 html body.adib-focused-views .adib-completed-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;flex:0 0 18px}
 html body.adib-focused-views .adib-completed-toggle[aria-expanded="false"] svg{transform:rotate(-90deg)}
+
+/* Desktop discussions occupy only the workspace; persistent navigation stays put. */
+@media(min-width:701px){
+ html body.adib-focused-views.adib-side-ready.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay{left:var(--adib-side-width,0px)!important;right:0!important;width:calc(100% - var(--adib-side-width,0px))!important;max-width:calc(100% - var(--adib-side-width,0px))!important}
+}
+
+/* Working task concept 3 and shared undo/FAB presentation. */
+html body.adib-focused-views #adibCompletionUndo{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));left:max(12px,var(--adib-side-width,0px));right:12px;z-index:40000;display:flex;flex-direction:column;gap:8px;max-height:40dvh;overflow:auto;pointer-events:none}
+html body.adib-focused-views .adib-completion-undo{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#273344;color:#edf3ff;border-radius:12px;max-width:520px;align-self:center;pointer-events:auto;font-size:15px}
+html body.adib-focused-views .adib-completion-undo button{border:0;background:transparent;color:#b9ceff;min-height:44px;min-width:80px}
+html body.adib-focused-views .adib-task-fab,html body.adib-focused-views .adib-home-add{width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border-radius:50%!important;background:#4875f5!important;color:white!important;border:0!important;box-shadow:0 4px 12px #203d7b20!important;z-index:1601!important}
+html body.adib-focused-views .adib-task-fab{position:fixed!important;right:16px!important;bottom:calc(74px + env(safe-area-inset-bottom))!important}
+html body.adib-focused-views :is(.adib-task-fab,.adib-home-add)>svg{width:24px!important;height:24px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;display:block!important}
+html body.adib-focused-views .adib-task-fab[hidden]{display:none!important}
+@media(min-width:701px){html body.adib-focused-views .adib-task-fab{bottom:20px!important}html body.adib-focused-views .adib-home-add{position:fixed!important;right:20px!important;bottom:20px!important}}
+html body.adib-focused-views .adib-workflow-panel .adib-concept-head{padding:12px 16px!important;min-height:52px!important;border-bottom:1px solid var(--line)}
+html body.adib-focused-views .adib-workflow-panel .adib-concept-main{padding:16px!important}
+html body.adib-focused-views .adib-workflow-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+html body.adib-focused-views .adib-workflow-meta button{min-height:44px!important;min-width:0!important;border:0!important;font-size:14px!important}
+html body.adib-focused-views .adib-workflow-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);margin:16px 0}
+html body.adib-focused-views .adib-workflow-plan{font-size:20px;margin:0 0 12px}
+html body.adib-focused-views .adib-workflow-card :is(#personalOpenPomodoro,.adib-work-panel button){min-height:44px!important}
+html body.adib-focused-views .adib-workflow-card #personalOpenPomodoro{width:100%!important;background:#4875f5!important;color:white!important;font-size:16px!important}
+html body.adib-focused-views .adib-workflow-subtasks h3{font-size:16px;margin:16px 0 8px}
+html body.adib-focused-views .adib-workflow-subtasks .adib-subtask-check{flex:0 0 44px!important;width:44px!important;height:44px!important;min-height:44px!important;border-radius:8px!important;border:1px solid var(--muted)!important}
+html body.adib-focused-views .adib-workflow-subtasks button:not(.adib-subtask-check){min-height:44px!important;font-size:15px!important}
+html body.adib-focused-views .adib-task-workflow .adib-concept-toolbar{gap:8px;padding:12px 16px!important}
+html body.adib-focused-views .adib-task-workflow .adib-concept-toolbar button{border:1px solid var(--line)!important;border-radius:10px!important;min-height:44px!important;font-size:16px!important}
+html body.adib-focused-views .adib-task-workflow .adib-concept-toolbar .primary{background:#4875f5!important;color:white!important}
+html body.adib-focused-views .adib-task-workflow .adib-concept-description{border-radius:12px!important;padding:12px!important;font-size:16px}
+
+html body.adib-focused-views .calendar-time-day{background:repeating-linear-gradient(to bottom,transparent 0px,transparent calc(var(--calendar-hour-height,80px)/2 - 1px),var(--soft) calc(var(--calendar-hour-height,80px)/2 - 1px),var(--soft) calc(var(--calendar-hour-height,80px)/2),transparent calc(var(--calendar-hour-height,80px)/2),transparent calc(var(--calendar-hour-height,80px) - 1px),var(--line) calc(var(--calendar-hour-height,80px) - 1px),var(--line) var(--calendar-hour-height,80px))!important}
+html body.adib-focused-views .calendar-scale-controls{display:flex;gap:8px;align-items:center}
+html body.adib-focused-views .calendar-scale-controls button{min-width:44px;min-height:44px}
+html body.adib-focused-views #adibCalendar[data-calendar-view=month] .calendar-scale-controls{display:none!important}
+html body.adib-focused-views .calendar-scale-controls::before{content:'Şaquli miqyas';color:var(--muted);font-size:14px}
+
+html body.adib-focused-views .adib-workflow-panel .adib-personal-timer{border:0!important;padding:0!important;margin:12px 0 0!important;background:transparent!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
+html body.adib-focused-views .adib-workflow-panel .adib-workspace-timer-start{grid-column:1 / -1!important;min-height:44px!important;width:100%!important;margin:0!important;font-size:16px!important;border-radius:10px!important}
+html body.adib-focused-views .adib-workflow-panel .adib-workspace-timer-feedback:empty{display:none!important}
+html body.adib-focused-views .adib-workflow-panel .adib-concept-title input:focus{outline:0!important;background:transparent!important}
+html body.adib-focused-views .adib-workflow-panel .adib-concept-footer:has(.adib-autosave-status){padding:4px 16px!important;font-size:11px!important}
+
+html body.adib-focused-views .adib-workflow-title{font-size:24px!important;line-height:1.3!important;font-weight:600!important;margin:8px 0!important;overflow-wrap:anywhere;cursor:pointer}
+html body.adib-focused-views .adib-workflow-description{margin:18px 0 8px;cursor:pointer}.adib-workflow-description h3{font-size:16px!important}.adib-workflow-description p{font-size:16px;line-height:1.5;white-space:pre-wrap}
