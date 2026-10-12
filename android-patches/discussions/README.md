@@ -1,0 +1,2 @@
+# Android 2.5.72 source patch
+Apply to the 2.5.71 source project (for 2.5.70, apply android-patches/local-work-window first). Copy the five main Java files into app/src/main/java/com/adib/maintenance/ and the tests into app/src/test/java/com/adib/maintenance/. Set versionCode 122 and versionName 2.5.72-discussions in app/build.gradle. Sign with the existing ADIB signer. This is a source patch, not a standalone Gradle project. No credentials are included. See DISCUSSIONS-UPDATE.md for server deployment and behavior.

@@ -1,0 +1,12 @@
+body.adib-discussions-fullscreen{overflow:hidden}
+body.adib-discussions-fullscreen #adibChatOverlay{padding:0!important;inset:0!important;z-index:5000!important;background:var(--surface)}
+body.adib-discussions-fullscreen #adibChatOverlay .adib-chat-window{width:100%!important;height:100dvh!important;max-height:100dvh!important;border:0!important;border-radius:0!important;box-shadow:none!important;box-sizing:border-box}
+body.adib-discussions-fullscreen .adib-chat-head,body.adib-discussions-fullscreen .adib-chat-conversation-head{padding-top:max(12px,env(safe-area-inset-top));min-height:56px}
+body.adib-discussions-fullscreen .adib-chat-compose{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+body.adib-discussions-fullscreen .adib-chat-conversation-head button,body.adib-discussions-fullscreen .adib-chat-head button{min-width:44px;min-height:44px}
+body.adib-discussions-fullscreen .adib-chat-conversation-head button[hidden]{display:none!important}
+.adib-discussion-tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--line);padding:0 8px;gap:4px;overflow-x:auto}
+.adib-discussion-tabs button{min-height:44px;padding:8px 12px;background:transparent;color:var(--text);border:0;border-bottom:3px solid transparent;border-radius:0;font:inherit;font-size:14px;white-space:nowrap}
+.adib-discussion-tabs button[aria-pressed=true]{color:var(--blue,#2783de);border-bottom-color:var(--blue,#2783de);font-weight:600}
+.adib-employee-picker{width:min(480px,calc(100vw - 32px));max-height:85dvh;padding:24px;background:var(--surface,#fff);color:var(--text,#2c2c2b);border:1px solid var(--line,#e6e5e3);border-radius:12px}
+.adib-employee-picker::backdrop{background:#0007}.adib-employee-picker h2{margin:0 0 16px;font-size:22px}.adib-employee-picker input{width:100%;min-height:44px;margin-bottom:16px;padding:8px;font:inherit;box-sizing:border-box}.adib-employee-picker>div{max-height:50dvh;overflow:auto}.adib-employee-picker button{display:block;width:100%;min-height:44px;margin:4px 0;padding:8px 12px;font:inherit;text-align:left;border:1px solid var(--line,#e6e5e3);border-radius:8px;background:var(--surface,#fff);color:inherit}

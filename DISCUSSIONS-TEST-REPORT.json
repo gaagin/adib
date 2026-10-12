@@ -1,0 +1,171 @@
+{
+  "android": {
+    "total": 96,
+    "failures": 0,
+    "errors": 0
+  },
+  "node_security_tests": 8,
+  "browser_tests": [
+    {
+      "file": "browser-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "fullscreen class",
+          "ok": true
+        },
+        {
+          "name": "three filter tabs",
+          "ok": true
+        },
+        {
+          "name": "tasks and employees in one list",
+          "ok": true
+        },
+        {
+          "name": "uses entire viewport",
+          "ok": true
+        },
+        {
+          "name": "task hidden on employee tab",
+          "ok": true
+        },
+        {
+          "name": "no task-link for employee",
+          "ok": true
+        },
+        {
+          "name": "employee messages rendered",
+          "ok": true
+        },
+        {
+          "name": "direct composer 4000 characters",
+          "ok": true
+        },
+        {
+          "name": "direct send completed",
+          "ok": true
+        },
+        {
+          "name": "sent draft cleared",
+          "ok": true
+        },
+        {
+          "name": "fullscreen removed on close",
+          "ok": true
+        },
+        {
+          "name": "overlay hidden on close",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "browser-tests.html",
+      "width": 390,
+      "rows": [
+        {
+          "name": "fullscreen class",
+          "ok": true
+        },
+        {
+          "name": "three filter tabs",
+          "ok": true
+        },
+        {
+          "name": "tasks and employees in one list",
+          "ok": true
+        },
+        {
+          "name": "uses entire viewport",
+          "ok": true
+        },
+        {
+          "name": "task hidden on employee tab",
+          "ok": true
+        },
+        {
+          "name": "no task-link for employee",
+          "ok": true
+        },
+        {
+          "name": "employee messages rendered",
+          "ok": true
+        },
+        {
+          "name": "direct composer 4000 characters",
+          "ok": true
+        },
+        {
+          "name": "direct send completed",
+          "ok": true
+        },
+        {
+          "name": "sent draft cleared",
+          "ok": true
+        },
+        {
+          "name": "fullscreen removed on close",
+          "ok": true
+        },
+        {
+          "name": "overlay hidden on close",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "browser-windows-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "Windows is not fullscreen",
+          "ok": true
+        },
+        {
+          "name": "Windows has no employee tabs",
+          "ok": true
+        },
+        {
+          "name": "Windows makes no employee requests",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "compression-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "source is larger than 200 KB",
+          "ok": true
+        },
+        {
+          "name": "comment photo <=150 KB",
+          "ok": true
+        },
+        {
+          "name": "uploaded JPEG has correct name and MIME",
+          "ok": true
+        },
+        {
+          "name": "aspect ratio preserved",
+          "ok": true
+        },
+        {
+          "name": "small image not inflated",
+          "ok": true
+        },
+        {
+          "name": "invalid image rejected",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "pwa_login_check": "Manifest and HTTPS service worker registration added, icons verified HTTP 200 on published site. Actual phone installation not verified until deployment.",
+  "visual_qa": "PNG captures and layout diagnostics generated. Image inspection tool unavailable (computer_helper_failed); manual visual QA not claimed.",
+  "apk_sha256": "8ef31616fa6d485d37a9cbc6265e7f3c0cac174e06ef6358165924ca18555c47",
+  "zip_sha256": "98326a455b10f86974bfefd7328a09e9eccaf8205beeceaf8e40377f7c9a5843",
+  "node_regression_tests": 8
+}
