@@ -143,3 +143,30 @@ html body.adib-focused-views.adib-window-overlay #taskModal.open.kanban-modal{to
 }
 html body.adib-focused-views.adib-window-overlay .tm-layer{top:var(--adib-window-inset)!important;max-height:calc(100dvh - var(--adib-window-inset))!important}
 html body.adib-focused-views.adib-window-overlay .tm-layer .tm-panel{max-height:calc(100dvh - var(--adib-window-inset) - 24px)!important}
+
+/* Quiet task rows matching the requested reference; original handlers retained. */
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{padding:12px 4px!important;border:0!important;border-radius:18px!important;box-shadow:none!important;gap:0!important;grid-template-columns:44px minmax(0,1fr) 36px!important}
+html body.adib-focused-views .adib-design-group .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{padding:12px 0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-title{font-size:17px!important;line-height:1.4!important;font-weight:400!important;overflow-wrap:break-word!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-meta,html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip:not(.worker):not(.date){display:none!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chips{margin-top:6px!important;gap:6px!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.worker{font-size:13px!important;background:#f7c8e5!important;color:#55374d!important;border-radius:14px!important;padding:4px 10px!important}
+html.dark body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.worker{background:#513b4b!important;color:#f6d7e9!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.date{font-size:13px!important;background:transparent!important;padding:2px 0!important;color:#707680!important;border-radius:0!important}
+html.dark body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.date{color:#a8afbc!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-task-check{color:#8a8f98!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card[class*="done"] .adib-card-title,html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.completed .adib-card-title{color:#707680!important;text-decoration:none!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-task-check[aria-checked="true"]{color:#707680!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-timer:not(:has(.task-pomodoro-live,.task-pomodoro-feedback:not(:empty),.adib-card-feedback:not(:empty))){display:none!important}
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-timer .task-pomodoro-totals,html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-totals{display:none!important}
+html body.adib-focused-views .adib-completed-toggle{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;border:0!important;background:transparent!important;color:#707680!important;font-size:15px!important;text-align:left;padding:4px!important}
+html body.adib-focused-views .adib-completed-toggle small{margin-left:auto}
+html body.adib-focused-views .adib-completed-collapsed .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{display:none!important}
+@media(max-width:700px){html body.adib-focused-views .adib-design-group{border-radius:22px!important;padding:12px 8px!important}html body.adib-focused-views .adib-home-list{padding-left:12px!important;padding-right:12px!important}}
+
+html body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card:has(.adib-task-check[aria-checked="true"]) .adib-card-title{color:#707680!important;text-decoration:none!important}
+html.dark body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card:has(.adib-task-check[aria-checked="true"]) .adib-card-title{color:#a8afbc!important}
+html.dark body.adib-focused-views .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-task-check{color:#a8afbc!important}
+
+html body.adib-focused-views .adib-completed-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;flex:0 0 18px}
+html body.adib-focused-views .adib-completed-toggle[aria-expanded="false"] svg{transform:rotate(-90deg)}
