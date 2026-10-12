@@ -6,7 +6,15 @@ const { URL } = require('node:url');
 const crypto = require('node:crypto');
 const {RealtimeHub}=require('./realtime-server');
 const {NotionRateGate}=require('./notion-rate');
-const notionRate=new NotionRateGate();
+const notionRate=new NotionRateGate({fetchFn:async(url,options)=>{
+ queryMetrics.notionApiAttempts++;
+ const parsed=new URL(url),method=options.method||'GET';
+ if(parsed.pathname.endsWith('/query'))queryMetrics.queryAttempts++;
+ else if(method==='GET'&&parsed.pathname==='/v1/comments')queryMetrics.commentReadAttempts++;
+ else if(method==='GET')queryMetrics.otherReadAttempts++;
+ else queryMetrics.writeAttempts++;
+ const result=await fetch(url,options);if(result.status===429)queryMetrics.rateLimitResponses++;return result;
+}});
 
 loadDotEnv(path.join(__dirname, '.env'));
 
@@ -17,11 +25,13 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-query-policy-v2';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
-const queryMetrics={notionQueries:0,notionWrites:0};
+const queryMetrics={notionQueries:0,notionWrites:0,notionApiAttempts:0,queryAttempts:0,commentReadAttempts:0,otherReadAttempts:0,writeAttempts:0,rateLimitResponses:0};
+const {ReadCache}=require('./read-cache');
+const commentReads=new ReadCache(),authorReads=new ReadCache();
 const NOTION_VERSION = process.env.NOTION_VERSION || '2025-09-03';
 const PLAN_DB = cleanId(process.env.PLAN_DATABASE_ID);
 const MAKINA_DB = cleanId(process.env.MAKINA_DATABASE_ID);
@@ -132,7 +142,8 @@ async function resolveCommentAuthor(comment) {
   if (!mapped.authorId || (comment.created_by?.type === 'bot' && /^\[([^\]]{1,120})\]\s/.test(commentText(comment)))) return mapped;
   if (comment.created_by?.name) return mapped;
   try {
-    const user = await notion('/users/' + encodeURIComponent(mapped.authorId), { method: 'GET' });
+    const cached=await authorReads.read(mapped.authorId,{ttlMs:1800000,load:()=>notion('/users/'+encodeURIComponent(mapped.authorId),{method:'GET'})});
+    const user=cached.value;
     mapped.authorName = user.name || mapped.authorName;
   } catch (error) {
     console.warn('Comment author lookup failed:', mapped.authorId, error.message);
@@ -140,12 +151,20 @@ async function resolveCommentAuthor(comment) {
   return mapped;
 }
 
-async function listTaskComments(body) {
-  const pageId = cleanId(String(body.id || '').trim());
-  if (!pageId) throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
-  const result = await notion('/comments?block_id=' + encodeURIComponent(pageId), { method: 'GET' });
-  const comments = await Promise.all((result.results || []).map(resolveCommentAuthor));
-  return { ok: true, id: pageId, comments };
+async function cachedTaskComments(pageId,foreground=false){
+ return commentReads.read(accountKey(pageId),{ttlMs:foreground?30000:300000,load:async()=>{
+  const items=[];let cursor=null;const seen=new Set();
+  do{const result=await notion('/comments?block_id='+encodeURIComponent(pageId)+(cursor?'&start_cursor='+encodeURIComponent(cursor):''),{method:'GET'});
+   items.push(...(result.results||[]));cursor=result.has_more?result.next_cursor:null;
+   if(result.has_more&&!cursor)throw Error('Missing comments pagination cursor');
+   if(cursor&&seen.has(cursor))throw Error('Repeated comments cursor');if(cursor)seen.add(cursor);
+  }while(cursor);
+  return (await Promise.all(items.map(resolveCommentAuthor))).sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
+ }});
+}
+async function listTaskComments(body){
+ const pageId=cleanId(String(body.id||'').trim());if(!pageId)throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
+ const result=await cachedTaskComments(pageId,true);return {ok:true,id:pageId,comments:result.value,...(result.stale?{stale:true,error:result.error}: {})};
 }
 
 async function requestedCommentAuthor(body) {
@@ -175,7 +194,8 @@ async function addTaskComment(body) {
       rich_text: [{ type: 'text', text: { content: storedText } }],...(attachments.length?{attachments}:{})
     })
   });
-  return { ok: true, comment: await resolveCommentAuthor(comment), savedAt: new Date().toISOString() };
+  const mapped=await resolveCommentAuthor(comment);commentReads.append(accountKey(pageId),mapped);
+  return {ok:true,comment:mapped,savedAt:new Date().toISOString()};
 }
 
 function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Etibarsızdır ID '),{statusCode:400});return id}
@@ -198,38 +218,36 @@ async function listChatThreads(body) {
       machineName: String(item?.machineName || '').trim().slice(0, 160)
     } : null];
   }).filter(([id, item]) => id && item))].map(([, item]) => item).slice(0, 120);
-  const threads = [];
+  const threads = [],errors=[];
   // Keep Notion API pressure low; two concurrent comment requests at a time.
   for (let i = 0; i < tasks.length; i += 2) {
     const batch = await Promise.all(tasks.slice(i, i + 2).map(async task => {
       try {
-        const result = await notion('/comments?block_id=' + encodeURIComponent(task.id), { method: 'GET' });
-        const comments = (await Promise.all((result.results || []).map(resolveCommentAuthor))).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        const result=await cachedTaskComments(task.id);const comments=result.value;if(result.stale)errors.push({taskId:task.id,error:result.error});
         return comments.length ? { taskId: task.id, title: task.title, source: task.source, machineName: task.machineName, comments } : null;
       } catch (error) {
-        console.warn('Chat thread lookup failed:', task.id, error.message);
+        errors.push({taskId:task.id,error:error.message});console.warn('Chat thread lookup failed:',task.id,error.message);
         return null;
       }
     }));
     threads.push(...batch.filter(Boolean));
   }
   threads.sort((a, b) => String(b.comments.at(-1)?.createdAt || '').localeCompare(String(a.comments.at(-1)?.createdAt || '')));
-  return { ok: true, threads };
+  return {ok:true,threads,...(errors.length?{partial:true,errors}: {})};
 }
 
 async function listCommentNotifications(body) {
   const rawIds = Array.isArray(body.ids) ? body.ids : String(body.ids || '').split(',');
   const ids = [...new Set(rawIds.map(value => cleanId(String(value || '').trim())).filter(Boolean))].slice(0, 120);
-  const comments = [];
+  const comments=[],errors=[];
   for (const taskId of ids) {
     try {
-      const result = await notion('/comments?block_id=' + encodeURIComponent(taskId), { method: 'GET' });
-      for (const item of result.results || []) comments.push({ ...(await resolveCommentAuthor(item)), taskId });
+      const result=await cachedTaskComments(taskId);if(result.stale)errors.push({taskId,error:result.error});for(const item of result.value)comments.push({...item,taskId});
     } catch (error) {
-      console.warn('Comment notification lookup failed:', taskId, error.message);
+      errors.push({taskId,error:error.message});console.warn('Comment notification lookup failed:',taskId,error.message);
     }
   }
-  return { ok: true, comments };
+  return {ok:true,comments,...(errors.length?{partial:true,errors}: {})};
 }
 
 // Schema-only reads: never scan task pages or alter Notion data.
@@ -1743,7 +1761,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/sync-links') {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
-    if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats}});
+    if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats},commentCache:{...commentReads.stats},authorCache:{...authorReads.stats}});
     if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS==='1')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');

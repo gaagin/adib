@@ -12,7 +12,16 @@ class WorkTimerStore{
  async setup(actor){if(actor?.role!=='admin')throw fail('Yalnız administrator',403);for(const source of this.sources())await this.schema(source,source.ds,true);return {ok:true,field:FIELD};}
  total(id){const t=this.data.tasks[key(id)];return Math.round(((t?.baseSeconds||0)+this.data.sessions.filter(s=>key(s.taskId)===key(id)&&s.status==='saved').reduce((n,s)=>n+s.seconds,0))/60*1000)/1000;}
  snapshot(actor,allowed){const sessions=this.data.sessions.filter(s=>allowed(s.taskId));return {ok:true,serverNow:this.now(),revision:this.data.revision,sessions:structuredClone(sessions),own:sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'),totals:Object.fromEntries(Object.values(this.data.tasks).filter(t=>allowed(t.id)).map(t=>[t.id,this.total(t.id)])),syncPending:Object.values(this.data.tasks).filter(t=>t.dirty&&allowed(t.id)).map(t=>t.id),field:FIELD};}
- async flush(){if(this.flushing)return this.flushing;this.flushing=(async()=>{for(const row of Object.values(this.data.tasks)){if(!row.dirty)continue;const id=row.id,total=this.total(id);try{await this.notion('/pages/'+id,{method:'PATCH',body:JSON.stringify({properties:{[FIELD]:{number:total}}})});await this.locked(()=>{const t=this.data.tasks[key(id)];if(this.total(id)===total)this.commit(()=>{t.dirty=false;delete t.syncError;});});}catch(e){await this.locked(()=>{const t=this.data.tasks[key(id)];if(t){t.syncError=String(e.message).slice(0,300);this.save();}});}}})().finally(()=>this.flushing=null);return this.flushing;}
+ async flush(){if(this.flushing)return this.flushing;this.flushing=(async()=>{
+ for(const row of Object.values(this.data.tasks)){
+  if(!row.dirty)continue;const id=row.id,total=this.total(id),at=Date.now();
+  if(row.retryTotal===total&&at<(row.retryAt||0))continue;
+  try{
+   if(row.lastSyncedMinutes!==total)await this.notion('/pages/'+id,{method:'PATCH',body:JSON.stringify({properties:{[FIELD]:{number:total}}})});
+   await this.locked(()=>{const t=this.data.tasks[key(id)];this.commit(()=>{t.lastSyncedMinutes=total;if(this.total(id)===total){t.dirty=false;delete t.syncError;delete t.retryAt;delete t.retryTotal;delete t.syncFailures;}});});
+  }catch(e){await this.locked(()=>{const t=this.data.tasks[key(id)];if(t){t.syncError=String(e.message).slice(0,300);t.syncFailures=t.retryTotal===total?(t.syncFailures||0)+1:1;t.retryTotal=total;t.retryAt=Date.now()+Math.min(1800000,60000*2**Math.min(t.syncFailures-1,5));this.save();}});}
+ }
+ })().finally(()=>this.flushing=null);return this.flushing;}
  async action(b,actor,task,provided){let prepared;
  if(b.action==='continue'){
  const token=String(b.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(token))throw fail('Əməliyyat ID-si tələb olunur');
