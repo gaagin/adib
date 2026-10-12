@@ -1,57 +1,58 @@
 {
   "baseVersion": "1.1.64",
-  "build": "1.1.64-cost-control-v3-browser-sessions-v2",
+  "build": "1.1.64-cost-control-v3-auto-countdown-v3",
   "tests": {
-    "passed": 69,
+    "passed": 77,
     "failed": 0,
-    "syntax": "server/modules and 10 inline HTML scripts passed"
+    "syntax": "modules and 10 HTML inline scripts passed"
   },
-  "scope": [
-    "local HTTP server with mocked external services",
-    "durable session/journal and retry tests",
-    "actual HTML timer adapter with local service",
-    "real projection function with mocked permissions",
-    "local Chromium PiP with fixture adapter"
-  ],
   "browser": {
     "capabilities": {
       "secure": true,
-      "pip": true,
-      "button": true
+      "pip": true
     },
     "opened": {
       "open": true,
-      "kind": "pip",
-      "title": "Test task",
+      "compact": true,
       "width": 240,
-      "height": 128,
-      "compact": true
+      "height": 44,
+      "text": "18:42",
+      "buttons": 0
+    },
+    "expanded": {
+      "compact": false,
+      "width": 295,
+      "height": 301,
+      "title": "Test task",
+      "scrollHeight": 301,
+      "outerWidth": 303,
+      "outerHeight": 395
     },
     "checks": [
-      "injected button click opens real Document Picture-in-Picture",
-      "rendered title",
-      "finish/new start invokes existing adapter",
-      "compact window opens small and resizes on user click",
+      "automatic PiP requested from Start click before async response",
+      "tiny content contains only countdown, no buttons/title",
+      "click expands same floating window",
+      "early finish available in expanded view",
+      "clock click collapses back",
       "local UI tick",
-      "close does not send timer command"
+      "close sends no timer command"
     ],
-    "scope": "Local Chromium headless, fixture adapter; not live deployment or Windows OS always-on-top behavior"
+    "scope": "Local headless Chromium with fixture adapter; not production Windows browser"
   },
   "visualQA": {
-    "mini240x128": "PASS: readable clock and finish, intentional title ellipsis",
-    "expanded": "PASS: readable stats, controls and hint",
-    "miniError": "PASS: readable error below controls",
-    "history": "PASS: mixed types, completed muted, independent pending state",
-    "dayDesktopAndNarrow": "PASS: readable session styling; time marker behind text",
-    "week": "PASS after correcting title height; intentional ellipsis",
-    "month": "PASS: day cells scroll for multiple sessions",
-    "dark": "PASS: muted completion without fading text"
+    "mini240x44": "PASS: only 14px countdown; no buttons or title; no overflow",
+    "waiting240x44": "PASS: centered waiting indicator",
+    "expanded295x301": "PASS: title/clock/controls/stats readable; no overlap or overflow"
   },
-  "storage": "existing POMODORO_STATE_FILE now includes sessions/jobs; persistent volume and one active replica required",
+  "preserved": "V2 session history/calendar/backoff and all cost-control test suites",
+  "limitations": [
+    "browser-owned PiP security/address panel cannot be hidden by page code",
+    "minimum width/height controlled by browser; observed 240x44 inner area",
+    "automatic opening requires Start user gesture; not background/device-triggered start"
+  ],
   "notVerified": [
     "production deployment",
-    "real Notion/authorized multi-user end-to-end",
-    "mixed old native/new browser control of same session",
-    "Windows OS always-on-top, sleep and notifications"
+    "real Notion/accounts",
+    "Windows always-on-top behavior and notification/sleep cases"
   ]
 }
