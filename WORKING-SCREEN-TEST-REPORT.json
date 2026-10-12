@@ -1,0 +1,21 @@
+{
+  "android": {
+    "tests": 96,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "browser": [
+    "working-screen390/1280",
+    "five-second cancel/commit",
+    "distinct matrix completion IDs",
+    "saved week/three/day scale",
+    "sidebar1280 and PWA900 and phone390",
+    "old card regression and native Windows guard"
+  ],
+  "nodeTests": 24,
+  "apkSha256": "c2bdf0cee63a5238b7f916111ccc9fc2408a6b61099398f6ca1bd67b859cf967",
+  "zipSha256": "661ff257682af4ad605b0470dcc202c0fa0ad8e72bcf06dd6bee5ff4201809b8",
+  "physicalDeviceTested": false,
+  "liveDeploymentVerified": false
+}
