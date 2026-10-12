@@ -11,9 +11,7 @@ const notionRate=new NotionRateGate();
 loadDotEnv(path.join(__dirname, '.env'));
 
 const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
-const {DirectChats}=require('./direct-chats');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
-const directChats=new DirectChats({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'direct-chats.json')});
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -557,12 +555,11 @@ function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
- const readStartedAt=new Date().toISOString();
  let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
  const resumed=!!scan;
  const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||(light?false:collectionNeedsFull(cursor,false)));
  if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
+ if(!scan)scan={isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
  if(resumed)progress.resumedRecords+=scan.loaded||0;
  if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
  const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
@@ -586,7 +583,7 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
  },background?'history':'interactive',scan);
  return read.then(()=>{
   if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
+   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||'',fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
    if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
    else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
   }
@@ -1391,7 +1388,7 @@ const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
-  if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
+  if(Date.now()-pomodoroRefreshAt>30000){
     if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
@@ -1514,11 +1511,8 @@ function mutationScopes(method,p){
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
-const {SyncReadGuard}=require('./sync-read-guard');
-const externalSyncMs=TOKEN==='native'?Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000):Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
-const externalReads=new SyncReadGuard({intervalMs:externalSyncMs});
-const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:externalSyncMs,
- load:async scope=>externalReads.read(scope,async()=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},async()=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}),
+const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000),
+ load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
  local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
 });
 
@@ -1544,7 +1538,6 @@ async function accountTask(u,id,kind){
 async function accountAuthorize(req,res,url,u,b){
  res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
  const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
- if(p==='/api/chat-users'||p==='/api/direct-chats'){if(!accounts.section(u,'chat'))deny();if(p==='/api/chat-users')return;if(method==='GET'){const peerId=url.searchParams.get('with');if(peerId&&!accounts.chatUser(peerId))deny();return;}if(method==='POST'){need('comment');const peerId=String(b.recipientId||'');if(!accounts.chatUser(peerId))deny();if(peerId===u.id)throw accessError('Özünüzə yaza bilməzsiniz',400);return;}deny();}
  const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
  if(scopes[p])res.__accountScope=scopes[p];
  if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
@@ -1622,7 +1615,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["compact-design.css","compact-design.js","local-timer-visibility.js","task-concept.js","task-concept.css","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
@@ -1662,9 +1655,6 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       return json(response, 200, await listChatThreads(body));
     }
-    if(request.method==='GET'&&url.pathname==='/api/chat-users'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const u=response.__account;return json(response,200,{ok:true,users:await accounts.chatUsers(u)});}
-    if(request.method==='GET'&&url.pathname==='/api/direct-chats'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const u=response.__account,peerId=url.searchParams.get('with')||'';if(peerId){const peer=accounts.chatUser(peerId);if(!peer)throw accessError('Əməkdaş tapılmadı');return json(response,200,{ok:true,...directChats.messages(u.id,peer.id,peer.name)});}return json(response,200,{ok:true,chats:directChats.list(u.id,id=>accounts.chatUser(id)?.name||'Əməkdaş')});}
-    if(request.method==='POST'&&url.pathname==='/api/direct-chats'){if(!accounts.enabled)throw accessError('Şəxsi söhbətlər üçün istifadəçi hesabı tələb olunur',403);const b=await readBody(request),u=response.__account,peer=accounts.chatUser(b.recipientId);if(!peer)throw accessError('Əməkdaş tapılmadı');return json(response,201,{ok:true,message:directChats.send(u,peer.id,b.text)});}
     if (request.method === 'POST' && url.pathname === '/api/comment-notifications') {
       const body = await readBody(request);
       return json(response, 200, await listCommentNotifications(body));
