@@ -1,6 +1,6 @@
 {
   "baseVersion": "1.1.64",
-  "build": "1.1.64-cost-control-v3-auto-countdown-v3",
+  "build": "1.1.64-cost-control-v3-auto-countdown-v4",
   "tests": {
     "passed": 77,
     "failed": 0,
@@ -40,9 +40,9 @@
     "scope": "Local headless Chromium with fixture adapter; not production Windows browser"
   },
   "visualQA": {
-    "mini240x44": "PASS: only 14px countdown; no buttons or title; no overflow",
-    "waiting240x44": "PASS: centered waiting indicator",
-    "expanded295x301": "PASS: title/clock/controls/stats readable; no overlap or overflow"
+    "mini240x44": "PASS: larger adaptive countdown without overflow",
+    "longCountdown": "PASS: 180:00 fits in 240x44",
+    "expandedView": "unchanged from V3"
   },
   "preserved": "V2 session history/calendar/backoff and all cost-control test suites",
   "limitations": [
@@ -54,5 +54,15 @@
     "production deployment",
     "real Notion/accounts",
     "Windows always-on-top behavior and notification/sleep cases"
-  ]
+  ],
+  "fontUpdate": {
+    "scope": "compact view CSS only; start/resize/controller/session logic unchanged",
+    "fontAt240x44": "32px, previously 14px",
+    "padding": "4px",
+    "visualChecks": [
+      "18:42 at 240x44: PASS, no overflow/clipping",
+      "180:00 at 240x44: PASS, no overflow/clipping"
+    ],
+    "browserApi": "automatic PiP and expansion tested in V3; API/controller code unchanged in V4"
+  }
 }
