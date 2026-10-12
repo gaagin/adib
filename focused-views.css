@@ -110,3 +110,36 @@ html body.adib-focused-views #adibChatOverlay [data-chat-search]{min-height:44px
  html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-title{width:100%!important;max-width:none!important;padding:0!important;box-sizing:border-box!important;text-align:left!important}
 }
 @media(max-width:700px){html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-task-card{grid-template-columns:44px minmax(0,1fr)!important;column-gap:6px!important}}
+
+/* Settings are outside the hidden legacy workspace header. */
+html body.adib-focused-views #adibSettingsMenu.adib-settings-portal{position:fixed!important;z-index:25000!important;overflow:auto!important;box-sizing:border-box!important}
+html body.adib-focused-views .adib-settings-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+html body.adib-focused-views [data-settings-close]{min-width:44px;min-height:44px;font-size:20px}
+/* Reserve a full safe strip, not a guessed right margin, across ALL views. */
+html body.adib-focused-views.adib-window-overlay{padding-top:var(--adib-window-inset)!important;box-sizing:border-box!important}
+html body.adib-focused-views.adib-window-overlay #adibPersistentSide,
+html body.adib-focused-views.adib-window-overlay #adibHome,
+html body.adib-focused-views.adib-window-overlay #adibCalendar,
+html body.adib-focused-views.adib-window-overlay :is(.personal-kanban-modal,.personal-eisenhower-modal),
+html body.adib-focused-views.adib-window-overlay.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay{top:var(--adib-window-inset)!important;height:calc(100dvh - var(--adib-window-inset))!important;max-height:calc(100dvh - var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay :is(.personal-kanban-dialog,.personal-eisenhower-dialog),
+html body.adib-focused-views.adib-window-overlay.adib-discussions-fullscreen #adibChatOverlay .adib-chat-window{height:calc(100dvh - var(--adib-window-inset))!important;max-height:calc(100dvh - var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay #taskModal.adib-home-docked.open{top:calc(52px + var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay #taskModal.adib-properties-expanded.open{top:var(--adib-window-inset)!important;height:calc(100dvh - var(--adib-window-inset))!important}
+
+html body.adib-focused-views.adib-window-overlay>.app{height:calc(100dvh - var(--adib-window-inset))!important;min-height:0!important}
+html body.adib-focused-views.adib-window-overlay #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader{top:var(--adib-window-inset)!important}
+html body.adib-focused-views #adibSettingsMenu [data-settings-close]{min-height:44px!important;min-width:44px!important}
+html body.adib-focused-views.adib-window-overlay>.app{top:var(--adib-window-inset)!important}
+html body.adib-focused-views.adib-window-overlay::before{content:"";position:fixed;inset:0 0 auto;height:var(--adib-window-inset);z-index:30000;background:var(--bg);-webkit-app-region:drag;app-region:drag}
+html body.adib-focused-views.adib-window-overlay.adib-side-ready:not(.adib-home-open) #layout{top:calc(var(--adib-workspace-head-height,52px) + var(--adib-window-inset))!important;height:calc(100dvh - var(--adib-workspace-head-height,52px) - var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay .adib-day-workspace{top:var(--adib-window-inset)!important}
+html body.adib-focused-views.adib-window-overlay .adib-day-workspace .tm-panel{height:calc(100dvh - var(--adib-window-inset))!important;max-height:calc(100dvh - var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay #taskModal.open.kanban-modal{top:calc(var(--adib-workspace-head-height,52px) + var(--adib-window-inset))!important;height:calc(100dvh - var(--adib-workspace-head-height,52px) - var(--adib-window-inset))!important}
+@media(max-width:700px){
+ html body.adib-focused-views.adib-window-overlay :is(.personal-kanban-dialog,.personal-eisenhower-dialog),
+ html body.adib-focused-views.adib-window-overlay.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay,
+ html body.adib-focused-views.adib-window-overlay.adib-discussions-fullscreen #adibChatOverlay .adib-chat-window{height:calc(100dvh - var(--adib-window-inset) - 58px - env(safe-area-inset-bottom))!important;max-height:calc(100dvh - var(--adib-window-inset) - 58px - env(safe-area-inset-bottom))!important}
+}
+html body.adib-focused-views.adib-window-overlay .tm-layer{top:var(--adib-window-inset)!important;max-height:calc(100dvh - var(--adib-window-inset))!important}
+html body.adib-focused-views.adib-window-overlay .tm-layer .tm-panel{max-height:calc(100dvh - var(--adib-window-inset) - 24px)!important}

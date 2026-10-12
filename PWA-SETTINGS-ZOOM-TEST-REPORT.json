@@ -1,0 +1,47 @@
+{
+  "android": {
+    "tests": 60,
+    "failures": 0,
+    "errors": 0
+  },
+  "node": {
+    "tests": 16,
+    "failures": 0
+  },
+  "apk": {
+    "versionCode": 124,
+    "versionName": "2.5.74-settings-zoom",
+    "sha256": "5743081a246356b74ee9ac405316fe3b1ff5a3227d3e3a20885a61fedc8952a6",
+    "signer": "76994dac75f25c7a2425bf235416f46d1db9669bbf194209cbfa8577532d56d3"
+  },
+  "limitations": [
+    "OS-level installed PWA title bar simulated, not physically tested",
+    "Android physical installation and gestures not tested"
+  ],
+  "browser": {
+    "screenGroups": 11,
+    "passed": true,
+    "widths": [
+      390,
+      1280
+    ],
+    "overlayHeightSimulated": 40,
+    "settingsPopupBounds": true,
+    "overlayViews": [
+      "home",
+      "calendar",
+      "matrix",
+      "kanban/list",
+      "discussions",
+      "equipment",
+      "day"
+    ],
+    "nativeWindowsGuard": true
+  },
+  "visualReviewed": [
+    "PWA overlay views",
+    "settings popup",
+    "Android equipment fit/zoom",
+    "Android settings"
+  ]
+}
