@@ -1,0 +1,170 @@
+{
+  "android": {
+    "total": 95,
+    "failures": 0,
+    "errors": 0
+  },
+  "node_security_tests": 8,
+  "browser_tests": [
+    {
+      "file": "browser-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "fullscreen class",
+          "ok": true
+        },
+        {
+          "name": "three filter tabs",
+          "ok": true
+        },
+        {
+          "name": "tasks and employees in one list",
+          "ok": true
+        },
+        {
+          "name": "uses entire viewport",
+          "ok": true
+        },
+        {
+          "name": "task hidden on employee tab",
+          "ok": true
+        },
+        {
+          "name": "no task-link for employee",
+          "ok": true
+        },
+        {
+          "name": "employee messages rendered",
+          "ok": true
+        },
+        {
+          "name": "direct composer 4000 characters",
+          "ok": true
+        },
+        {
+          "name": "direct send completed",
+          "ok": true
+        },
+        {
+          "name": "sent draft cleared",
+          "ok": true
+        },
+        {
+          "name": "fullscreen removed on close",
+          "ok": true
+        },
+        {
+          "name": "overlay hidden on close",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "browser-tests.html",
+      "width": 390,
+      "rows": [
+        {
+          "name": "fullscreen class",
+          "ok": true
+        },
+        {
+          "name": "three filter tabs",
+          "ok": true
+        },
+        {
+          "name": "tasks and employees in one list",
+          "ok": true
+        },
+        {
+          "name": "uses entire viewport",
+          "ok": true
+        },
+        {
+          "name": "task hidden on employee tab",
+          "ok": true
+        },
+        {
+          "name": "no task-link for employee",
+          "ok": true
+        },
+        {
+          "name": "employee messages rendered",
+          "ok": true
+        },
+        {
+          "name": "direct composer 4000 characters",
+          "ok": true
+        },
+        {
+          "name": "direct send completed",
+          "ok": true
+        },
+        {
+          "name": "sent draft cleared",
+          "ok": true
+        },
+        {
+          "name": "fullscreen removed on close",
+          "ok": true
+        },
+        {
+          "name": "overlay hidden on close",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "browser-windows-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "Windows is not fullscreen",
+          "ok": true
+        },
+        {
+          "name": "Windows has no employee tabs",
+          "ok": true
+        },
+        {
+          "name": "Windows makes no employee requests",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "file": "compression-tests.html",
+      "width": 1200,
+      "rows": [
+        {
+          "name": "source is larger than 200 KB",
+          "ok": true
+        },
+        {
+          "name": "comment photo <=150 KB",
+          "ok": true
+        },
+        {
+          "name": "uploaded JPEG has correct name and MIME",
+          "ok": true
+        },
+        {
+          "name": "aspect ratio preserved",
+          "ok": true
+        },
+        {
+          "name": "small image not inflated",
+          "ok": true
+        },
+        {
+          "name": "invalid image rejected",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "pwa_login_check": "Manifest and HTTPS service worker registration added, icons verified HTTP 200 on published site. Actual phone installation not verified until deployment.",
+  "visual_qa": "PNG captures and layout diagnostics generated. Image inspection tool unavailable (computer_helper_failed); manual visual QA not claimed.",
+  "apk_sha256": "25c1eb0d6dd6ad95ebc0462e19d468d0deea48200e5ea568e7a2718583b67ac2",
+  "zip_sha256": "2d2af2c14ce17f3ecfc7b34ad107789a75be9571b578b620d9e473f5714b781e"
+}

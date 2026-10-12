@@ -20,6 +20,9 @@ loadDotEnv(path.join(__dirname, '.env'));
 
 const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
+const {DirectChats}=require('./direct-chats');
+const {EmployeeChatsAPI}=require('./employee-chats-api');
+const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')})});
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -1623,6 +1626,7 @@ const server = http.createServer(async (request, response) => {
     }
     const url = new URL(request.url, 'http://localhost');
     await accounts.ready;
+    if(employeeChats.routes(url.pathname))return json(response,200,employeeChats.handle(request,url,request.method==='GET'?{}:await readBody(request)));
     if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
       const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE']};
       if(!verbs[url.pathname]?.includes(request.method))throw accessError('Metod icazə verilmir',405);
@@ -1646,7 +1650,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["local-timer-visibility.js","pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["discussions-ui.js","discussions-ui.css","local-timer-visibility.js","pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
