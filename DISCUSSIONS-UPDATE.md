@@ -14,4 +14,4 @@
 Merge only with user approval, deploy Railway, then reload ADIB/PWA and install the separately signed Android 2.5.72 APK over the old app without uninstalling. Download helper: downloads/Download-ADIB-Android-2.5.72.html; save that HTML locally, open it, and click Download ZIP. It embeds the exact verified archive and makes no network requests.
 
 ## Checks
-95 Android tests passed; 8 server/security tests passed; actual Chromium scenarios: desktop/mobile 12 each, Windows exclusion 3, real image compression 6. Test report contains full details. Capture/layout diagnostics passed, but the image viewing tool was unavailable, so no manual visual-QA claim is made.
+96 Android tests passed; 16 Node tests passed (8 server/security + 8 work-window regression); actual Chromium scenarios: desktop/mobile 12 each, Windows exclusion 3, real image compression 6. Test report contains full details. Capture/layout diagnostics passed, but the image viewing tool was unavailable, so no manual visual-QA claim is made.

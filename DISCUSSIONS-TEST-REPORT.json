@@ -1,6 +1,6 @@
 {
   "android": {
-    "total": 95,
+    "total": 96,
     "failures": 0,
     "errors": 0
   },
@@ -165,6 +165,7 @@
   ],
   "pwa_login_check": "Manifest and HTTPS service worker registration added, icons verified HTTP 200 on published site. Actual phone installation not verified until deployment.",
   "visual_qa": "PNG captures and layout diagnostics generated. Image inspection tool unavailable (computer_helper_failed); manual visual QA not claimed.",
-  "apk_sha256": "25c1eb0d6dd6ad95ebc0462e19d468d0deea48200e5ea568e7a2718583b67ac2",
-  "zip_sha256": "2d2af2c14ce17f3ecfc7b34ad107789a75be9571b578b620d9e473f5714b781e"
+  "apk_sha256": "8ef31616fa6d485d37a9cbc6265e7f3c0cac174e06ef6358165924ca18555c47",
+  "zip_sha256": "98326a455b10f86974bfefd7328a09e9eccaf8205beeceaf8e40377f7c9a5843",
+  "node_regression_tests": 8
 }
