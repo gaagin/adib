@@ -58,3 +58,54 @@ html body.adib-focused-views #adibChatOverlay .adib-chat-head{min-height:52px!im
  html body.adib-focused-views #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .top-toolbar{flex:0 0 auto!important}
  html body.adib-focused-views #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .adib-standard-heading{min-width:0!important;flex:1!important}
 }
+/* Restore the real controls previously hidden by ID-specific mobile rules. */
+html body.adib-focused-views .adib-view-menu-panel #personalKanbanSearch,
+html body.adib-focused-views .adib-view-menu-panel #personalKanbanFilterField,
+html body.adib-focused-views .adib-view-menu-panel #personalKanbanFilterValue{display:block!important;position:static!important;width:100%!important;min-width:0!important}
+html body.adib-focused-views :is(.personal-kanban-actions,.personal-eisenhower-head-actions)>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;position:static!important;inset:auto!important;transform:none!important;font-size:20px!important;padding:4px!important}
+html body.adib-focused-views .adib-view-menu>summary svg{width:24px;height:24px;fill:currentColor}
+@media(max-width:700px){
+ html body.adib-focused-views .personal-eisenhower-grid .adib-card-meta,
+ html body.adib-focused-views .personal-eisenhower-grid .adib-card-timer,
+ html body.adib-focused-views .personal-eisenhower-grid .adib-card-chips{display:none!important}
+ html body.adib-focused-views .personal-eisenhower-grid .eisenhower-task{padding:4px 0!important;gap:4px!important;align-items:flex-start!important}
+ html body.adib-focused-views .personal-eisenhower-grid .adib-card-title{font-size:14px!important;line-height:1.4!important}
+}
+html body.adib-focused-views .personal-kanban-modal .personal-kanban-head .personal-kanban-title{display:block!important;flex:1 1 0!important;min-width:0!important;width:auto!important}
+html body.adib-focused-views .personal-kanban-modal .personal-kanban-head .personal-kanban-actions{width:auto!important;min-width:0!important;max-width:none!important;flex:0 0 auto!important}
+html body.adib-focused-views :is(#personalKanbanNewTask,#personalKanbanViewModeButton){position:static!important;inset:auto!important;width:44px!important;font-size:20px!important;transform:none!important}
+html body.adib-focused-views :is(#personalKanbanNewTask,#personalKanbanViewModeButton)>svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+html body.adib-focused-views.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay{width:100vw!important;max-width:none!important;min-width:0!important;left:0!important;right:0!important}
+html body.adib-focused-views.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay .adib-chat-window{width:100%!important;flex:1 0 100%!important;max-width:none!important}
+@media(max-width:700px){
+ html body.adib-focused-views .adib-design-nav{display:flex!important;z-index:1600!important}
+ html body.adib-focused-views.adib-discussions-fullscreen .adib-design-nav{z-index:5100!important}
+ html body.adib-focused-views.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay{bottom:calc(58px + env(safe-area-inset-bottom))!important;height:calc(100dvh - 58px - env(safe-area-inset-bottom))!important}
+ html body.adib-focused-views.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay .adib-chat-window{height:100%!important;max-height:100%!important}
+}
+/* Removing the duplicate title must also remove its reserved grid row. */
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay .adib-chat-window{grid-template-rows:minmax(0,1fr)!important;grid-template-columns:minmax(230px,340px) minmax(0,1fr)!important}
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay .adib-chat-sidebar,
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay .adib-chat-conversation{grid-row:1!important;min-height:0!important;height:100%!important}
+html body.adib-focused-views .adib-calendar-heading h2{color:var(--text)!important;font-weight:600!important}
+@media(max-width:700px){
+ html body.adib-focused-views #adibChatOverlay#adibChatOverlay .adib-chat-window{grid-template-columns:minmax(0,1fr)!important}
+ html body.adib-focused-views #adibChatOverlay#adibChatOverlay :is(.adib-chat-sidebar,.adib-chat-conversation){grid-column:1!important}
+ html body.adib-focused-views .adib-calendar-heading{align-items:flex-start!important;justify-content:center!important}
+ html body.adib-focused-views .adib-calendar-weekday{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+}
+html body.adib-focused-views #adibChatOverlay [data-chat-search]{min-height:44px!important;font-size:14px!important}
+@media(max-width:700px){html body.adib-focused-views .adib-design-nav button{font-size:10px!important;min-width:0!important}}
+@media(max-width:700px){
+ html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) :is(.adib-card-meta,.adib-card-chips,.adib-card-timer){display:none!important}
+}
+@media(max-width:700px){
+ html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-more{display:none!important}
+ html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-title{min-height:44px!important;word-break:normal!important;overflow-wrap:normal!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+ html body.adib-focused-views #adibFocusedMatrix.adib-matrix-details .adib-card-chips{display:flex!important}
+ html body.adib-focused-views #adibFocusedMatrix.adib-matrix-details :is(.adib-card-meta,.adib-card-timer){display:block!important}
+}
+@media(max-width:700px){
+ html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-content{flex:1 1 0!important;width:auto!important;min-width:0!important;max-width:none!important;margin-right:0!important}
+ html body.adib-focused-views #adibFocusedMatrix:not(.adib-matrix-details) .adib-card-title{width:100%!important;max-width:none!important;padding:0!important;box-sizing:border-box!important;text-align:left!important}
+}

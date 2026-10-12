@@ -1,0 +1,83 @@
+{
+  "android": {
+    "tests": 73,
+    "failures": 0,
+    "errors": 0,
+    "version": "2.5.73-focused-views",
+    "versionCode": 123,
+    "signerSha256": "76994dac75f25c7a2425bf235416f46d1db9669bbf194209cbfa8577532d56d3"
+  },
+  "nodeRegression": {
+    "tests": 16,
+    "passed": 16
+  },
+  "browser": [
+    {
+      "screen": "home",
+      "width": 390,
+      "header": 52
+    },
+    {
+      "screen": "calendar",
+      "width": 390,
+      "header": 97
+    },
+    {
+      "screen": "matrix",
+      "width": 390,
+      "header": 52
+    },
+    {
+      "screen": "kanban-and-list",
+      "width": 390,
+      "header": 52
+    },
+    {
+      "screen": "discussions",
+      "width": 390,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 742
+      }
+    },
+    {
+      "screen": "home",
+      "width": 1280,
+      "header": 52
+    },
+    {
+      "screen": "calendar",
+      "width": 1280,
+      "header": 53
+    },
+    {
+      "screen": "matrix",
+      "width": 1280,
+      "header": 52
+    },
+    {
+      "screen": "kanban-and-list",
+      "width": 1280,
+      "header": 52
+    },
+    {
+      "screen": "discussions",
+      "width": 1280,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "screen": "Windows guard",
+      "passed": true
+    }
+  ],
+  "newNetworkPolling": false,
+  "windowsAndPomodoroCodeChanged": false,
+  "visualReview": "Rendered online mobile/desktop and native Android screens were reviewed; physical-phone installation still needs user verification."
+}
