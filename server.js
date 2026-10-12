@@ -557,11 +557,12 @@ function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
+ const readStartedAt=new Date().toISOString();
  let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
  const resumed=!!scan;
  const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||(light?false:collectionNeedsFull(cursor,false)));
  if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
+ if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
  if(resumed)progress.resumedRecords+=scan.loaded||0;
  if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
  const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
@@ -585,7 +586,7 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
  },background?'history':'interactive',scan);
  return read.then(()=>{
   if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||'',fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
+   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
    if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
    else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
   }
@@ -1390,7 +1391,7 @@ const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
-  if(Date.now()-pomodoroRefreshAt>30000){
+  if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
     if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
@@ -1513,8 +1514,11 @@ function mutationScopes(method,p){
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
-const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000),
- load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},
+const {SyncReadGuard}=require('./sync-read-guard');
+const externalSyncMs=TOKEN==='native'?Math.max(30000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||60000):Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
+const externalReads=new SyncReadGuard({intervalMs:externalSyncMs});
+const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:externalSyncMs,
+ load:async scope=>externalReads.read(scope,async()=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,true)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),true)):{ok:true,...taskManagement.snapshot()},async()=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}),
  local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
 });
 
