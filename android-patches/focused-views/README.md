@@ -1,0 +1,2 @@
+# Android 2.5.73 focused full-screen views
+Apply after the 2.5.72 discussions source patch. Copy the three main Java files to app/src/main/java/com/adib/maintenance and the four tests to the test directory. Set versionCode 123 and versionName 2.5.73-focused-views in app/build.gradle. Sign with the existing ADIB signer. No signing keys or secrets included. Discussions now use activity content, not AlertDialog. Existing requests and Pomodoro behavior are unchanged.
