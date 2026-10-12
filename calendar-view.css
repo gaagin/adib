@@ -75,3 +75,26 @@ html body .calendar-filter-dialog button{min-height:44px;border:1px solid var(--
 html.dark body dialog.calendar-filter-dialog{--calendar-filter-muted:#a9b7cb}
 
 body.adib-calendar-open #taskModal.open.adib-task-properties{z-index:70!important}
+
+/* Sessions are actual history, not draggable task plans. Finished backgrounds mute,
+   while text keeps its original contrast in both themes. */
+.calendar-session{cursor:pointer!important}
+.calendar-session.session-completed{background:var(--soft)!important;border-color:var(--line)!important;border-left-color:#8994a6!important;color:var(--text)!important;box-shadow:none!important}
+.calendar-session.session-active{border-left-color:#315ccf!important}
+.calendar-session.session-pending{background:#fff4db!important;border-left-color:#b17b12!important;color:#352713!important}
+html.dark .calendar-session.session-pending{background:#352e20!important;color:#f5e7cb!important}
+.adib-session-history{width:min(560px,calc(100vw - 32px));max-height:85vh;padding:20px;border:1px solid var(--line,#d8dfe8);border-radius:12px;background:var(--surface,#fff);color:var(--text,#172335);font-family:system-ui,sans-serif;font-size:14px}
+.adib-session-history::backdrop{background:rgba(12,20,32,.4)}
+.adib-session-history header,.adib-session-history footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.adib-session-history h2{font-size:20px;margin:0}.adib-session-history button{min-height:44px;min-width:44px;padding:8px 12px;border:1px solid var(--line,#d8dfe8);border-radius:8px;background:var(--soft,#f3f5f8);color:inherit;font:inherit;cursor:pointer}
+.adib-session-history button:focus-visible{outline:3px solid #315ccf;outline-offset:2px}
+.adib-session-list{overflow:auto;max-height:58vh;margin:16px 0;display:grid;gap:12px}.session-row{padding:12px;border:1px solid var(--line,#d8dfe8);border-left:3px solid #315ccf;border-radius:8px;overflow-wrap:anywhere}.session-row strong{font-weight:600}.session-row p{margin:8px 0 0;line-height:1.5}.session-row.session-completed{background:var(--soft,#f3f5f8);border-left-color:#8994a6}.session-row.session-pending{border-left-color:#b17b12}.session-row.session-selected{outline:2px solid #315ccf;outline-offset:-2px}
+.personal-pomodoro-head{flex-wrap:wrap}
+/* Keep current-time marker behind event text and short-session controls inside bounds. */
+.calendar-now-line{z-index:1}
+.calendar-session .calendar-event-menu{top:0!important;height:22px!important;min-height:22px!important}
+.calendar-session .calendar-event-title{font-size:14px;line-height:18px}
+.adib-calendar-body{overflow:hidden}
+.calendar-session{font-size:14px}
+.calendar-session .calendar-event-time{font-size:14px;line-height:18px}
+.adib-calendar[data-calendar-view=week] .calendar-session .calendar-event-title{display:block!important;white-space:nowrap!important;line-height:18px!important;max-height:18px!important;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset}

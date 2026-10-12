@@ -1,0 +1,43 @@
+'use strict';
+const crypto=require('node:crypto'),{canonicalDuration,timerFromTask}=require('./pomodoro-shared');
+const GLOBAL='00000000-0000-4000-8000-000000000001';
+const fail=(text,statusCode=409,code='POMODORO_SESSION')=>Object.assign(Error(text),{statusCode,code});
+class PomodoroSessions{
+ constructor({store,loadTask,patchTask,authorizeOther=async()=>{},now=()=>Date.now(),changed=()=>{}}){Object.assign(this,{store,loadTask,patchTask,authorizeOther,now,changed});this.tail=Promise.resolve()}
+ locked(fn){const p=this.tail.then(fn);this.tail=p.catch(()=>{});return p}
+ handle(body){return this.locked(()=>this.run(body))}
+ async flushJob(job){if(!job||job.retryAt>this.now())return;try{await this.patchTask(job.taskId,job.properties);const timer=this.store.get(job.taskId);const session=this.store.sessions.find(s=>s.id===job.sessionId);this.store.commit(timer?{...timer,syncPending:false}:null,session?{...session,status:'saved'}:null,{taskId:job.taskId,remove:true});this.changed();}catch(e){const attempts=(job.attempts||0)+1;this.store.commit(null,null,{...job,attempts,retryAt:this.now()+Math.min(1800000,60000*2**Math.min(5,attempts-1))});}}
+ retryDue(){return this.locked(async()=>{for(const job of [...this.store.jobs])await this.flushJob(job)})}
+ answer(timer,extra={}){return{ok:true,id:timer.id,timer,serverNow:this.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,syncPending:!!timer.syncPending,...extra}}
+ async finish(timer){
+  const now=this.now(),start=Date.parse(timer.startedAt);if(!Number.isFinite(start))throw fail('Seansın başlanğıcı məlum deyil');
+  const planned=canonicalDuration(timer.plannedDuration||timer.duration,timer.mode),end=Math.max(start,Math.min(now,Number(timer.endsAt)||now)),seconds=Math.max(0,(end-start)/1000),full=timer.mode!=='break'&&seconds>=planned*60;
+  const work=timer.mode!=='break',credited=work?Math.round(seconds/60*1000)/1000:0,minutes=Math.round((Number(timer.pomodoroMinutes||0)+credited)*1000)/1000,count=Number(timer.pomodoroCount||0)+(full?1:0);
+  const properties={'Начало отчета':{date:{start:timer.startedAt}},'Pomodoro текущая длительность':{number:planned},'Pomodoro режим':{select:{name:timer.mode==='break'?'Короткий перерыв — 5 мин':'Работа — 25 мин'}},'Отчет запущен':{checkbox:false},'Конец отчета':{date:{start:new Date(end).toISOString()}}};if(work){properties['Pomodoro количество']={number:count};properties['Pomodoro всего минут']={number:minutes}}
+  const session=work?{id:timer.sessionId,taskId:timer.id,title:timer.title,sourceKey:'personal',kind:'pomodoro',actorId:timer.actorId||'',worker:timer.worker||'',status:timer.id===GLOBAL?'saved':'sync-pending',startedAt:start,endedAt:end,seconds,plannedMinutes:planned,fullPomodoro:full,completionReason:seconds>=planned*60?'elapsed':'early',startOperation:timer.startOperation||''}:null;
+  const next={...timer,running:false,status:'completed',endsAt:0,remainingSeconds:0,completedAt:new Date(end).toISOString(),completionReason:seconds>=planned*60?'elapsed':'early',creditedMinutes:credited,pomodoroMinutes:work?minutes:timer.pomodoroMinutes,pomodoroCount:work?count:timer.pomodoroCount,syncPending:timer.id!==GLOBAL,browserSessions:true,nextMode:work&&full?'break':'work'};
+  const job=timer.id===GLOBAL?null:{taskId:timer.id,sessionId:session?.id||'',properties,retryAt:0,attempts:0};this.store.commit(next,session,job);this.changed();if(job)await this.flushJob(job);return this.store.get(timer.id);
+ }
+ async run(body){const id=String(body.id),original=String(body.action),action=['pause','reset'].includes(original)?'finish':original;let timer=this.store.get(id);const now=this.now();if(!['open','hide','start','finish','break-finish'].includes(action))throw fail('Yanlış Pomodoro əməliyyatı',400);
+  if(body.sessionId&&timer?.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return this.answer(timer,{stale:true,duplicate:true});
+  if(['finish','break-finish'].includes(action)&&timer&&!timer.running){await this.flushJob(this.store.jobs.find(j=>j.taskId===id));return this.answer(this.store.get(id),{duplicate:true});}
+  if(action==='start'){
+   if(!/^[a-zA-Z0-9-]{8,100}$/.test(body.operationId||''))throw fail('Əməliyyat ID-si tələb olunur',400);
+   if(timer?.startOperation===body.operationId||this.store.sessions.some(s=>s.taskId===id&&s.startOperation===body.operationId)){if(!timer)throw fail('Əvvəlki əməliyyat artıq tamamlanıb');return this.answer(timer,{duplicate:true});}
+   if(timer?.running)return this.answer(timer,{duplicate:true});
+   const job=this.store.jobs.find(j=>j.taskId===id);if(job){await this.flushJob(job);if(this.store.jobs.some(j=>j.taskId===id))throw fail('Əvvəlki seans Notion ilə sinxronizasiya gözləyir. Sonra yenidən cəhd edin',409,'POMODORO_SYNC_PENDING');timer=this.store.get(id)}
+  }
+  if(action==='hide'){if(!timer)throw fail('Taymer tapılmadı',404);return this.answer(this.store.put({...timer,windowHidden:true}))}
+  if(['open','start'].includes(action)){
+   const others=[...this.store.timers.values()].filter(t=>t.running&&t.id!==id);if(others.length){const token=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');for(const other of others)await this.authorizeOther(body.__account,other.id);if(body.confirmationToken!==token)throw Object.assign(fail('Başqa Pomodoro işləyir. Cari seansı bitirib yenisini açmaq?',409,'POMODORO_ACTIVE'),{confirmationToken:token});for(const other of others)await this.finish(other)}
+  }
+  let task=null;if(action==='start'||!timer){task=id===GLOBAL?{id,title:'Pomodoro',pomodoroCount:timer?.pomodoroCount||0,pomodoroMinutes:timer?.pomodoroMinutes||0}:await this.loadTask(id);if(!timer)timer=timerFromTask(task,now)}
+  if(action==='open'){const mode=body.mode==='break'?'break':'work',duration=canonicalDuration(body.plannedDuration||body.duration||timer.duration,mode);const next=timer.running?timer:{...timer,mode,duration,plannedDuration:duration,status:'ready',remainingSeconds:duration*60};return this.answer(this.store.put({...next,openedAt:now,windowHidden:false,browserSessions:true}))}
+  if(['finish','break-finish'].includes(action)){if(!timer.running)return this.answer(timer,{duplicate:true});return this.answer(await this.finish(timer))}
+  if(task?.completed)throw fail('Tamamlanmış tapşırıqda seans başlatmaq olmaz');if(this.store.sessions.length>=100000)throw fail('Seans arxivi limitinə çatıb',507);
+  const mode=body.mode==='break'?'break':'work',duration=canonicalDuration(body.plannedDuration||body.duration,mode),iso=new Date(now).toISOString(),properties={'Отчет запущен':{checkbox:true},'Начало отчета':{date:{start:iso}},'Конец отчета':{date:null},'Pomodoro режим':{select:{name:mode==='break'?'Короткий перерыв — 5 мин':'Работа — 25 мин'}},'Pomodoro текущая длительность':{number:duration}};
+  // Journal the absolute PATCH before the network call; retries cannot create another session.
+  const actor=body.__account,next={...timer,id,title:task.title||timer.title,mode,duration,plannedDuration:duration,browserSessions:true,running:true,status:'running',startedAt:iso,endsAt:now+duration*60000,remainingSeconds:duration*60,sessionId:crypto.randomUUID(),startOperation:body.operationId,actorId:actor?.id||'unidentified',worker:actor?.name||'İstifadəçi',openedAt:now,windowHidden:false,completedAt:null,completionReason:null,pomodoroCount:Math.max(Number(task.pomodoroCount)||0,Number(timer.pomodoroCount)||0),pomodoroMinutes:Math.max(Number(task.pomodoroMinutes)||0,Number(timer.pomodoroMinutes)||0),syncPending:id!==GLOBAL};const job=id===GLOBAL?null:{taskId:id,sessionId:'',properties,retryAt:0,attempts:0};this.store.commit(next,null,job);this.changed();if(job)await this.flushJob(job);return this.answer(this.store.get(id));
+ }
+}
+module.exports={PomodoroSessions,GLOBAL};

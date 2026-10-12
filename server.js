@@ -25,7 +25,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-browser-pip-v1';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-browser-sessions-v2';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
@@ -1414,6 +1414,9 @@ async function savePersonalTaskUnlocked(body) {
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
+const {PomodoroSessions}=require('./pomodoro-sessions');
+const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();},authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
+setInterval(()=>void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session retry deferred:',e.message)),60000).unref();
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
   if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
@@ -1426,7 +1429,7 @@ const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
   const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   const lockId='all-timers';const previous=personalPomodoroLocks.get(lockId)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(lockId,current);await previous;
-  try{return await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
+  try{if(body.browserSessions===true&&['start','open'].includes(body.action))await sharedPomodoroSnapshot();return body.browserSessions===true?await browserPomodoroSessions.handle({...body,id,__account:body.__account}):await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
 }
 async function savePersonalPomodoroUnlocked(body){
  const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
@@ -1554,7 +1557,7 @@ function projectAccount(u,scope,d){
  if(scope==='realtime'){return {...d,kind:'full',data:projectAccount(u,d.scope,d.data),baseRevision:undefined};}
  if(scope==='personal'||scope==='equipment')return accounts.filter(u,scope,d);
  const ids=allowedAccountIds(u);
- if(scope==='pomodoro'){const result={...d,timers:(d.timers||[]).filter(t=>t.id!=='__global__'&&ids.has(accountKey(t.id)))};if(d.timer&&!ids.has(accountKey(d.timer.id)))delete result.timer;return result;}
+ if(scope==='pomodoro'){const result={...d,sessions:(d.sessions||[]).filter(s=>ids.has(accountKey(s.taskId))),timers:(d.timers||[]).filter(t=>t.id!=='__global__'&&ids.has(accountKey(t.id)))};if(d.timer&&!ids.has(accountKey(d.timer.id)))delete result.timer;return result;}
  if(scope==='management'){const v=structuredClone(d);v.tasks=Object.fromEntries(Object.entries(v.tasks||{}).filter(([id])=>ids.has(accountKey(id))));for(const t of Object.values(v.tasks))if(t.parentId&&!ids.has(accountKey(t.parentId)))t.parentId='';for(const day of Object.values(v.days||{})){day.ids=(day.ids||[]).filter(id=>ids.has(accountKey(id)));if(!ids.has(accountKey(day.mainId)))day.mainId='';}return v;}
  return d;
 }
@@ -1643,7 +1646,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');

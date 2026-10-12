@@ -1,12 +1,19 @@
 {
   "baseVersion": "1.1.64",
-  "build": "1.1.64-cost-control-v3-browser-pip-v1",
+  "build": "1.1.64-cost-control-v3-browser-sessions-v2",
   "tests": {
-    "passed": 43,
+    "passed": 69,
     "failed": 0,
-    "syntax": "server, browser module and 10 inline scripts passed"
+    "syntax": "server/modules and 10 inline HTML scripts passed"
   },
-  "browserFixture": {
+  "scope": [
+    "local HTTP server with mocked external services",
+    "durable session/journal and retry tests",
+    "actual HTML timer adapter with local service",
+    "real projection function with mocked permissions",
+    "local Chromium PiP with fixture adapter"
+  ],
+  "browser": {
     "capabilities": {
       "secure": true,
       "pip": true,
@@ -15,27 +22,36 @@
     "opened": {
       "open": true,
       "kind": "pip",
-      "title": "Test task"
+      "title": "Test task",
+      "width": 240,
+      "height": 128,
+      "compact": true
     },
     "checks": [
       "injected button click opens real Document Picture-in-Picture",
       "rendered title",
-      "pause/resume invokes existing adapter",
-      "compact button",
+      "finish/new start invokes existing adapter",
+      "compact window opens small and resizes on user click",
       "local UI tick",
       "close does not send timer command"
     ],
     "scope": "Local Chromium headless, fixture adapter; not live deployment or Windows OS always-on-top behavior"
   },
   "visualQA": {
-    "normal": "PASS: readable controls/clock, no overflow or overlaps",
-    "compact": "PASS: title/clock/controls fit; no overlaps",
-    "narrowLongTitle": "PASS: wraps naturally, no overflow or overlaps"
+    "mini240x128": "PASS: readable clock and finish, intentional title ellipsis",
+    "expanded": "PASS: readable stats, controls and hint",
+    "miniError": "PASS: readable error below controls",
+    "history": "PASS: mixed types, completed muted, independent pending state",
+    "dayDesktopAndNarrow": "PASS: readable session styling; time marker behind text",
+    "week": "PASS after correcting title height; intentional ellipsis",
+    "month": "PASS: day cells scroll for multiple sessions",
+    "dark": "PASS: muted completion without fading text"
   },
+  "storage": "existing POMODORO_STATE_FILE now includes sessions/jobs; persistent volume and one active replica required",
   "notVerified": [
     "production deployment",
-    "real task/end-to-end authenticated multi-user timer",
-    "Windows OS always-on-top and sleep/notification behavior"
-  ],
-  "costControl": "all v3 tests retained; browser module has no fetch or extra network polling loop"
+    "real Notion/authorized multi-user end-to-end",
+    "mixed old native/new browser control of same session",
+    "Windows OS always-on-top, sleep and notifications"
+  ]
 }
