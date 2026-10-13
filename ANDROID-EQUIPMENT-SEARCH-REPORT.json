@@ -1,0 +1,35 @@
+{
+  "feature": "Android equipment search and default Gorulen isler source",
+  "base_commit": "1a798efaea36292d6627120bc9e730e11d636cde",
+  "changes": [
+    "Searchable equipment selector in new/edit equipment task form, retaining Spinner selected-ID behavior",
+    "New equipment tasks default to Gorulen isler",
+    "Explicit ToDo quick-add, manual source choice, and ToDo subtasks remain respected",
+    "Existing tasks are unchanged"
+  ],
+  "android_tests": {
+    "selected_regression_suite_tests": 120,
+    "failures": 0,
+    "errors": 0,
+    "covers": [
+      "EquipmentSearchTest (4 executions on API 28/35)",
+      "EquipmentViewsTest (27 executions on API 24/28/35)",
+      "WorkScreenFeaturesTest",
+      "WorkTimerOwnershipTest",
+      "NavigationTimeTest",
+      "SettingsZoomTest",
+      "SimpleCardsTest",
+      "FocusedViewsTest",
+      "EmployeeChatsTest",
+      "CommentCompressionTest"
+    ],
+    "latest_focused_rerun": "EquipmentSearchTest passed after empty-results hint was added"
+  },
+  "node_tests": {
+    "passed": 26,
+    "failures": 0
+  },
+  "git_diff_check": "passed",
+  "apk_built": false,
+  "scope": "Native Android source only; Web/PWA and native Windows unchanged"
+}
