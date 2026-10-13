@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v280-bounded-phone-menus';
+const CACHE_NAME = 'adib-online-v281-remove-time-schema-button';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
