@@ -1,0 +1,42 @@
+[
+  {
+    "width": 320,
+    "compactHeader": true,
+    "menu": true,
+    "searchAndFilters": true,
+    "undo": true,
+    "correctCreationContext": true,
+    "noLeakedLayers": true,
+    "resize": true
+  },
+  {
+    "width": 390,
+    "compactHeader": true,
+    "menu": true,
+    "searchAndFilters": true,
+    "undo": true,
+    "correctCreationContext": true,
+    "noLeakedLayers": true,
+    "resize": true
+  },
+  {
+    "width": 430,
+    "compactHeader": true,
+    "menu": true,
+    "searchAndFilters": true,
+    "undo": true,
+    "correctCreationContext": true,
+    "noLeakedLayers": true,
+    "resize": true
+  },
+  {
+    "width": 700,
+    "compactHeader": true,
+    "menu": true,
+    "searchAndFilters": true,
+    "undo": true,
+    "correctCreationContext": true,
+    "noLeakedLayers": true,
+    "resize": true
+  }
+]
