@@ -22,3 +22,7 @@ The equipment canvas “Lövhə” menu now exposes “Siyahı rejimi”, “Kan
 “Defolt görünüş” offers Sxem, Siyahı, Kanban and Son seçilmiş görünüş. It is also available under device settings. Saxla stores the preference locally per connection/account; cancellation does not save. Saving the default does not replace the currently displayed view. It applies on the next equipment-section entry (bottom navigation/drawer), including after app restart; normal Tasks startup and explicit widget navigation are unchanged. “Son seçilmiş görünüş” restores the last explicit view choice. Refresh and deferred loading retain the selected view and load fresh task data.
 
 Copy EquipmentViewPreferences.java with the latest MainActivity.java into the main package; EquipmentViewsTest.java belongs in the test package. This feature does not modify task fields, canvas coordinates, Web/PWA or native Windows. No new signed APK is included in this patch. Physical-device checks and a newly versioned APK remain required after merge.
+
+
+## Equipment search and new-task source default (pending next APK)
+The equipment selector in the work-task form is now searchable by equipment name (case- and diacritic-insensitive), while remaining a Spinner-compatible field so task editing/autosave keep using the same selected equipment ID. New equipment tasks default to Gorulen isler. The source selector still lets the user choose ToDo; quick-add choices are respected, and equipment subtasks remain ToDo. Existing tasks are unchanged.
