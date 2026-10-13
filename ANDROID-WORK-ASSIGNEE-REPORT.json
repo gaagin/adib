@@ -1,0 +1,22 @@
+{
+  "scope": "Android source patches; no APK release",
+  "androidDialogTests": {
+    "tests": 16,
+    "failures": 0,
+    "errors": 0,
+    "sdk": [
+      28,
+      35
+    ],
+    "harness": "Isolated actual timer client plus test doubles for unrelated app services; existing TaskAutosave fixture"
+  },
+  "nodeRegressionTests": {
+    "passed": 26,
+    "failed": 0
+  },
+  "localWorkWindowClientCompile": "passed with Android 35 jar and test support classes",
+  "fullApkBuild": false,
+  "physicalDeviceTest": false,
+  "webChanged": false,
+  "windowsChanged": false
+}
