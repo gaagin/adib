@@ -271,3 +271,21 @@ html body.adib-focused-views :is(#taskModal#taskModal#taskModal#taskModal,.kanba
 html body.adib-focused-views :is(#taskModal#taskModal#taskModal#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer) .adib-workflow-panel:has(.adib-task-workflow) .adib-concept-footer .adib-autosave-status{flex:1 0 100%!important;font-size:11px!important;line-height:1.4!important;margin:0!important}
 html body.adib-focused-views :is(#taskModal#taskModal#taskModal#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer) .adib-workflow-panel:has(.adib-task-workflow) .adib-concept-head{flex:0 0 auto!important;min-height:52px!important;padding:8px 12px!important}
 }
+
+/* Top-layer menus keep their original controls, escaping overflow clipping. */
+html body.adib-focused-views .adib-bounded-menu{border:1px solid var(--line)!important;border-radius:12px!important;background:var(--surface)!important;color:var(--text)!important;padding:10px!important;box-shadow:0 6px 24px #0003!important;overscroll-behavior:contain!important}
+html body.adib-focused-views .adib-bounded-menu::backdrop{background:transparent;pointer-events:none}
+html body.adib-focused-views .adib-bounded-menu:not(:popover-open){display:none!important}
+html body.adib-focused-views .adib-bounded-menu :is(button,a){white-space:normal!important;overflow-wrap:anywhere!important}
+@media(max-width:700px){html body.adib-focused-views .adib-bounded-menu :is(button,a){min-height:44px!important}}
+
+@media(max-width:700px){html body.adib-focused-views dialog:is(.adib-home-popover,.adib-home-add-menu,.adib-employee-picker,.adib-clock-dialog,.adib-session-history,.adib-work-confirm){box-sizing:border-box!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important}}
+
+/* Match phone navigation's breakpoint so the conversation cannot cover the list. */
+@media(max-width:700px){
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay:not(.conversation-open) .adib-chat-conversation{display:none!important}
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay:not(.conversation-open) .adib-chat-sidebar{display:flex!important}
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay.conversation-open .adib-chat-sidebar{display:none!important}
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay.conversation-open .adib-chat-conversation{display:flex!important}
+html body.adib-focused-views #adibChatOverlay#adibChatOverlay .adib-chat-conversation-head [data-chat-back]{display:inline-flex!important}
+}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v279-phone-task-footer';
+const CACHE_NAME = 'adib-online-v280-bounded-phone-menus';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
