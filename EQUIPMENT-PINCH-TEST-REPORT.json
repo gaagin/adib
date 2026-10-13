@@ -1,0 +1,50 @@
+[
+  {
+    "width": 320,
+    "pinchIn": true,
+    "pinchOut": true,
+    "pinchOverObject": true,
+    "cancelRecovery": true,
+    "panWithoutObjectEdits": true,
+    "noZoomButtons": true,
+    "centerControlRetained": true,
+    "taskFabRetained": true,
+    "noLongPressDuringPinch": true
+  },
+  {
+    "width": 390,
+    "pinchIn": true,
+    "pinchOut": true,
+    "pinchOverObject": true,
+    "cancelRecovery": true,
+    "panWithoutObjectEdits": true,
+    "noZoomButtons": true,
+    "centerControlRetained": true,
+    "taskFabRetained": true,
+    "noLongPressDuringPinch": true
+  },
+  {
+    "width": 430,
+    "pinchIn": true,
+    "pinchOut": true,
+    "pinchOverObject": true,
+    "cancelRecovery": true,
+    "panWithoutObjectEdits": true,
+    "noZoomButtons": true,
+    "centerControlRetained": true,
+    "taskFabRetained": true,
+    "noLongPressDuringPinch": true
+  },
+  {
+    "width": 700,
+    "pinchIn": true,
+    "pinchOut": true,
+    "pinchOverObject": true,
+    "cancelRecovery": true,
+    "panWithoutObjectEdits": true,
+    "noZoomButtons": true,
+    "centerControlRetained": true,
+    "taskFabRetained": true,
+    "noLongPressDuringPinch": true
+  }
+]
