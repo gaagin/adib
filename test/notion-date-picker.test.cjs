@@ -34,3 +34,12 @@ test('mobile editors no longer install the action-first property workflow', () =
   assert.ok(html.includes('if(false&&!window.ADIBDesktop&&!isNew){const working=ADIBTaskConcept.install(list,{task,personal:true'));
   assert.ok(html.includes('window.ADIBDesktop?ADIBTaskTabs.install'));
 });
+
+test('date picker assets are public and service worker invalidates the previous UI cache', () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const allowed = server.match(/const publicAssets=new Set\(\[([^]+?)\]\)/)[1];
+  assert.ok(allowed.includes('"notion-date-picker.css"'));
+  assert.ok(allowed.includes('"notion-date-picker.js"'));
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+  assert.ok(worker.includes('adib-online-v282-task-properties-date-picker'));
+});
