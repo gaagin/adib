@@ -1,0 +1,112 @@
+{
+  "feature": "Native Android equipment views and local default",
+  "base_commit": "56c44f6631d8509636a2cd17ab79441bc1432ffb",
+  "android": {
+    "framework": "Robolectric in full reconstructed Android project",
+    "tests": 132,
+    "failures_or_errors": 0,
+    "suites": [
+      {
+        "name": "com.adib.maintenance.NavigationTimeTest",
+        "tests": "9",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.WorkScreenFeaturesTest",
+        "tests": "15",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.WorkTimerOwnershipTest",
+        "tests": "12",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.SettingsZoomTest",
+        "tests": "12",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.SimpleCardsTest",
+        "tests": "12",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.EquipmentViewsTest",
+        "tests": "27",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.FocusedViewsTest",
+        "tests": "12",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.WorkAssigneeDialogTest",
+        "tests": "16",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.CommentCompressionTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.adib.maintenance.EmployeeChatsTest",
+        "tests": "15",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      }
+    ],
+    "debug_compilation": "passed"
+  },
+  "node": {
+    "tests": 26,
+    "passed": 26,
+    "failures": 0
+  },
+  "checks": [
+    "git diff --check passed"
+  ],
+  "limitations": [
+    "Selected regression suites only, not the entire legacy suite",
+    "No physical device test",
+    "No new signed APK produced",
+    "Web/PWA and native Windows unchanged"
+  ],
+  "behavior": {
+    "views": [
+      "canvas",
+      "list",
+      "kanban"
+    ],
+    "default_choices": [
+      "canvas",
+      "list",
+      "kanban",
+      "last"
+    ],
+    "storage": "local per connection/account",
+    "applies": "next equipment section entry, not overall Tasks startup",
+    "list_scope": "tasks for current machine or plan tree"
+  }
+}
