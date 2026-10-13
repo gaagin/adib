@@ -247,3 +247,7 @@ html body.adib-focused-views #taskModal#taskModal#taskModal#taskModal .kanban-ch
 @media(min-width:701px){.adib-equipment-head{display:none!important}}
 
 @media(max-width:700px){html body.adib-focused-views #taskModal#taskModal#taskModal#taskModal .adib-view-menu-panel :is(#kanbanViewModeButton,#kanbanColumnsButton,#kanbanSortDirection){font-size:14px!important;text-align:left!important;justify-content:flex-start!important;white-space:normal!important}html body.adib-focused-views #taskModal#taskModal#taskModal#taskModal .adib-view-menu-panel :is(#kanbanViewModeButton,#kanbanColumnsButton)::before,html body.adib-focused-views #taskModal#taskModal#taskModal#taskModal .adib-view-menu-panel :is(#kanbanViewModeButton,#kanbanColumnsButton)::after{display:none!important;content:none!important}}
+
+/* Equipment viewport: pinch/pan own the gesture; task-creation FAB is unaffected. */
+html body.adib-focused-views #plan{touch-action:none!important}
+html body.adib-focused-views .canvas-zoom-controls #minus,html body.adib-focused-views .canvas-zoom-controls #plus{display:none!important}
