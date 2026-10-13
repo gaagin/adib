@@ -1,8 +1,8 @@
-# Android 2.5.76 — working task screen
+# Android — task properties, date range and equipment defaults
 Apply AFTER android-patches/simple-cards (2.5.75), retaining all preceding patches. Copy the Java runtime files to app/src/main/java/com/adib/maintenance and test files to the matching test package.
 Set versionCode 126, versionName "2.5.76-navigation-time". Keep the existing application ID and private release signer. No signing material is included.
 
-Selected concept 3: working actions first, compact metadata, planned time, description preview, original subtasks and independent completion squares. Photos/results and all original fields are separately reachable. Original widgets, collectors and autosave handlers remain intact. Existing Pomodoro and equipment work timers are reused rather than replaced by cosmetic switches.
+Restored the familiar scrollable/tabbed task-properties editor; the newer action-first work screen is no longer installed in production. Equipment task creation and editing use the consistent order Ad → Tapsirildi → Avadanliq → Tapşırıqlar bazası → Tarix və vaxt → Plan → remaining properties. Date fields use a theme-aware Notion-style range picker on Android and phone web, with optional time/end date and timezone display. Date ranges are sent through the existing date/dateEnd API fields. The equipment default-view preference is keyed by stable account/datasource identity rather than a changeable account revision, migrated from the previous key where possible, and committed synchronously.
 Task completion is held for five seconds. Cancel performs no completion write. Separate pending tasks have separate Undo controls. Cancelling the editor prevents its pending completion from saving.
 All task-list, matrix, Kanban, calendar and day-plan/review views have a centered circular add control. Clock navigation item is removed; timer functionality remains reachable from tasks/drawer.
 Calendar day/week/three-day hour height is saved per view on this device (32–160 dp). Menu zoom, reset and vertical two-finger zoom do not change task dates. Month is unchanged.
@@ -21,7 +21,7 @@ The equipment canvas “Lövhə” menu now exposes “Siyahı rejimi”, “Kan
 
 “Defolt görünüş” offers Sxem, Siyahı, Kanban and Son seçilmiş görünüş. It is also available under device settings. Saxla stores the preference locally per connection/account; cancellation does not save. Saving the default does not replace the currently displayed view. It applies on the next equipment-section entry (bottom navigation/drawer), including after app restart; normal Tasks startup and explicit widget navigation are unchanged. “Son seçilmiş görünüş” restores the last explicit view choice. Refresh and deferred loading retain the selected view and load fresh task data.
 
-Copy EquipmentViewPreferences.java with the latest MainActivity.java into the main package; EquipmentViewsTest.java belongs in the test package. This feature does not modify task fields, canvas coordinates, Web/PWA or native Windows. No new signed APK is included in this patch. Physical-device checks and a newly versioned APK remain required after merge.
+Copy EquipmentViewPreferences.java with the latest MainActivity.java into the main package; EquipmentViewsTest.java belongs in the test package. The equipment view default remains local to this device/profile; view choice and default remain distinct. The task-properties form/date picker also covers the mobile web client. Native Windows is unchanged. No new signed APK is included in this patch; physical-device validation and a newly versioned APK remain required before release.
 
 
 ## Equipment search and new-task source default (pending next APK)
