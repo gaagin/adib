@@ -1,0 +1,46 @@
+[
+  {
+    "width": 320,
+    "height": 640,
+    "equipmentRoot": true,
+    "equipmentLayer": true,
+    "personal": true,
+    "lightAndDark": true,
+    "expanded": true,
+    "originalActionsClickable": true,
+    "scrollableContent": true
+  },
+  {
+    "width": 390,
+    "height": 850,
+    "equipmentRoot": true,
+    "equipmentLayer": true,
+    "personal": true,
+    "lightAndDark": true,
+    "expanded": true,
+    "originalActionsClickable": true,
+    "scrollableContent": true
+  },
+  {
+    "width": 430,
+    "height": 740,
+    "equipmentRoot": true,
+    "equipmentLayer": true,
+    "personal": true,
+    "lightAndDark": true,
+    "expanded": true,
+    "originalActionsClickable": true,
+    "scrollableContent": true
+  },
+  {
+    "width": 700,
+    "height": 500,
+    "equipmentRoot": true,
+    "equipmentLayer": true,
+    "personal": true,
+    "lightAndDark": true,
+    "expanded": true,
+    "originalActionsClickable": true,
+    "scrollableContent": true
+  }
+]
