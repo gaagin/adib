@@ -917,7 +917,7 @@ async function createEquipment(body){
 }
 
 function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Vaxt təxmini: 1-dən 43200 dəqiqəyə qədər tam ədəd və ya boş dəyər'),{statusCode:400,code:'INVALID_ESTIMATE'});}
-async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined)return;try{if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
+async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
 function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
 
 async function saveTask(body) {
@@ -1013,6 +1013,7 @@ restoreRawSnapshotCache();
 function checkbox(page, name) { return property(page, name)?.checkbox === true; }
 
 function mapPersonalTask(page) {
+  const context=taskManagement.getContext(page.id);
   const parent = relationIds(page, 'Parent item')[0] || '';
   const children = relationIds(page, 'Sub-item');
   const status = select(page, 'Status') || 'Not started';
@@ -1020,6 +1021,8 @@ function mapPersonalTask(page) {
   const prioritet = select(page, 'Prioritet');
   return enrichCompletion({
     id: page.id,
+    machineId:context.machineId,
+    planId:context.planId,
     title: title(page, 'Adi') || 'Adsız',
     status,
     completed: checkbox(page, 'Status 1')||taskHistory.done({status}),
@@ -1331,9 +1334,23 @@ async function guardedAutosaveCreate(kind,body,create){
  if(prior?.rejected){/* Explicit validation rejection: no page was created. */}else if(prior){const e=Error('Yaradılma cavabı məlum deyil. Siyahını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
  try{const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;}catch(error){if(error.notionStatus===400&&error.notionCode==='validation_error'||['TASK_STATUS_INVALID','TASK_SCHEMA_INVALID'].includes(error.code)){fs.writeFileSync(file,JSON.stringify({rejected:true,at:Date.now()}));error.code='TASK_CREATE_REJECTED';error.statusCode=400;}throw error;}})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
 }
+async function validatePersonalTaskContext(body){
+ if(body.machineId===undefined&&body.planId===undefined)return;
+ const old=taskManagement.getContext(body.id||'');
+ const next={...old};for(const key of ['machineId','planId'])if(body[key]!==undefined){const raw=String(body[key]??'').trim(),id=raw?cleanId(raw):'';if(raw&&!id)throw Object.assign(Error('Etibarsız əlaqə: '+key),{statusCode:400});next[key]=id;body[key]=id;}
+ if(next.machineId===old.machineId&&next.planId===old.planId)return;
+ if(!next.machineId&&!next.planId)return;
+ if(body.__account&&typeof accounts!=='undefined'&&!accounts.section(body.__account,'equipment'))throw Object.assign(Error('Avadanlıq bölməsinə giriş yoxdur'),{statusCode:403});
+ let data=await snapshot(false);if(body.__account&&typeof projectAccount==='function')data=projectAccount(body.__account,'equipment',data);
+ const equipment=data.equipment||[],plans=data.plans||[];
+ if(next.machineId){const machine=equipment.find(e=>cleanId(e.id)===next.machineId);if(!machine)throw Object.assign(Error('Avadanlıq mövcud deyil və ya ona giriş yoxdur'),{statusCode:400});const machinePlan=cleanId(machine.planId||'');if(next.planId&&machinePlan&&next.planId!==machinePlan)throw Object.assign(Error('Plan seçilmiş avadanlığa uyğun deyil'),{statusCode:400});if(machinePlan){next.planId=machinePlan;body.planId=machinePlan;}}
+ if(next.planId&&!plans.some(p=>cleanId(p.id)===next.planId))throw Object.assign(Error('Plan mövcud deyil və ya ona giriş yoxdur'),{statusCode:400});
+}
+
 async function createPersonalTask(body) {
  if(body.autosaveOperationId)return guardedAutosaveCreate('personal',body,b=>createPersonalTask({...b,autosaveOperationId:undefined}));
   validateTaskEstimate(body);
+  await validatePersonalTaskContext(body);
   const titleValue = String(body.title || '').trim().slice(0, 2000);
   if (!titleValue) throw new Error('Tapşırığın adını daxil edin');
   const properties = {
@@ -1380,6 +1397,7 @@ async function savePersonalTask(body){
 
 async function savePersonalTaskUnlocked(body) {
   validateTaskEstimate(body);
+  await validatePersonalTaskContext(body);
   const id = cleanId(String(body.id || '').trim());
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
   if(body.autosaveBase&&typeof body.autosaveBase==='object'){
@@ -1405,14 +1423,14 @@ async function savePersonalTaskUnlocked(body) {
     properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
   }
   if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
-  if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
+  if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined && body.machineId===undefined && body.planId===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
   if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
   invalidatePersonalTasks();
-  return { ok: true, id,...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id,...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
@@ -1650,7 +1668,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["discussions-ui.js","discussions-ui.css","focused-views.js","focused-views.css","local-timer-visibility.js","pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    const publicAssets=new Set(["discussions-ui.js","discussions-ui.css","focused-views.js","focused-views.css","local-timer-visibility.js","pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
