@@ -349,3 +349,11 @@ html body .adib-concept-panel .adib-concept-footer{position:sticky!important;bot
 .adib-session-finish .session-finish-primary{border-color:#4262ff;background:#4262ff;color:#fff}.adib-session-finish button:disabled{opacity:.6;cursor:wait}.adib-session-finish .session-finish-error{color:#c43b45}
 @media(max-width:700px){.adib-session-finish{padding:20px;border-radius:18px}.adib-session-finish footer{display:grid;grid-template-columns:1fr 1fr}}
 html.dark .adib-session-finish{background:#202d40;color:#e4edff}
+
+/* Eisenhower matrix typography: match the supplied ADIB phone reference. */
+html body.adib-focused-views #adibFocusedMatrix .personal-eisenhower-grid .eisenhower-quadrant h3,
+html body.adib-focused-views .personal-eisenhower-modal .personal-eisenhower-grid .eisenhower-quadrant h3{font-size:16px!important;line-height:1.35!important;font-weight:500!important}
+html body.adib-focused-views #adibFocusedMatrix .personal-eisenhower-grid .eisenhower-task :is(.adib-card-title,strong),
+html body.adib-focused-views .personal-eisenhower-modal .personal-eisenhower-grid .eisenhower-task :is(.adib-card-title,strong){font-size:16px!important;line-height:1.4!important;font-weight:400!important}
+html body.adib-focused-views #adibFocusedMatrix .personal-eisenhower-grid .eisenhower-task .adib-card-meta,
+html body.adib-focused-views .personal-eisenhower-modal .personal-eisenhower-grid .eisenhower-task .adib-card-meta{font-size:14px!important;line-height:1.3!important}
