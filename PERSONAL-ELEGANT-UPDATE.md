@@ -20,3 +20,12 @@ The online runtime is prepared in a pull request; production deployment requires
 - Public runtime assets byte-checked against local HTTP server. Service worker uses a new v283 cache.
 - APK signature matches the previous release; preserve the installed app when updating.
 - These checks do not constitute a physical-device Android install or native Windows launch test. Production remains unchanged until PR approval/merge.
+
+
+## Personal task form follow-up
+
+- Removed the Equipment, Tasks database and Plan selectors from personal-task create/edit in Android and phone/desktop web. These selectors remain in equipment-task forms. Existing stored link metadata is left untouched because the personal form no longer submits edits to those fields.
+- Moved the existing Qovluq picker immediately after Ad; create/edit continues to save containerId as before.
+
+## My Tasks form follow-up (2.5.82)
+The My Tasks form drops Equipment, database and Plan pickers (the equipment task form retains them). Qovluq is moved directly under Ad in Android and web forms, preserving the existing container field and selected value. Old optional equipment/plan context is omitted from updates rather than cleared.
