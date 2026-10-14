@@ -98,3 +98,25 @@ html.dark .calendar-session.session-pending{background:#352e20!important;color:#
 .calendar-session{font-size:14px}
 .calendar-session .calendar-event-time{font-size:14px;line-height:18px}
 .adib-calendar[data-calendar-view=week] .calendar-session .calendar-event-title{display:block!important;white-space:nowrap!important;line-height:18px!important;max-height:18px!important;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset}
+
+
+/* TickTick-like compact calendar surfaces and day timeline. */
+#adibCalendar{background:var(--bg,#f3f5fa)!important}
+#adibCalendar .adib-calendar-bar{background:var(--surface)!important;border-bottom:1px solid var(--line)!important;padding:10px 16px!important;gap:8px!important}
+#adibCalendar .adib-calendar-bar h2{font-size:22px!important;font-weight:650!important;letter-spacing:-.025em!important}
+#adibCalendar .adib-calendar-grid{background:var(--surface)!important}
+#adibCalendar .adib-calendar-weekday{background:var(--soft)!important;text-align:center!important;font-weight:600!important;padding:8px 4px!important}
+#adibCalendar .adib-calendar-cell{padding:6px!important;border-color:color-mix(in srgb,var(--line) 72%,transparent)!important}
+#adibCalendar .adib-calendar-cell header{min-height:34px!important;font-size:13px!important}
+#adibCalendar .adib-calendar-cell header strong{display:grid;place-items:center;min-width:30px;min-height:30px;border-radius:50%}
+#adibCalendar .adib-calendar-cell.today header strong{background:var(--blue)!important;color:#fff!important}
+#adibCalendar .adib-calendar-task{border:0!important;border-left:3px solid var(--blue)!important;border-radius:8px!important;background:var(--blue-soft)!important;padding:6px 8px!important;font-size:13px!important}
+#adibCalendar .calendar-time-layout>.calendar-day-head{background:var(--surface)!important;min-height:54px!important}
+#adibCalendar .calendar-time-layout>.calendar-day-head strong{font-size:14px!important;font-weight:650!important}
+#adibCalendar .calendar-time-corner,#adibCalendar .calendar-allday-label{background:var(--soft)!important}
+#adibCalendar .calendar-time-day{background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--calendar-hour-height,80px) - 1px),var(--line) calc(var(--calendar-hour-height,80px) - 1px),var(--line) var(--calendar-hour-height,80px))!important}
+#adibCalendar .calendar-time-event{border-radius:8px!important;box-shadow:0 1px 3px #1b315414!important;padding:6px 26px 4px 9px!important}
+#adibCalendar .calendar-event-title{font-size:14px!important;line-height:18px!important;font-weight:600!important}
+#adibCalendar .calendar-event-time{font-size:12px!important;line-height:16px!important}
+#adibCalendar .calendar-now-line{height:2px!important;background:#ef5858!important}
+@media(max-width:700px){#adibCalendar .adib-calendar-bar{padding:6px 10px!important}#adibCalendar .adib-calendar-bar h2{font-size:20px!important}#adibCalendar .calendar-time-layout.calendar-one-day{grid-template-columns:56px minmax(0,1fr)!important}#adibCalendar .calendar-hour-label{font-size:11px!important}#adibCalendar .calendar-time-event{border-radius:7px!important}#adibCalendar .calendar-event-title{font-size:14px!important}}
