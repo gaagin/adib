@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v284-personal-folder-form';
+const CACHE_NAME = 'adib-online-v285-idle-sleep-10m';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',
