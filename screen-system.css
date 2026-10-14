@@ -59,3 +59,7 @@ html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhowe
 html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhower-grid .eisenhower-task .adib-card-chips{gap:4px!important;margin-top:3px!important}
 html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhower-grid .eisenhower-task .adib-card-chip{font-size:11px!important;line-height:16px!important;padding:1px 4px!important}
 html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhower-grid .eisenhower-task .adib-card-timer{font-size:12px!important;line-height:16px!important;margin-top:3px!important}
+
+/* Align the first text line with the checkmark; never clip Android button glyphs. */
+html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhower-grid .eisenhower-task .eisenhower-task-text{padding:5px 0 0!important;overflow:visible!important}
+html body :is(#adibFocusedMatrix,.personal-eisenhower-modal) .personal-eisenhower-grid .eisenhower-task .eisenhower-task-text :is(strong,.adib-card-title){display:block!important;box-sizing:border-box!important;padding:1px 2px!important;min-height:0!important;border-radius:0!important;overflow:visible!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;-webkit-box-orient:initial!important;clip-path:none!important;mask-image:none!important;-webkit-mask-image:none!important;appearance:none!important;-webkit-appearance:none!important;transform:none!important;white-space:normal!important;overflow-wrap:anywhere!important}
