@@ -10,7 +10,7 @@ Apply after work-screen 2.5.80. Use application ID `com.adib.maintenance.planner
 
 Create/edit use `Ad → Tapsirildi → Avadanlıq → Tapşırıqlar bazası → Tarix və vaxt → Plan → remaining properties`.
 
-The Tasks database is retained. The database field is read-only, not a migration control. Equipment/Plan are optional ADIB associations stored in task-management metadata (and in the existing shared management record in native direct mode); no Notion Tasks schema is created or altered. Existing tags, category, parent task, container, estimate, content, discussions and date ranges are retained. The server validates new references and existing equipment/plan permissions. A machine derives its containing plan; conflicting combinations are rejected.
+The Tasks database is retained. The database field is read-only, not a migration control. No equipment, database or Plan picker is shown for My Tasks; if older personal tasks have stored Equipment/Plan metadata, forms omit those keys so edits do not erase them. Qovluq uses the existing containerId field and moves directly below Ad. Existing tags, category, parent task, container, estimate, content, discussions and date ranges are retained. The server validates new references and existing equipment/plan permissions. A machine derives its containing plan; conflicting combinations are rejected.
 
 ## Shared visual system
 

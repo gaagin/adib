@@ -26,3 +26,7 @@ Copy EquipmentViewPreferences.java with the latest MainActivity.java into the ma
 
 ## Equipment search and new-task source default (pending next APK)
 The equipment selector in the work-task form is now searchable by equipment name (case- and diacritic-insensitive), while remaining a Spinner-compatible field so task editing/autosave keep using the same selected equipment ID. New equipment tasks default to Gorulen isler. The source selector still lets the user choose ToDo; quick-add choices are respected, and equipment subtasks remain ToDo. Existing tasks are unchanged.
+
+
+## My Tasks form follow-up (2.5.82)
+Personal task create/edit no longer shows Equipment, Tasks database or Plan; those choices remain available in equipment-task forms. Qovluq uses the existing container field and appears immediately after Ad. Existing hidden personal equipment/plan metadata is not overwritten.
