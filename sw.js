@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adib-online-v282-task-properties-date-picker';
+const CACHE_NAME = 'adib-online-v283-personal-elegant-ui';
 const APP_SHELL = [
   '/',
   '/ela-nov-paketleme-dynamic.html',

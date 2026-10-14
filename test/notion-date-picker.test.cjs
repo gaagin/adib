@@ -41,5 +41,5 @@ test('date picker assets are public and service worker invalidates the previous 
   assert.ok(allowed.includes('"notion-date-picker.css"'));
   assert.ok(allowed.includes('"notion-date-picker.js"'));
   const worker = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
-  assert.ok(worker.includes('adib-online-v282-task-properties-date-picker'));
+  assert.ok(worker.includes('adib-online-v283-personal-elegant-ui'));
 });

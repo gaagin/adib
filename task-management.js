@@ -7,6 +7,7 @@ function integer(value,min,max,name){if(!Number.isInteger(value)||value<min||val
 function working(task){return !task.completed&&['in progress','is gedir'].includes(String(task.status||task.process||'').trim().toLowerCase())}
 class TaskManagementStore{
  constructor(file){this.file=file;this.state={version:1,revision:0,settings:{dailyTaskLimit:4,wipLimit:2,budgetMinutes:120,staleDays:14},days:{},tasks:{}};if(file&&fs.existsSync(file)){const saved=JSON.parse(fs.readFileSync(file,'utf8'));if(saved.version!==1||!saved.settings||!saved.days||!saved.tasks)throw Error('Yanlış fayl task-management.json');this.state=saved}}
+ getContext(id){const item=this.state.tasks[String(id)]||{};return {machineId:item.machineId||'',planId:item.planId||''}}
  getEstimate(id){const value=this.state.tasks[String(id)]?.estimateMinutes;return Number.isInteger(value)&&value>=1&&value<=43200?value:null}
  snapshot(){return structuredClone(this.state)}
  commit(next){next.revision=this.state.revision+1;if(this.file){fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.tmp';fs.writeFileSync(temp,JSON.stringify(next),{mode:0o600});fs.renameSync(temp,this.file)}this.state=next;return this.snapshot()}
@@ -15,6 +16,7 @@ class TaskManagementStore{
   else if(type==='completion'){const id=taskId(body.id),old=next.tasks[id]||{};next.tasks[id]={...old,completed:body.completed===true,completedAt:body.completed===true?(old.completed&&old.completedAt||((typeof body.completedAt==='string'&&Number.isFinite(Date.parse(body.completedAt)))?body.completedAt:new Date().toISOString())):null,completionDateSource:body.completionDateSource||old.completionDateSource||'recorded'};}
   else if(type==='archive'){const id=taskId(body.id);next.tasks[id]={...next.tasks[id],deleted:true,deletedAt:new Date().toISOString()};}
   else if(type==='parent'){const id=taskId(body.id),parent=body.parentId?taskId(body.parentId):'';const seen=new Set([id]);let p=parent;while(p){if(seen.has(p))throw problem('Alt tapşırıqda əsas element ola bilməz');seen.add(p);p=next.tasks[p]?.parentId||'';}next.tasks[id]={...next.tasks[id],parentId:parent};}
+  else if(type==='context'){const id=taskId(body.id),old=next.tasks[id]||{},context={...old};for(const key of ['machineId','planId'])if(body[key]!==undefined){const value=String(body[key]??'').trim();if(value&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))throw problem('Etibarsız əlaqə: '+key);context[key]=value}next.tasks[id]=context;}
   else if(type==='estimate'){const id=taskId(body.id);if(body.minutes===null){next.tasks[id]={...next.tasks[id]};delete next.tasks[id].estimateMinutes}else next.tasks[id]={...next.tasks[id],estimateMinutes:integer(body.minutes,1,43200,'Vaxt təxmini')}}
   else if(type==='day-add'||type==='day-remove'||type==='main'){
    const id=taskId(body.id),day=dateKey(body.day),plan=next.days[day]||{ids:[],mainId:''};next.days[day]=plan;

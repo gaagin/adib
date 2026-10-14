@@ -1,0 +1,74 @@
+/* ADIB 2.5.81 — quiet surfaces, clear hierarchy, unchanged navigation geometry. */
+:root,html:not(.dark){--bg:#f4f6fa;--surface:#fff;--soft:#f7f9fc;--text:#253047;--muted:#68758c;--line:#dfe5ef;--blue:#4f63e8;--blue-soft:#edf0ff;--shadow:0 12px 36px rgba(29,43,72,.07);--notion-bg:var(--bg);--notion-surface:var(--surface);--notion-text:var(--text);--notion-muted:var(--muted);--notion-border:var(--line);--notion-blue:var(--blue);--notion-hover:var(--soft);--notion-selected:var(--blue-soft);color-scheme:light}
+html.dark{--bg:#171e2a;--surface:#222d3e;--soft:#293649;--text:#eef2fb;--muted:#afbbcf;--line:#3b4a61;--blue:#566ae9;--blue-soft:#303f67;--shadow:0 16px 44px rgba(0,0,0,.18);--notion-bg:var(--bg);--notion-surface:var(--surface);--notion-text:var(--text);--notion-muted:var(--muted);--notion-border:var(--line);--notion-blue:var(--blue);--notion-hover:var(--soft);--notion-selected:var(--blue-soft);color-scheme:dark}
+html body{font-family:Inter,'Segoe UI',Arial,sans-serif;letter-spacing:-.012em;-webkit-font-smoothing:antialiased}
+html :is(h1,h2,h3){letter-spacing:-.035em;line-height:1.24}
+html :is(.modal-head,.adib-task-detail-header,.adib-task-tabs,.adib-task-footer,.adib-personal-create-footer){background:var(--surface)!important;border-color:var(--line)!important}
+html :is(.modal,.personal-kanban-editor-panel,.kanban-task-editor-panel){box-shadow:var(--shadow)!important;border-color:var(--line)!important}
+html :is(.task-group,.adib-task-group,.compact-task-group,.adib-home-group,.home-group,.kanban-task,.personal-kanban-task,.matrix-card,.personal-matrix-card){border-radius:20px!important;border-color:var(--line)!important;box-shadow:0 2px 8px rgba(29,43,72,.025)}
+html .task-editor.adib-elegant-form{padding:18px!important;gap:14px;min-width:0}
+html .adib-elegant-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea,.personal-property-picker>summary,.adib-notion-date-trigger){border-radius:14px!important;background:var(--soft)!important;border:1px solid var(--line)!important;color:var(--text)!important;box-shadow:none!important;min-height:50px;font-size:15px;line-height:1.4;padding:12px 14px!important;box-sizing:border-box;max-width:100%}
+html .adib-elegant-form :is(input,textarea)::placeholder{color:var(--muted);opacity:.8}
+html .adib-elegant-form :is(input:not([readonly]),select,textarea):focus{border-color:var(--blue)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 13%,transparent)!important;outline:none!important}
+html .adib-elegant-form :is(label,.adib-notion-date-label){color:var(--muted)!important;font-size:12px!important;font-weight:600;letter-spacing:.012em;line-height:1.45;min-width:0}
+html .adib-elegant-form label>:is(input,select,textarea,details,div){margin-top:7px;font-weight:400;letter-spacing:-.012em}
+html .adib-elegant-form :is(.editor-check,.date-time-option){font-size:13px!important;font-weight:400;display:flex;align-items:center;gap:9px;min-height:44px}
+html .adib-elegant-form :is(.editor-check,.date-time-option) input{flex:0 0 19px;width:19px;height:19px;margin:0!important;accent-color:var(--blue)}
+html .adib-elegant-form input[readonly]{color:var(--muted)!important;cursor:default}
+html .adib-elegant-form :is(#taskTitle,#personalEditTitle){font-size:21px!important;font-weight:650;letter-spacing:-.035em;background:var(--surface)!important;min-height:58px}
+html .adib-form-section{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:4px 0 2px;padding-top:16px;border-top:1px solid var(--line)}
+html .adib-form-section:first-child{padding-top:0;border:0}
+html .adib-elegant-form :is(button.primary,.primary),html .editor-actions>button.primary{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important;border-radius:13px!important;box-shadow:0 4px 12px rgba(65,83,205,.16)!important;font-weight:600}
+html .adib-elegant-form button:not(.primary){border-radius:12px!important}
+html.dark .adib-elegant-form :is(a,.adib-task-link),html.dark .adib-task-tabs [aria-selected=true]{color:#b7c4ff!important}
+html .adib-elegant-form :is(.personal-property-picker-options,.adib-personal-actions-pop){border:1px solid var(--line);border-radius:14px;background:var(--surface)!important;box-shadow:var(--shadow)}
+html .adib-elegant-form .personal-property-option{min-height:44px;color:var(--text)!important;font-size:14px!important;font-weight:400;padding:8px 12px}
+html .adib-elegant-form .personal-page-content-field{border:1px solid var(--line);border-radius:18px;padding:16px;background:var(--surface)}
+html .adib-elegant-form .personal-page-content-label{font-size:13px;font-weight:600;color:var(--text)}
+html .adib-elegant-form :is(.personal-page-content-field,.personal-task-subtask-properties,.editor-actions,.error,.adib-task-detail){grid-column:1/-1}
+html .adib-elegant-form :is(#personalEditorBoard,#personalEditorBack){display:none!important}
+html .adib-searchable-choice{display:flex;align-items:stretch;gap:7px;min-width:0}
+html .adib-searchable-choice select{flex:1;min-width:0}
+html .adib-searchable-choice>button{min-height:50px;min-width:58px;padding:8px 12px;background:var(--surface);color:var(--text);border:1px solid var(--line);font:inherit;font-size:13px;white-space:nowrap}
+html .adib-equipment-search-layer{position:fixed;inset:0;z-index:2147482500;background:rgba(10,18,34,.38);display:flex;align-items:center;justify-content:center;padding:16px;color:var(--text)}
+html .adib-equipment-search-dialog{width:min(100%,440px);max-height:min(82dvh,680px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:18px;gap:14px}
+html .adib-equipment-search-head{display:flex;align-items:center;justify-content:space-between;font-size:18px;font-weight:650}
+html .adib-equipment-search-head button{border:0;background:transparent;color:var(--muted);font-size:24px;min-width:44px;min-height:44px}
+html .adib-equipment-search-dialog>input{background:var(--soft);border:1px solid var(--line);border-radius:13px;min-height:48px;padding:12px 14px;color:var(--text);font:inherit;box-sizing:border-box;width:100%;font-size:16px}
+html .adib-equipment-search-results{overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:5px;min-height:0}
+html .adib-equipment-search-results>button{min-height:48px;border:0;border-radius:12px;padding:12px 14px;text-align:left;background:transparent;color:var(--text);font:inherit;line-height:1.45;flex-shrink:0}
+html .adib-equipment-search-results>button[aria-checked=true]{background:var(--blue-soft);font-weight:600}
+html .adib-equipment-search-empty{padding:20px;color:var(--muted);text-align:center}
+@media(min-width:800px){html .adib-elegant-form:not(:has(.adib-task-detail)),html .adib-elegant-form .adib-task-panes>[data-task-pane=task]:not([hidden]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px;align-content:start}html .adib-elegant-form .adib-elegant-wide{grid-column:1/-1}html .adib-elegant-form .personal-relations{display:contents}html .adib-elegant-form .adib-task-panes>[data-task-pane=task]{padding:22px!important}html .adib-elegant-form .adib-task-panes>[hidden]{display:none!important}}
+@media(max-width:799px){html .task-editor.adib-elegant-form{padding:16px!important;display:flex!important;flex-direction:column;gap:15px}html .adib-elegant-form .adib-task-panes>[data-task-pane=task]:not([hidden]){display:flex!important;flex-direction:column;gap:15px}html .adib-elegant-form .personal-relations{display:flex;flex-direction:column;gap:15px}html .adib-elegant-form :is(.editor-actions,.adib-task-footer){gap:8px}html .adib-equipment-search-layer{align-items:flex-end;padding:8px 8px max(8px,env(safe-area-inset-bottom))}html .adib-equipment-search-dialog{max-height:86dvh;border-radius:22px;padding:16px}}
+@media(prefers-reduced-motion:no-preference){html .adib-elegant-form :is(button,input,select,textarea){transition:border-color .15s,box-shadow .15s,background-color .15s}}
+
+/* Keep actions outside the scrolling form; no viewport-based footer offsets. */
+html .adib-elegant-sheet{display:flex!important;flex-direction:column!important;overflow:hidden!important}
+html .adib-elegant-sheet>.modal-head,html .adib-elegant-sheet>.kanban-task-editor-head,html .adib-elegant-sheet>.personal-kanban-editor-head{flex:0 0 auto}
+html .adib-elegant-sheet>.task-list{flex:1 1 auto;min-height:0!important;max-height:none!important;overflow-y:auto!important;padding-bottom:16px}
+html .adib-elegant-footer{flex:0 0 auto;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface);position:relative;z-index:60}
+html .adib-elegant-footer .editor-actions{display:flex!important;flex-wrap:wrap;gap:8px;margin:0;padding:0;background:transparent!important;border:0!important;position:static!important}
+html .adib-elegant-footer .editor-actions>button{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px 16px;background:var(--soft);color:var(--text);font-size:14px}
+html .adib-elegant-footer .editor-actions>button.primary{flex:1}
+html .adib-elegant-footer .adib-autosave-status{order:10;flex:1 0 100%;font-size:11px;line-height:1.4;color:var(--muted);padding:3px 0 0;margin:0}
+html .adib-elegant-actions-menu{position:relative;align-self:stretch}
+html .adib-elegant-actions-menu>summary{min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:12px;color:var(--text);list-style:none;font-size:21px;cursor:pointer}
+html .adib-elegant-actions-pop{position:absolute;right:0;bottom:calc(100% + 8px);min-width:230px;max-width:calc(100vw - 40px);max-height:44dvh;overflow:auto;display:flex;flex-direction:column;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+html .adib-elegant-actions-menu:not([open])>.adib-elegant-actions-pop{display:none}
+html .adib-elegant-actions-pop>:is(button,a){min-height:44px;border:0!important;border-radius:10px;padding:12px;text-align:left;background:transparent!important;color:var(--text);font-size:14px;text-decoration:none}
+html .adib-elegant-actions-pop>.danger{color:#d34d55!important}
+html .adib-elegant-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea,.personal-property-picker>summary,.adib-notion-date-trigger){font-size:15px!important;font-weight:400!important;min-height:50px!important}
+html .adib-elegant-form :is(#taskTitle,#personalEditTitle){font-size:21px!important;font-weight:650!important}
+html .adib-elegant-form .personal-property-picker>summary{position:relative;list-style:none;padding-right:34px!important;display:flex;align-items:center}
+html .adib-elegant-form .personal-property-picker>summary::after{content:''!important;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);position:absolute;right:15px;top:19px}
+html .adib-elegant-form .personal-property-picker>summary::-webkit-details-marker{display:none}
+html .adib-task-discussion{grid-column:1/-1;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+html .adib-task-discussion>summary{min-height:50px;padding:14px 16px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);list-style:none}
+html .adib-task-discussion>summary::after{content:'⌄';float:right;color:var(--muted)}
+html .adib-task-discussion-body{padding:0 16px 16px;font-size:14px}
+@media(max-width:799px){html .adib-elegant-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea,.personal-property-picker>summary,.adib-notion-date-trigger){font-size:16px!important}html .adib-elegant-form :is(#taskTitle,#personalEditTitle){font-size:21px!important}html .adib-elegant-footer{padding:10px 14px max(10px,env(safe-area-inset-bottom))}}
+
+@media(max-width:799px){html body :is(#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties>.adib-task-properties-panel.adib-elegant-sheet{min-height:0!important;bottom:auto!important;height:var(--adib-elegant-sheet-height,calc(100dvh - 130px))!important;max-height:var(--adib-elegant-sheet-height,calc(100dvh - 130px))!important}}
+/* Canvas-only controls must not intercept property form actions. */
+html body:has(.adib-elegant-sheet) #centerCurrentCanvasButton{display:none!important;pointer-events:none!important}

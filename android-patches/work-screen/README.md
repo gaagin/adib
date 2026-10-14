@@ -1,6 +1,6 @@
 # Android — task properties, date range and equipment defaults
 Apply AFTER android-patches/simple-cards (2.5.75), retaining all preceding patches. Copy the Java runtime files to app/src/main/java/com/adib/maintenance and test files to the matching test package.
-Set versionCode 130, versionName "2.5.80-task-properties". Keep the existing application ID and private release signer. No signing material is included.
+Set versionCode 131, versionName "2.5.81-personal-elegant". Keep the existing application ID and private release signer. No signing material is included.
 
 Restored the familiar scrollable/tabbed task-properties editor; the newer action-first work screen is no longer installed in production. Equipment task creation and editing use the consistent order Ad → Tapsirildi → Avadanliq → Tapşırıqlar bazası → Tarix və vaxt → Plan → remaining properties. Date fields use a theme-aware Notion-style range picker on Android and phone web, with optional time/end date and timezone display. Date ranges are sent through the existing date/dateEnd API fields. The equipment default-view preference is keyed by stable account/datasource identity rather than a changeable account revision, migrated from the previous key where possible, and committed synchronously.
 Task completion is held for five seconds. Cancel performs no completion write. Separate pending tasks have separate Undo controls. Cancelling the editor prevents its pending completion from saving.
