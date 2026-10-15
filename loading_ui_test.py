@@ -16,13 +16,13 @@ with sync_playwright() as pw:
   c,p=page(width);errors=[];p.on('pageerror',lambda e:errors.append(str(e)));p.add_script_tag(content=ZONE)
   # Pending response: no technical text or retry button before a real failure.
   p.evaluate("""()=>{window.realFetch=window.fetch;window.fetch=()=>new Promise(r=>window.clockReply=r)}""")
-  p.add_script_tag(content=CLOCK);p.evaluate('ADIBClock.attach()');p.wait_for_selector('#adibTimeWait')
-  assert p.locator('#adibTimeWait h2').inner_text()=='Yüklənir…'
-  assert p.locator('#adibTimeWait button').is_hidden()
-  assert 'Kompüter' not in p.locator('#adibTimeWait').inner_text()
+  p.add_script_tag(content=CLOCK);p.evaluate('ADIBClock.attach()');p.wait_for_selector('#adibClockNotice.is-syncing')
+  assert p.locator('#adibClockNotice').inner_text()=='Vaxt sinxronlaşdırılır…'
+  assert p.locator('#adibTimeWait').count()==0
+  assert 'Kompüter' not in p.locator('#adibClockNotice').inner_text()
   assert p.evaluate('document.documentElement.scrollWidth<=innerWidth')
   p.evaluate("clockReply(new Response(JSON.stringify({trusted:true,now:1792051200000,timeZone:'Asia/Baku'}),{status:200}))")
-  p.wait_for_selector('#adibTimeWait',state='detached');assert p.evaluate('ADIBClock.trusted')
+  p.wait_for_selector('#adibClockNotice[hidden]',state='attached');assert p.evaluate('ADIBClock.trusted')
   assert p.locator('#adibClockNotice').is_hidden()
   # No request interception, no duplicated fetch and correct overlapping operations.
   p.evaluate('window.fetch=window.realFetch;window.a=ADIBLoading.begin();window.b=ADIBLoading.begin("save");void 0')
@@ -37,13 +37,13 @@ with sync_playwright() as pw:
   p.evaluate('window.authScreen.done();document.documentElement.classList.remove("adib-starting");document.documentElement.style.visibility=""')
   assert p.locator('.adib-loading-screen').count()==0
   assert not errors,errors
-  print(f'PASS {width}px: pending clock, trusted gate release, concurrent progress, fail-closed auth screen, no overflow/errors.')
+  print(f'PASS {width}px: non-blocking clock sync, trusted status release, concurrent progress, fail-closed auth screen, no overflow/errors.')
   c.close()
  # Actual failed network gate, then retry/success without changing network-only policy.
- c,p=page();p.add_script_tag(content=ZONE);p.evaluate("window.fetch=async()=>{throw Error('offline')};void 0");p.add_script_tag(content=CLOCK);p.evaluate('ADIBClock.attach()');p.wait_for_selector('#adibTimeWait[data-error=true]')
- assert p.locator('#adibTimeWait button').is_visible();assert not p.evaluate('ADIBClock.trusted')
- p.evaluate("window.fetch=()=>new Promise(r=>window.reply=r);void 0");p.locator('#adibTimeWait button').click();p.wait_for_selector('#adibTimeWait[data-error=false]');assert p.locator('#adibTimeWait button').is_hidden()
- p.evaluate("reply(new Response(JSON.stringify({trusted:true,now:1792051200000,timeZone:'Asia/Baku'}),{status:200}))");p.wait_for_selector('#adibTimeWait',state='detached');c.close();print('PASS: offline error and retry; no fallback to device clock.')
+ c,p=page();p.add_script_tag(content=ZONE);p.evaluate("window.fetch=async()=>{throw Error('offline')};void 0");p.add_script_tag(content=CLOCK);p.evaluate('ADIBClock.attach()');p.wait_for_function("document.querySelector('#adibClockNotice').textContent.includes('Yenidən cəhd et')")
+ assert p.locator('#adibClockNotice').is_visible();assert not p.evaluate('ADIBClock.trusted')
+ p.evaluate("window.fetch=()=>new Promise(r=>window.reply=r);void 0");p.locator('#adibClockNotice').click();p.wait_for_selector('#adibClockNotice.is-syncing');assert p.locator('#adibTimeWait').count()==0
+ p.evaluate("reply(new Response(JSON.stringify({trusted:true,now:1792051200000,timeZone:'Asia/Baku'}),{status:200}))");p.wait_for_selector('#adibClockNotice[hidden]',state='attached');c.close();print('PASS: offline error and retry; no fallback to device clock.')
  # Real wrapped fetch: pending indicator clears on rejection and aborted requests.
  c,p=page();p.evaluate("""()=>{window.calls=0;window.fetch=()=>{calls++;return new Promise((r,j)=>window.rejectRequest=j)};delete window.ADIBLoading}""");p.add_script_tag(content=LOAD)
  p.evaluate("window.request=fetch('/api/test').catch(()=>null);void 0");p.wait_for_selector('#adibLoadingStatus:not([hidden])');p.evaluate("rejectRequest(new DOMException('Aborted','AbortError'))");p.wait_for_selector('#adibLoadingStatus[hidden]',state='attached');assert p.evaluate('calls')==1;assert p.evaluate('ADIBLoading.pending')==0;c.close();print('PASS: aborted fetch releases progress, exactly one request.')

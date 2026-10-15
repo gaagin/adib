@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
 const crypto = require('node:crypto');
+const {UiAssets}=require('./ui-assets');
+const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+const uiAssets=new UiAssets(__dirname,publicAssets);
 const {RealtimeHub}=require('./realtime-server');
 const {NotionRateGate}=require('./notion-rate');
 const notionRate=new NotionRateGate({fetchFn:async(url,options)=>{
@@ -752,9 +755,10 @@ function json(response, status, body, extraHeaders = {}) {
   if(status>=200&&status<300&&body?.ok!==false&&response.__realtimeScopes?.length)realtime.invalidate(response.__realtimeScopes);
 }
 
-function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store') {
-  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS });
-  response.end(fs.readFileSync(filename));
+function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store', request = null) {
+  const encoded=contentType.startsWith('text/html')?uiAssets.encodeHtml(filename,request?.headers||{}):{body:fs.readFileSync(filename),headers:{}};
+  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS, ...encoded.headers });
+  response.end(encoded.body);
 }
 
 function requestError(message, statusCode) {
@@ -1659,17 +1663,18 @@ const server = http.createServer(async (request, response) => {
       if(!['GET','HEAD'].includes(request.method)&&request.headers.origin&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&o.protocol!=='adib:')throw accessError('Yanlış sorğu mənbəyi');}
       const b=['GET','HEAD'].includes(request.method)?{}:await readBody(request);request.__accountBody=b;Object.defineProperty(b,'__account',{value:u,enumerable:false});await accountAuthorize(request,response,url,u,b);accounts.user(request);
     }
-    if(url.pathname==='/account.html')return file(response,path.join(__dirname,'account.html'));
-    if(accounts.enabled&&(url.pathname==='/'||url.pathname==='/ela-nov-paketleme-dynamic.html')){try{accounts.user(request)}catch{return file(response,path.join(__dirname,'account.html'));}}
+    if(url.pathname==='/account.html')return file(response,path.join(__dirname,'account.html'),'text/html; charset=utf-8','no-store',request);
+    if(accounts.enabled&&(url.pathname==='/'||url.pathname==='/ela-nov-paketleme-dynamic.html')){try{accounts.user(request)}catch{return file(response,path.join(__dirname,'account.html'),'text/html; charset=utf-8','no-store',request);}}
     response.__realtimeScopes=mutationScopes(request.method,url.pathname);
     if(request.method==='GET'&&url.pathname==='/api/events')return realtime.connect(request,response,(url.searchParams.get('scopes')||'personal,equipment,management').split(','))||json(response,400,{error:'Unknown scopes'});
     if(request.method==='GET'&&url.pathname==='/api/realtime/state')return json(response,200,await realtime.read(url.searchParams.get('scope')||'personal',url.searchParams.get('revision'),url.searchParams.get('epoch')));
     if(request.method==='GET'&&url.pathname==='/api/realtime/status')return json(response,200,{enabled:true,transport:'sse',externalPollMs:realtime.pollMs});
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
-    // Versioned, no-store UI assets; never serve server sources or private data.
-    const publicAssets=new Set(["loading-ui.js","loading-ui.css","discussions-ui.js","discussions-ui.css","focused-views.js","focused-views.css","local-timer-visibility.js","network-idle.js","pomodoro-session-ui.js","browser-pomodoro.js","compact-design.css","compact-design.js","work-timer-ui.js","work-timer-ui.css","az-locale.js","account-client.js","autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+    // Content-addressed public UI code; private HTML/API responses remain no-store.
+
     if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
+      if(uiAssets.serve(request,response,url,SECURITY_HEADERS))return;
       const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
       return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
     }
@@ -1792,7 +1797,7 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
     if (url.pathname === '/icons/icon-512.png') return file(response, path.join(__dirname, 'icons/icon-512.png'), 'image/png', 'public, max-age=31536000, immutable');
-    if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'));
+    if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'),'text/html; charset=utf-8','no-store',request);
     return json(response, 404, { error: 'Not found' });
   } catch (error) {
     if (error.statusCode && error.statusCode < 500) console.warn('Request rejected:', error.message);

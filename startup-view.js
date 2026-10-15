@@ -9,9 +9,10 @@
  root.document.documentElement.classList.toggle('adib-desktop-app',!!root.ADIBDesktop);
  function finish(){root.document.documentElement.classList.remove('adib-starting');root.document.getElementById('adibBootStatus')?.remove();}
  function failed(error){console.warn('ADIB workspace startup:',error);const box=root.document.getElementById('adibBootStatus');if(box){box.querySelector('h2').textContent='İş yerini açmaq alınmadı';box.querySelector('.adib-loading-spinner')?.remove();box.querySelector('p').hidden=false;box.querySelector('p').textContent='Bağlantınızı yoxlayın və yenidən endirin. Tapşırıq məlumatları dəyişdirilməyib.';box.querySelector('button').hidden=false;}}
- function openStartupView(){
+ async function openStartupView(){
   if(!shouldOpenMyTasks(root.location.href)){finish();return;}
   try{
+   if(root.ADIBAccount)await root.ADIBAccount.ready;
    // The shell opens synchronously from the saved snapshot. Its refresh is background work.
    if(!root.ADIBHome?.open||!root.ADIBHomeBridge)throw Error('Workspace assets are unavailable');
    Promise.resolve(root.ADIBHome.open()).then(finish,failed);

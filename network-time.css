@@ -5,3 +5,5 @@
 #adibTimeWait{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:24px;background:var(--surface,#fff);color:var(--text,#222)}
 #adibTimeWait>div{max-width:480px;border:1px solid var(--line,#ddd);border-radius:12px;padding:28px;background:var(--soft,#f9f9f9)}
 #adibTimeWait h2{margin-top:0;font-size:22px}#adibTimeWait p{line-height:1.6;font-size:14px}#adibTimeWait button{min-height:44px;padding:8px 18px}
+
+#adibClockNotice.is-syncing{background:var(--surface,#fff)!important;color:var(--muted,#78859a)!important;border-color:var(--line,#e6ebf3)!important}#adibClockNotice.is-syncing::before{content:'';display:inline-block;width:12px;height:12px;border:2px solid #dce3ff;border-top-color:#4b6bfa;border-radius:50%;vertical-align:-2px;margin-right:7px;animation:adib-progress-spin .85s linear infinite}@media(prefers-reduced-motion:reduce){#adibClockNotice.is-syncing::before{animation:none}}

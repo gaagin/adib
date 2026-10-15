@@ -1,18 +1,8 @@
-const CACHE_NAME = 'adib-online-v285-idle-sleep-10m';
-const APP_SHELL = [
-  '/',
-  '/ela-nov-paketleme-dynamic.html',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(self.skipWaiting());
+/* Content-addressed public UI cache, independent of application release numbers. */
+const CACHE_NAME='adib-online-ui-content-v1';
+const ASSETS=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "images.js", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('adib-online-')&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==self.location.origin||!ASSETS.has(u.pathname.slice(1))||!/^([a-f0-9]{20})$/.test(u.searchParams.get('asset')||''))return;
+ event.respondWith((async()=>{let cache;try{cache=await caches.open(CACHE_NAME);const hit=await cache.match(event.request);if(hit)return hit;}catch{}const response=await fetch(event.request);if(cache&&response.ok&&response.headers.get('X-ADIB-Asset-Revision')===u.searchParams.get('asset')){const copy=response.clone();event.waitUntil((async()=>{try{await cache.put(event.request,copy);const keys=await cache.keys();for(const key of keys.slice(0,Math.max(0,keys.length-200)))await cache.delete(key);}catch{}})());}return response;})());
 });
-
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('adib-online-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
-});
-
-self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(url.origin!==self.location.origin||event.request.method!=='GET'||url.pathname.startsWith('/api/'))return;event.respondWith(fetch(event.request,{cache:'no-store'}));});
