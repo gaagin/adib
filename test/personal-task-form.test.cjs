@@ -19,4 +19,5 @@ test('existing task properties stay unfocused and mobile subtask rows open the c
  assert.ok(html.includes('const openPersonalChildTask=child=>'));
  assert.ok(html.includes("if(!taskTabs)list.querySelectorAll('[data-task-open-child]')"));
  assert.ok(html.includes("openPersonalChildTask({id:row.dataset.taskOpenChild})"));
+ assert.ok(html.includes('list.scrollTop=0'),'reopened child properties start at the first field');
 });
