@@ -81,3 +81,15 @@ html:not(.adib-desktop-app) body :is(#taskModal#taskModal#taskModal#taskModal,.k
 html:not(.adib-desktop-app) body :is(#taskModal#taskModal#taskModal#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties:has(.task-editor)>.adib-task-properties-panel>.task-list{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain;margin-top:0!important;padding-top:0!important}
 html:not(.adib-desktop-app) body:has(:is(#taskModal.open,.kanban-task-editor-layer:not([hidden]),.personal-kanban-editor-layer:not([hidden])).adib-task-properties:has(.task-editor)) :is(.adib-design-nav,.adib-nav-dock,.mobile-nav,.miro-mobile-dock){display:none!important}
 }
+
+/* Keep the original task timer directly after the date field in all property editors. */
+html body .task-editor .adib-task-quick-timer{grid-column:1/-1!important;box-sizing:border-box!important;width:100%!important;margin:8px 0 16px!important}
+html body .task-editor .adib-task-quick-timer.adib-personal-timer{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px 12px!important;align-items:center!important;padding:12px!important;border:1px solid var(--line,#d7e1fb)!important;border-radius:12px!important;background:var(--soft,#f5f7ff)!important;color:var(--text,#253047)!important}
+html body .adib-task-quick-timer .adib-timer-time-group{display:flex;flex-direction:column;gap:4px;min-width:0}
+html body .adib-task-quick-timer .adib-timer-time-group small{font-size:12px;color:var(--muted,#73819a)}
+html body .adib-task-quick-timer .adib-workspace-clock{font-size:24px;line-height:1.2;font-variant-numeric:tabular-nums}
+html body .adib-task-quick-timer .adib-timer-total-group{grid-column:1;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted,#73819a)}
+html body .adib-task-quick-timer .adib-workspace-timer-start{grid-column:2;grid-row:1/3;min-height:44px!important;padding:8px 14px!important;border:0!important;border-radius:9px!important;background:var(--blue,#4b6bfa)!important;color:#fff!important;font:inherit!important;font-size:14px!important;cursor:pointer}
+html body .adib-task-quick-timer .adib-workspace-timer-start:disabled{opacity:.5;cursor:default}
+html body .adib-task-quick-timer .adib-workspace-timer-feedback{grid-column:1/-1;color:#d43c43;font-size:12px;overflow-wrap:anywhere}
+html body .adib-task-quick-timer .adib-workspace-timer-feedback:empty{display:none}
