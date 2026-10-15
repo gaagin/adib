@@ -7,8 +7,8 @@ android {
         applicationId 'com.adib.mobile.online'
         minSdk 24
         targetSdk 35
-        versionCode 8
-        versionName '1.1.6-mobile-ui'
+        versionCode 9
+        versionName '1.1.7-system-back'
         buildConfigField 'String', 'APP_BASE_URL', '\"https://adib-production-eba3.up.railway.app/\"'
     }
     buildFeatures { buildConfig true }
