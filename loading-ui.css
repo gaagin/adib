@@ -1,0 +1,26 @@
+/* A single visual language for startup, reads, uploads and background sync. */
+.adib-loading-spinner{display:inline-block!important;flex:none!important;width:18px!important;height:18px!important;box-sizing:border-box!important;border:2px solid #dce3ff!important;border-top-color:#4b6bfa!important;border-radius:50%!important;animation:adib-progress-spin .85s linear infinite;vertical-align:middle}
+@keyframes adib-progress-spin{to{transform:rotate(360deg)}}
+@keyframes adib-progress-slide{0%{transform:translateX(-110%)}100%{transform:translateX(350%)}}
+.adib-loading-inline{display:inline-flex;align-items:center;gap:9px;color:var(--muted,#78859a);font:13px/1.5 system-ui,sans-serif}
+#adibLoadingProgress{position:fixed;inset:0 0 auto;height:2px;overflow:hidden;z-index:2147483000;visibility:visible!important;pointer-events:none;background:#4b6bfa12}
+#adibLoadingProgress i{display:block;width:30%;height:100%;background:#4b6bfa;animation:adib-progress-slide 1.4s ease-in-out infinite}
+#adibLoadingStatus{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147482999;display:flex;align-items:center;gap:9px;max-width:calc(100vw - 32px);padding:9px 14px;border:1px solid var(--line,#e6ebf3);border-radius:24px;background:var(--surface,#fff);color:var(--text,#33415a);box-shadow:0 4px 20px #23334b12;font:12px/1.5 system-ui,sans-serif;pointer-events:none;visibility:visible!important;white-space:nowrap}
+#adibLoadingProgress[hidden],#adibLoadingStatus[hidden]{display:none!important}
+/* Keep the network-only gate, but show no technical card during normal startup. */
+#adibTimeWait,#adibBootStatus{font-family:system-ui,-apple-system,'Segoe UI',sans-serif!important}
+#adibTimeWait>div,#adibBootStatus>div{width:auto!important;max-width:340px!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:24px!important;text-align:center!important}
+#adibTimeWait .adib-loading-spinner,#adibBootStatus .adib-loading-spinner{width:28px!important;height:28px!important;border-width:3px!important;margin-bottom:14px}
+#adibTimeWait h2,#adibBootStatus h2{font-size:15px!important;font-weight:500!important;line-height:1.5!important;margin:0!important}
+#adibTimeWait p,#adibBootStatus p{font-size:13px!important;line-height:1.6!important;color:var(--muted,#78859a)!important;margin:8px 0 0!important}
+#adibTimeWait button,#adibBootStatus button{min-height:44px!important;margin-top:18px!important;border:1px solid var(--line,#dce3ef)!important;border-radius:11px!important;background:var(--surface,#fff)!important;color:var(--text,#33415a)!important;font:13px system-ui,sans-serif!important;padding:10px 18px!important}
+#adibTimeWait [hidden],#adibBootStatus [hidden]{display:none!important}
+#adibTimeWait[data-error=true] .adib-loading-spinner{display:none!important}
+html.adib-starting #adibLoadingStatus,body:has(#adibTimeWait) #adibLoadingStatus{display:none!important}
+.comments-loading,.personal-loading[data-loading],.adib-home-empty[data-loading]{display:flex;align-items:center;gap:9px;color:var(--muted,#78859a);font-size:13px;padding:16px}
+.comments-loading::before,.personal-loading[data-loading]::before,.adib-home-empty[data-loading]::before{content:'';display:inline-block;flex:none;width:16px;height:16px;border:2px solid #dce3ff;border-top-color:#4b6bfa;border-radius:50%;animation:adib-progress-spin .85s linear infinite}
+.adib-home-status[data-loading=true]::before,.tm-sync-status[data-loading=true]::before,#personalSyncStatus[data-loading=true]::before{content:'';display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-2px;border:2px solid #dce3ff;border-top-color:#4b6bfa;border-radius:50%;animation:adib-progress-spin .85s linear infinite}
+html.adib-account-loading main{visibility:hidden}#adibAccountLoading{display:none}html.adib-account-loading #adibAccountLoading{display:grid;place-items:center;position:fixed;inset:0;background:var(--surface,#f4f6fb);z-index:100000;font:14px system-ui,sans-serif;color:#78859a}#adibAccountLoading>div{display:grid;justify-items:center;gap:14px}#adibAccountLoading .adib-loading-spinner{width:28px!important;height:28px!important}
+@media(min-width:800px){#adibLoadingStatus{bottom:22px}}@media(prefers-reduced-motion:reduce){.adib-loading-spinner,.comments-loading::before,[data-loading]::before{animation:none!important}#adibLoadingProgress i{animation:none;width:100%;opacity:.5}}
+
+#adibTimeWait,#adibBootStatus{visibility:visible!important}.adib-loading-screen{position:fixed;inset:0;z-index:100002;display:grid;place-items:center;visibility:visible!important;background:var(--surface,#fff);font:14px/1.6 system-ui,sans-serif;color:var(--muted,#78859a);text-align:center}.adib-loading-screen>div{max-width:320px;padding:24px}.adib-loading-screen .adib-loading-spinner{width:28px!important;height:28px!important}.adib-loading-screen [hidden]{display:none!important}.adib-loading-screen button{font:13px system-ui,sans-serif;min-height:44px;margin-top:14px;padding:10px 18px;border-radius:11px;border:1px solid #dce3ef;background:var(--surface,#fff);color:var(--text,#33415a)}

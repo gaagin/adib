@@ -8,7 +8,7 @@
  // Native desktop windows retain desktop property geometry even when resized narrowly.
  root.document.documentElement.classList.toggle('adib-desktop-app',!!root.ADIBDesktop);
  function finish(){root.document.documentElement.classList.remove('adib-starting');root.document.getElementById('adibBootStatus')?.remove();}
- function failed(error){console.warn('ADIB workspace startup:',error);const box=root.document.getElementById('adibBootStatus');if(box){box.querySelector('h2').textContent='İş yerini açmaq alınmadı';box.querySelector('p').textContent='Bağlantınızı yoxlayın və yenidən endirin. Tapşırıq məlumatları dəyişdirilməyib.';box.querySelector('button').hidden=false;}}
+ function failed(error){console.warn('ADIB workspace startup:',error);const box=root.document.getElementById('adibBootStatus');if(box){box.querySelector('h2').textContent='İş yerini açmaq alınmadı';box.querySelector('.adib-loading-spinner')?.remove();box.querySelector('p').hidden=false;box.querySelector('p').textContent='Bağlantınızı yoxlayın və yenidən endirin. Tapşırıq məlumatları dəyişdirilməyib.';box.querySelector('button').hidden=false;}}
  function openStartupView(){
   if(!shouldOpenMyTasks(root.location.href)){finish();return;}
   try{

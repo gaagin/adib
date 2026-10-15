@@ -4,12 +4,19 @@ import json
 base=Path(__file__).parent
 rules={'sections':['personal','calendar','chat'],'actions':['status','comment','timer'],'containers':[],'plans':[],'assignedOnly':True,'assignee':'Huseyn'}
 users=[{'id':'admin','name':'ilqar mamedov','login':'ilqar','role':'admin','rules':rules},{'id':'employee','name':'Huseyn','login':'huseyn','role':'employee','rules':rules},{'id':'manager','name':'Araz','login':'araz','role':'manager','disabled':True,'rules':rules}]
+def asset(r):
+ from urllib.parse import urlparse
+ path=urlparse(r.request.url).path
+ if path in ['/loading-ui.js','/loading-ui.css','/az-locale.js']:
+  r.fulfill(content_type='text/css' if path.endswith('.css') else 'text/javascript',body=(base/path[1:]).read_text());return True
+ return False
 with sync_playwright() as pw:
  b=pw.chromium.launch(executable_path=__import__('os').environ.get('CHROMIUM_PATH','/usr/local/bin/chromium'),headless=True,args=['--no-sandbox'])
  for width,height in [(390,844),(320,740),(1440,1000)]:
   c=b.new_context(viewport={'width':width,'height':height},service_workers='block');p=c.new_page();errors=[];calls=[];p.on('pageerror',lambda e:errors.append(str(e)))
   def route(r):
    u=r.request.url;method=r.request.method
+   if asset(r):return
    if '/api/' not in u:r.fulfill(content_type='text/html',body=(base/'account.html').read_text());return
    body=r.request.post_data_json if method not in ['GET','HEAD'] else None;calls.append((u,method,body))
    if '/api/auth/status' in u:d={'enabled':True,'serverUrl':'https://account.test'}
@@ -35,6 +42,7 @@ with sync_playwright() as pw:
  c=b.new_context(service_workers='block');p=c.new_page();reads=[]
  def employee_route(r):
   u=r.request.url;reads.append(u)
+  if asset(r):return
   if '/api/auth/status' in u:r.fulfill(json={'enabled':True})
   elif '/api/auth/me' in u:r.fulfill(json={'user':users[1]})
   else:r.fulfill(content_type='text/html',body=(base/'account.html').read_text())
@@ -43,6 +51,7 @@ with sync_playwright() as pw:
  c=b.new_context(viewport={'width':390,'height':844},service_workers='block');p=c.new_page()
  def login_route(r):
   u=r.request.url
+  if asset(r):return
   if '/api/auth/status' in u:r.fulfill(json={'enabled':True})
   elif '/api/auth/me' in u:r.fulfill(status=401,json={'error':'Daxil olun'})
   else:r.fulfill(content_type='text/html',body=(base/'account.html').read_text())
