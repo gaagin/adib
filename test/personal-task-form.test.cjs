@@ -12,3 +12,11 @@ test('known equipment derives its plan; a conflicting plan is rejected',async()=
 test('equipment permissions apply to new personal associations',async()=>{await assert.rejects(validator({allow:false})({machineId:MACHINE,__account:{id:'user'}}),/giriş yoxdur/);await validator({allow:false})({machineId:'',planId:'',__account:{id:'user'}});});
 test('native direct backend bundles the same context persistence and validation',()=>{const dir=path.join(root,'android-patches/personal-task-form/assets/direct'),core=fs.readFileSync(path.join(dir,'core-source.js'),'utf8'),modules=JSON.parse(fs.readFileSync(path.join(dir,'sources.json'),'utf8'));assert.equal(modules.server,core);assert.equal(modules['task-management'],fs.readFileSync(path.join(root,'task-management.js'),'utf8'));for(const marker of ['context=taskManagement.getContext(page.id)','await validatePersonalTaskContext(body);'])assert.ok(core.includes(marker));});
 test('shared elegant styles and search are served publicly without changing modal geometry',()=>{for(const f of ['elegant-ui.css','elegant-ui.js'])assert.ok(server.includes('"'+f+'"'));const css=fs.readFileSync(path.join(root,'elegant-ui.css'),'utf8');assert.ok(css.includes('html.dark'));assert.ok(css.includes('@media(max-width:799px)'));assert.ok(css.includes('prefers-reduced-motion'));assert.ok(css.includes('z-index:2147482500'));assert.ok(css.includes('--adib-elegant-sheet-height'));assert.ok(css.includes('#centerCurrentCanvasButton{display:none'));const ui=fs.readFileSync(path.join(root,'elegant-ui.js'),'utf8');assert.ok(ui.includes('.adib-design-nav'));assert.ok(ui.includes('panel.__adibElegantFit=fit'));assert.ok(fs.readFileSync(path.join(root,'autosave.js'),'utf8').includes('__adibElegantFooter'));});
+
+test('existing task properties stay unfocused and mobile subtask rows open the child task',()=>{
+ assert.ok(!html.includes("setTimeout(()=>document.getElementById('personalEditTitle')?.focus(),0)"));
+ assert.ok(html.includes("(isNew?' autofocus':'')"),'autofocus remains limited to deliberate new-task creation');
+ assert.ok(html.includes('const openPersonalChildTask=child=>'));
+ assert.ok(html.includes("if(!taskTabs)list.querySelectorAll('[data-task-open-child]')"));
+ assert.ok(html.includes("openPersonalChildTask({id:row.dataset.taskOpenChild})"));
+});
