@@ -123,3 +123,13 @@ html body .adib-home-tick-menu .adib-tick-menu-item:focus-visible{outline:2px so
 .adib-home-tick-menu hr{display:block;width:calc(100% - 24px);margin:10px 12px;border:0;border-top:1px solid var(--line,#e8eaf0)}
 html body.adib-home-hide-details #adibHome .adib-task-card :is(.adib-card-meta,.adib-card-chips,.adib-card-timer){display:none!important}
 @media(max-width:700px){html body .adib-home-tick-menu{padding:10px;border-radius:23px}html body .adib-home-tick-menu .adib-tick-menu-item{min-height:46px!important}}
+
+/* Shared view menus; preserve underlying controls and their original handlers. */
+html body .adib-section-tick-ready>:is(.adib-view-menu,.adib-design-overflow){display:none!important}
+html body .adib-section-tick-ready>.adib-section-tick-trigger{display:grid!important;place-items:center!important;flex:0 0 44px!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:10px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:var(--text,#253047)!important;position:static!important;cursor:pointer}
+html body .adib-home-tick-menu .adib-tick-menu-item:disabled{opacity:.45!important;cursor:default!important}
+html body .personal-eisenhower-modal[data-tick-hide-details="true"] .personal-eisenhower-grid .eisenhower-task :is(.adib-card-meta,.adib-card-chips,.adib-card-timer){display:none!important}
+
+.adib-tick-search-dialog{padding:20px;border-radius:22px;max-width:calc(100vw - 32px);background:var(--surface);color:var(--text)}.adib-tick-search-dialog h2{font-size:20px}.adib-tick-search-dialog input{box-sizing:border-box;width:100%;min-height:46px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:inherit;font:inherit}.adib-tick-search-dialog button{min-height:44px;padding:8px 16px;border-radius:10px;margin-right:6px}
+html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions.adib-section-tick-ready>.adib-design-overflow{display:none!important}
+html body:has(#adibWorkspaceHeader .adib-section-tick-trigger) #canvasActionsButton{display:none!important}
