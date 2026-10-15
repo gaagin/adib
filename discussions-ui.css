@@ -36,3 +36,7 @@ html body .adib-discussion-create-error:empty{display:none}
 
 html body .adib-discussion-equipment-fields{display:grid;gap:14px}
 html body .adib-discussion-equipment-fields[hidden]{display:none!important}
+
+html body #adibChatOverlay .adib-discussion-hide{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:10px;flex-shrink:0}
+html body #adibChatOverlay .adib-discussion-hide svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+html body #adibChatOverlay .adib-discussion-hidden-label{font-size:11px;color:var(--muted,#78859a)}
