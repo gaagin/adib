@@ -106,3 +106,20 @@ html body .adib-design-profile{display:flex;align-items:center;gap:12px;backgrou
 .adib-design-avatar{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;background:var(--surface);color:var(--muted);font-size:13px;font-weight:600}.adib-design-username{font-size:15px;font-weight:600;overflow-wrap:anywhere}
 @media(max-width:700px){html body #adibAccountButton{display:none!important}}
 html body:has(.adib-design-profile) #adibAccountButton{display:none!important}
+
+/* Home menu: rounded TickTick-like surface with real ADIB actions. */
+html body #adibHome.adib-tick-home .adib-home-top-actions>:is(.adib-view-menu,.adib-design-overflow,.adib-home-sort,.adib-home-filter,.adib-home-refresh){display:none!important}
+html body #adibHome.adib-tick-home .adib-home-tick-trigger{display:grid!important;place-items:center!important;flex:0 0 44px!important;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:10px!important;border:0!important;background:transparent!important;color:var(--text,#253047)!important;border-radius:10px!important;cursor:pointer}
+.adib-home-tick-trigger svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round}
+html body .adib-home-tick-menu{position:fixed;inset:auto;margin:0;box-sizing:border-box;max-width:calc(100vw - 24px);padding:12px;border:1px solid color-mix(in srgb,var(--line,#dfe5ef) 45%,transparent);border-radius:24px;background:var(--surface,#fff);color:var(--text,#253047);box-shadow:0 12px 38px #17243b24;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;z-index:30000}
+html body .adib-home-tick-menu:not(:popover-open){display:none!important}
+html body .adib-home-tick-menu:popover-open{display:flex!important;flex-direction:column;gap:0}
+html body .adib-home-tick-menu .adib-tick-menu-item{display:grid!important;grid-template-columns:24px minmax(0,1fr) 18px!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:46px!important;padding:10px 12px!important;margin:0!important;border:0!important;border-radius:10px!important;background:transparent!important;color:inherit!important;text-align:left!important;font:400 15px/1.35 Inter,'Segoe UI',Arial,sans-serif!important;box-shadow:none!important;cursor:pointer}
+.adib-tick-menu-item svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.adib-tick-menu-item svg:last-child:not(:first-child){width:17px;height:17px}
+.adib-tick-menu-item span{min-width:0;overflow-wrap:break-word}
+html body .adib-home-tick-menu .adib-tick-menu-item:hover{background:var(--soft,#f5f6fa)!important}
+html body .adib-home-tick-menu .adib-tick-menu-item:focus-visible{outline:2px solid var(--blue,#4f63e8)!important;outline-offset:-2px!important;background:var(--soft,#f5f6fa)!important}
+.adib-home-tick-menu hr{display:block;width:calc(100% - 24px);margin:10px 12px;border:0;border-top:1px solid var(--line,#e8eaf0)}
+html body.adib-home-hide-details #adibHome .adib-task-card :is(.adib-card-meta,.adib-card-chips,.adib-card-timer){display:none!important}
+@media(max-width:700px){html body .adib-home-tick-menu{padding:10px;border-radius:23px}html body .adib-home-tick-menu .adib-tick-menu-item{min-height:46px!important}}
