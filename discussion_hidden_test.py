@@ -50,8 +50,14 @@ with sync_playwright() as pw:
   p.evaluate("""()=>{const rows=[{taskId:'archive-a',title:'Köhnə nasos',source:'Avadanlıq',comments:[{id:'a-msg',text:'Unikal ehtiyat hissəsi',authorName:'Huseyn',createdAt:'2026-10-14T10:00:00Z'}]},{taskId:'archive-b',title:'Cari tapşırıq',source:'Tapşırıqlarım',comments:[{id:'b-msg',text:'Aktiv müzakirə',createdAt:'2026-10-15T10:00:00Z'}]}];localStorage.setItem('adib-chat-threads-cache-v1',JSON.stringify(rows));}""")
   # A reload initializes the real chat bridge from the preserved thread cache.
   p.reload(wait_until='domcontentloaded');p.wait_for_function('()=>!!window.releaseAuth');p.evaluate('()=>releaseAuth()');p.wait_for_selector('#adibHome');p.evaluate('()=>releaseTime()');p.wait_for_function('()=>ADIBClock.trusted');p.evaluate('()=>openCommentChat()')
+  ordered=p.locator('[data-chat-thread]').evaluate_all('(rows)=>rows.map(row=>row.dataset.chatThread)');assert ordered.index('archive-a')<ordered.index('archive-b'),ordered
+  markup=p.evaluate("()=>ADIBTaskChatMarkup([{authorName:'Huseyn',text:'Later message',createdAt:'2026-10-15T11:00:00Z'},{authorName:'Araz',text:'Earlier message',createdAt:'2026-10-15T10:00:00Z'}])");assert markup.index('Earlier message')<markup.index('Later message'),markup
   row=p.locator('[data-chat-thread="archive-a"]');row.wait_for(state='visible');row.click()
-  hide=p.get_by_role('button',name='Siyahıdan gizlət',exact=True);hide.wait_for(state='visible');hide.click()
+  hide=p.get_by_role('button',name='Siyahıdan gizlət',exact=True);hide.wait_for(state='visible');title=p.locator('.adib-chat-title strong');assert title.inner_text()=='Köhnə nasos'
+  if width<=700:assert p.locator('.adib-chat-conversation-head').evaluate("el=>getComputedStyle(el.querySelector('.adib-chat-title strong')).whiteSpace")== 'normal'
+  photo=p.locator('.adib-chat-compose .adib-image-picker-add');photo.wait_for(state='visible');assert photo.get_attribute('aria-label')=='Şəkil əlavə et' and photo.locator('svg').count()==1 and not photo.inner_text().strip()
+  assert photo.bounding_box()['x']<p.locator('#adibChatInput').bounding_box()['x']
+  hide.click()
   p.locator('[data-chat-thread="archive-a"]').wait_for(state='hidden')
   assert p.locator('[data-chat-thread="archive-b"]').is_visible()
   assert 'archive-a' in json.loads(p.evaluate("localStorage.getItem('adib-hidden-discussions-v1:a')"))

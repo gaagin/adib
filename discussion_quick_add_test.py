@@ -69,8 +69,8 @@ with sync_playwright() as pw:
   for source in ['gorulen','todo']:
    p.evaluate('()=>{openCommentChat();}');fab.wait_for(state='visible');fab.click();dialog.wait_for(state='visible')
    dialog.get_by_label('Tapşırıq bölməsi',exact=True).select_option(source)
-   dialog.get_by_label('Avadanlıq',exact=True).select_option('machine-1')
-   assert dialog.get_by_label('Plan (istəyə görə)',exact=True).input_value()=='plan-1'
+   machine_search=dialog.get_by_label('Avadanlıq axtarın',exact=True);machine_search.fill('Nasos');assert dialog.get_by_role('option',name='Nasos · İstehsalat',exact=True).is_visible();dialog.get_by_role('option',name='Nasos · İstehsalat',exact=True).click()
+   assert dialog.locator('select[aria-label="Avadanlıq"]').input_value()=='machine-1' and dialog.locator('select[aria-label="Plan"]').input_value()=='plan-1'
    dialog.get_by_label('Tapşırığın adı',exact=True).fill('Avadanlıq tapşırığı '+source)
    dialog.get_by_label('İlk mesaj',exact=True).fill('İşin müzakirəsi')
    dialog.get_by_role('button',name='Yarat və söhbətə keç',exact=True).click();dialog.wait_for(state='detached')
@@ -78,8 +78,8 @@ with sync_playwright() as pw:
    assert messages[-1]['id']=='created-'+str(len(creates))
   p.evaluate('()=>{openCommentChat();}');fab.wait_for(state='visible');fab.click();dialog.wait_for(state='visible')
   dialog.get_by_label('Tapşırıq bölməsi',exact=True).select_option('todo')
-  dialog.get_by_label('Plan (istəyə görə)',exact=True).select_option('plan-2')
-  assert dialog.get_by_label('Avadanlıq',exact=True).input_value()==''
+  plan_search=dialog.get_by_label('Plan axtarın',exact=True);plan_search.fill('Anbar');dialog.get_by_role('option',name='Anbar',exact=True).click()
+  assert dialog.locator('select[aria-label="Avadanlıq"]').input_value()=='' and dialog.locator('select[aria-label="Plan"]').input_value()=='plan-2'
   dialog.get_by_label('Tapşırığın adı',exact=True).fill('Plan üzrə tapşırıq')
   dialog.get_by_label('İlk mesaj',exact=True).fill('Plan-only message')
   dialog.get_by_role('button',name='Yarat və söhbətə keç',exact=True).click();dialog.wait_for(state='detached')
