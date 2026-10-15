@@ -230,4 +230,4 @@ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading{d
 @media(max-width:700px){.calendar-year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 html.dark .calendar-year-month:hover{background:#252a34;border-color:#3a414d}html.dark .calendar-year-day.has-items:not(.today)::after{background:#91a8ff}html.dark .calendar-agenda-card{background:#283551!important}
 
-@media(min-width:701px){html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-day-head{display:flex!important}html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-time-corner{display:none!important}}
+@media(min-width:701px){html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-day-head{display:flex!important}html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-time-corner{display:flex!important;visibility:hidden!important}}

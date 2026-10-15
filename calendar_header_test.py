@@ -47,6 +47,11 @@ with sync_playwright() as pw:
    if width>=701:
     if mode=='year':assert p.locator('.calendar-year-month').count()==12
     if mode=='agenda':assert p.locator('.calendar-agenda').count()==1 and p.locator('.calendar-agenda-card').count()==1
+    if mode=='day':
+     ruler=p.locator('.calendar-hour-ruler').bounding_box();lane=p.locator('.calendar-time-day').bounding_box();dayhead=p.locator('.calendar-time-layout>.calendar-day-head').bounding_box();corner=p.locator('.calendar-time-layout>.calendar-time-corner')
+     assert corner.evaluate('(e)=>getComputedStyle(e).display')!='none'
+     assert abs(lane['x']-(ruler['x']+ruler['width']))<2,(ruler,lane)
+     assert dayhead['x']>=lane['x']-2,(dayhead,lane)
   p.locator('.adib-section-tick-trigger').click();p.get_by_role('menuitemcheckbox',name='Tarixsiz tapşırıqları göstər',exact=True).click();assert p.locator('.adib-calendar-undated').get_attribute('aria-hidden')=='false'
   p.locator('.adib-undated-close').click();p.locator('.adib-section-tick-trigger').click();p.get_by_role('menuitem',name='Bu günə qayıt',exact=True).click()
   if width>=701:p.locator('.calendar-header-view').click();p.locator('.calendar-header-picker').get_by_role('button',name='Gün',exact=True).click()
