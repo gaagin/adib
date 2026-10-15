@@ -10,3 +10,26 @@ body.adib-discussions-fullscreen .adib-chat-conversation-head button[hidden]{dis
 .adib-discussion-tabs button[aria-pressed=true]{color:var(--blue,#2783de);border-bottom-color:var(--blue,#2783de);font-weight:600}
 .adib-employee-picker{width:min(480px,calc(100vw - 32px));max-height:85dvh;padding:24px;background:var(--surface,#fff);color:var(--text,#2c2c2b);border:1px solid var(--line,#e6e5e3);border-radius:12px}
 .adib-employee-picker::backdrop{background:#0007}.adib-employee-picker h2{margin:0 0 16px;font-size:22px}.adib-employee-picker input{width:100%;min-height:44px;margin-bottom:16px;padding:8px;font:inherit;box-sizing:border-box}.adib-employee-picker>div{max-height:50dvh;overflow:auto}.adib-employee-picker button{display:block;width:100%;min-height:44px;margin:4px 0;padding:8px 12px;font:inherit;text-align:left;border:1px solid var(--line,#e6e5e3);border-radius:8px;background:var(--surface,#fff);color:inherit}
+
+/* Standard add FAB, shared geometry with other main views. */
+html body #adibChatOverlay .adib-discussion-fab.adib-discussion-fab{position:fixed!important;right:18px!important;bottom:calc(80px + env(safe-area-inset-bottom,0px))!important;display:flex!important;align-items:center!important;justify-content:center!important;width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:var(--blue,#4777f5)!important;color:#fff!important;box-shadow:0 5px 16px #5578ec33!important;z-index:5101!important;cursor:pointer}
+html body #adibChatOverlay .adib-discussion-fab svg{width:26px!important;height:26px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important}
+html body #adibChatOverlay .adib-discussion-fab:focus-visible{outline:2px solid var(--blue,#4777f5);outline-offset:4px}
+html body #adibChatOverlay .adib-chat-thread-list{padding-bottom:86px!important}
+@media(max-width:700px){html body #adibChatOverlay.conversation-open .adib-discussion-fab{display:none!important}}
+html body dialog.adib-discussion-quick-add{width:min(520px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 32px);box-sizing:border-box;margin:auto;padding:22px;border:1px solid var(--line,#e1e6f0);border-radius:20px;background:var(--surface,#fff);color:var(--text,#253047);box-shadow:0 18px 65px #1e293b26;overflow:auto;font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}
+html body dialog.adib-discussion-quick-add::backdrop{background:#172b4d66;backdrop-filter:blur(3px)}
+html body .adib-discussion-quick-add>form{display:flex;flex-direction:column;gap:18px;margin:0;min-width:0}
+html body .adib-discussion-quick-add header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+html body .adib-discussion-quick-add h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.02em}
+html body .adib-discussion-quick-add label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--muted,#78859a)}
+html body .adib-discussion-quick-add input,html body .adib-discussion-quick-add textarea{display:block;width:100%;min-width:0;min-height:46px;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line,#dce3ef);border-radius:11px;background:var(--soft,#f7f9fd);color:var(--text,#253047);font:16px/1.5 system-ui,sans-serif}
+html body .adib-discussion-quick-add textarea{min-height:110px;resize:vertical}
+html body .adib-discussion-quick-add button{min-height:44px;padding:10px 14px;border:1px solid var(--line,#dce3ef);border-radius:11px;background:var(--surface,#fff);color:inherit;font:13px system-ui,sans-serif;cursor:pointer}
+html body .adib-discussion-quick-add header button{width:40px;min-width:40px;min-height:40px;padding:0;font-size:24px;border:0;background:transparent}
+html body .adib-discussion-quick-add footer{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+html body .adib-discussion-quick-add button.primary{background:var(--blue,#4777f5);border-color:var(--blue,#4777f5);color:#fff;font-weight:600}
+html body .adib-discussion-quick-add button:disabled{opacity:.55;cursor:default}
+html body .adib-discussion-create-error{margin:0;color:var(--danger,#bd3946);font-size:13px;overflow-wrap:anywhere}
+html body .adib-discussion-create-error:empty{display:none}
+@media(max-width:360px){html body dialog.adib-discussion-quick-add{padding:18px}html body .adib-discussion-quick-add footer{flex-direction:column-reverse;align-items:stretch}}
