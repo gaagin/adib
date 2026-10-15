@@ -47,7 +47,7 @@ with sync_playwright() as pw:
   rect=fab.bounding_box();assert abs(rect['width']-54)<1 and abs(rect['height']-54)<1 and abs(rect['x']+54-(width-18))<2,rect
   assert rect['y']>500 and rect['y']+54<844-58,rect
   # Populate task discussions without writing real messages or tasks.
-  p.evaluate("""()=>{const rows=[{taskId:'archive-a',title:'Köhnə nasos',source:'Avadanlıq',comments:[{id:'a-msg',text:'Unikal ehtiyat hissəsi',authorName:'Huseyn',createdAt:new Date().toISOString()}]},{taskId:'archive-b',title:'Cari tapşırıq',source:'Tapşırıqlarım',comments:[{id:'b-msg',text:'Aktiv müzakirə',createdAt:new Date().toISOString()}]}];localStorage.setItem('adib-chat-threads-cache-v1',JSON.stringify(rows));}""")
+  p.evaluate("""()=>{const rows=[{taskId:'archive-a',title:'Köhnə nasos',source:'Avadanlıq',comments:[{id:'a-msg',text:'Unikal ehtiyat hissəsi',authorName:'Huseyn',createdAt:'2026-10-14T10:00:00Z'}]},{taskId:'archive-b',title:'Cari tapşırıq',source:'Tapşırıqlarım',comments:[{id:'b-msg',text:'Aktiv müzakirə',createdAt:'2026-10-15T10:00:00Z'}]}];localStorage.setItem('adib-chat-threads-cache-v1',JSON.stringify(rows));}""")
   # A reload initializes the real chat bridge from the preserved thread cache.
   p.reload(wait_until='domcontentloaded');p.wait_for_function('()=>!!window.releaseAuth');p.evaluate('()=>releaseAuth()');p.wait_for_selector('#adibHome');p.evaluate('()=>releaseTime()');p.wait_for_function('()=>ADIBClock.trusted');p.evaluate('()=>openCommentChat()')
   row=p.locator('[data-chat-thread="archive-a"]');row.wait_for(state='visible');row.click()
@@ -57,6 +57,7 @@ with sync_playwright() as pw:
   assert 'archive-a' in json.loads(p.evaluate("localStorage.getItem('adib-hidden-discussions-v1:a')"))
   p.reload(wait_until='domcontentloaded');p.wait_for_function('()=>!!window.releaseAuth');p.evaluate('()=>releaseAuth()');p.wait_for_selector('#adibHome');p.evaluate('()=>releaseTime()');p.wait_for_function('()=>ADIBClock.trusted');p.evaluate('()=>openCommentChat()')
   p.locator('[data-chat-thread="archive-a"]').wait_for(state='hidden');p.locator('[data-chat-thread="archive-b"]').wait_for(state='visible')
+  old_stamp=p.locator('[data-chat-thread="archive-a"] time').inner_text();today_stamp=p.locator('[data-chat-thread="archive-b"] time').inner_text();assert ':' not in old_stamp and ('2026-10-14' in old_stamp or '14.10.2026' in old_stamp),old_stamp;assert ':' in today_stamp and '2026' not in today_stamp,today_stamp
   assert p.evaluate("()=>{const user=ADIBAccount.user;ADIBAccount.user={id:'another-user'};const isolated=!ADIBDiscussions.isHidden('archive-a');ADIBAccount.user=user;return isolated}")
   search=p.get_by_role('searchbox',name='Müzakirələri axtarın');search.fill('Köhnə nasos');row=p.locator('[data-chat-thread="archive-a"]');row.wait_for(state='visible')
   assert row.get_by_text('Siyahıdan gizlədilib').is_visible()
