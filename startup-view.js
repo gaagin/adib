@@ -5,6 +5,8 @@
   try{const url=new URL(href);return !url.hash&&!url.searchParams.has('id')&&!url.searchParams.has('element')&&!url.searchParams.has('mode')&&url.searchParams.get('action')!=='quick-add-task'}catch{return false}
  }
  if(typeof module==='object'&&module.exports){module.exports={shouldOpenMyTasks};return;}
+ // Native desktop windows retain desktop property geometry even when resized narrowly.
+ root.document.documentElement.classList.toggle('adib-desktop-app',!!root.ADIBDesktop);
  function finish(){root.document.documentElement.classList.remove('adib-starting');root.document.getElementById('adibBootStatus')?.remove();}
  function failed(error){console.warn('ADIB workspace startup:',error);const box=root.document.getElementById('adibBootStatus');if(box){box.querySelector('h2').textContent='İş yerini açmaq alınmadı';box.querySelector('p').textContent='Bağlantınızı yoxlayın və yenidən endirin. Tapşırıq məlumatları dəyişdirilməyib.';box.querySelector('button').hidden=false;}}
  function openStartupView(){
