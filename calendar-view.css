@@ -171,3 +171,63 @@ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading,h
 html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-section-tick-trigger{border:0!important;box-shadow:none!important;background:transparent!important}
 html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-allday-label,html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-allday{top:0!important}
 html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading{display:block!important;justify-content:flex-start!important;align-items:center!important}
+
+/* Desktop calendar: restrained TickTick-inspired month/week/year/day/agenda workspace. */
+@media(min-width:701px){
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-bar{height:64px!important;min-height:64px!important;max-height:64px!important;padding:8px 20px!important;background:var(--surface,#fff)!important;border-bottom:1px solid var(--line,#e6e9ef)!important;box-shadow:0 1px 2px #17233508!important;gap:16px!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading{display:flex!important;align-items:center!important;gap:14px!important;flex:1 1 auto!important;min-width:180px!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-sidebar-glyph{display:grid;place-items:center;width:24px;height:24px;flex:none;color:var(--text,#263246)}
+ .calendar-sidebar-glyph svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-month-button{min-height:40px!important;padding:0 2px!important;color:var(--text,#172335)!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading h2{font-size:23px!important;line-height:1.2!important;font-weight:600!important;letter-spacing:-.035em!important;text-transform:capitalize!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-standard-actions{gap:10px!important;height:42px!important;min-height:42px!important;max-height:42px!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-standard-actions>.calendar-tick-control{display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;height:40px!important;min-height:40px!important;border:1px solid var(--line,#d5d8df)!important;border-radius:10px!important;background:var(--surface,#fff)!important;color:var(--text,#253047)!important;font:inherit!important;transition:background .15s,border-color .15s,box-shadow .15s!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-standard-actions>button.calendar-tick-control{padding:0 12px!important;cursor:pointer}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-standard-actions>.calendar-add-button{width:40px!important;padding:0!important;font-size:23px!important}
+ .calendar-tick-control svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-header-view{display:flex!important;gap:8px!important;width:auto!important;min-width:98px!important;padding:0 12px!important;border:1px solid var(--line,#d5d8df)!important;border-radius:10px!important;background:var(--surface,#fff)!important;font-size:14px!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-header-view svg{width:16px;height:16px}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-nav-group{display:flex!important;gap:0!important;padding:0!important;overflow:hidden;border-radius:10px!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-nav-group button{height:38px!important;min-height:38px!important;padding:0 13px!important;border:0!important;border-right:1px solid var(--line,#e0e2e8)!important;border-radius:0!important;background:transparent!important;color:var(--text,#253047)!important;font:inherit!important;white-space:nowrap}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-nav-group button:first-child,html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-nav-group button:last-child{font-size:22px!important;width:40px!important;padding:0!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .calendar-nav-group button:last-child{border-right:0!important}
+ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-section-tick-trigger{display:grid!important;place-items:center!important;width:40px!important;height:40px!important;min-height:40px!important;border:0!important;border-radius:9px!important;background:transparent!important}
+ html body #adibCalendar#adibCalendar .calendar-tick-control:hover,html body #adibCalendar#adibCalendar .adib-section-tick-trigger:hover{background:var(--soft,#f3f5f8)!important;border-color:var(--muted,#a5abba)!important}
+ html body #adibCalendar#adibCalendar .calendar-tick-control:focus-visible,html body #adibCalendar#adibCalendar .adib-section-tick-trigger:focus-visible{outline:2px solid var(--blue,#4b6bfa)!important;outline-offset:2px!important}
+ html body #adibCalendar#adibCalendar .calendar-header-week{display:none!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-status:not(.error){display:none!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-body{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-grid[data-view=month]{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;grid-template-rows:32px repeat(var(--calendar-week-count,6),minmax(0,1fr))!important;overflow:auto!important;min-height:0!important;background:var(--surface,#fff)!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-weekday{display:grid!important;place-items:center!important;padding:5px!important;border-bottom:1px solid var(--line,#e8ebf0)!important;background:var(--surface,#fff)!important;color:var(--muted,#8b93a2)!important;font-size:12px!important;font-weight:500!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell{min-height:0!important;padding:5px 6px!important;overflow:auto!important;border-width:0 1px 1px 0!important;border-style:solid!important;border-color:#eceef2!important;background:var(--surface,#fff)!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell:nth-child(7n+1){border-left:0!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell.outside{background:#fbfbfc!important;color:#aeb4bf!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell header{min-height:27px!important;margin:0 0 2px!important;justify-content:flex-start!important;font-size:12px!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell header strong{min-width:25px!important;min-height:25px!important;padding:0!important;font-size:12px!important;font-weight:500!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-cell header button{display:none!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-task{margin:2px 0!important;padding:2px 5px!important;min-height:21px!important;border:0!important;border-left:3px solid var(--blue,#4b6bfa)!important;border-radius:4px!important;background:var(--blue-soft,#d5dfff)!important;font-size:12px!important;line-height:17px!important;box-shadow:none!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-task .calendar-task-title{font-size:12px!important;line-height:17px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ html body #adibCalendar#adibCalendar .adib-calendar-grid[data-view=year],html body #adibCalendar#adibCalendar .adib-calendar-grid[data-view=agenda]{display:block!important;overflow:auto!important;background:var(--surface,#fff)!important}
+ .calendar-year-grid{box-sizing:border-box;min-height:100%;padding:16px 22px 24px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(220px,1fr));gap:18px 28px}
+ .calendar-year-month{min-width:0;display:flex;flex-direction:column;padding:8px 10px 10px;border:1px solid transparent;border-radius:10px;transition:background .15s,border-color .15s}
+ .calendar-year-month:hover{background:#fafbfc;border-color:var(--line,#e8ebf0)}
+ .calendar-year-month-title{align-self:flex-start;min-height:32px;padding:2px 4px!important;border:0!important;background:transparent!important;color:var(--text,#172335)!important;font-size:16px!important;font-weight:600!important;text-transform:capitalize;cursor:pointer}
+ .calendar-year-weekdays,.calendar-year-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
+ .calendar-year-weekdays{margin:3px 0 6px;color:var(--muted,#9299a7);font-size:11px}
+ .calendar-year-day{position:relative;justify-self:center;display:grid;place-items:center;width:29px;height:27px;min-width:27px!important;min-height:27px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:var(--text,#263246)!important;font-size:12px!important;cursor:pointer}
+ .calendar-year-day.outside{color:#b1b7c1!important}.calendar-year-day.today{background:var(--blue,#4b6bfa)!important;color:white!important}.calendar-year-day.has-items:not(.today)::after{content:'';position:absolute;bottom:1px;width:3px;height:3px;border-radius:50%;background:var(--blue,#4b6bfa)}
+ .calendar-year-day:hover{background:var(--blue-soft,#e8edff)!important}.calendar-year-day.today:hover{background:var(--blue,#4b6bfa)!important}
+ .calendar-agenda{max-width:1060px;margin:0 auto;padding:24px clamp(18px,4vw,56px) 48px;box-sizing:border-box}
+ .calendar-agenda-date{margin:0 0 20px;color:var(--text,#263246);font-size:20px;font-weight:600;text-transform:capitalize}
+ .calendar-agenda-row{display:grid;grid-template-columns:100px minmax(0,1fr);gap:18px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line,#edf0f4)}
+ .calendar-agenda-time{padding-top:9px;text-align:right;color:var(--muted,#858d9b);font-size:13px;white-space:nowrap}
+ .calendar-agenda-card{margin:0!important;min-height:38px!important;padding:8px 12px!important;border:0!important;border-left:3px solid var(--blue,#4b6bfa)!important;border-radius:7px!important;background:var(--blue-soft,#eaf0ff)!important}
+ .calendar-agenda-card .calendar-task-title{font-size:14px!important;line-height:20px!important;white-space:normal!important;text-align:left!important}
+ .calendar-agenda-card small{display:none!important}
+ .calendar-agenda-empty{padding:24px 0;color:var(--muted,#8c94a2);font-size:14px}
+}
+@media(min-width:701px) and (max-width:1050px){.calendar-year-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(190px,1fr));gap:12px}.calendar-nav-group button{padding:0 9px!important}}
+@media(max-width:700px){.calendar-year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+html.dark .calendar-year-month:hover{background:#252a34;border-color:#3a414d}html.dark .calendar-year-day.has-items:not(.today)::after{background:#91a8ff}html.dark .calendar-agenda-card{background:#283551!important}
+
+@media(min-width:701px){html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-day-head{display:flex!important}html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-time-corner{display:none!important}}

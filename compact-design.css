@@ -161,7 +161,7 @@ html body .personal-kanban-modal.adib-kanban-hide-details .adib-task-card :is(.a
  html body #adibHome.adib-tick-home .adib-home-top-actions>:is(button,details):not(.adib-design-search):not(.adib-home-tick-trigger){display:none!important}
  html body .personal-kanban-modal .personal-kanban-actions.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
  html body .personal-eisenhower-modal .personal-eisenhower-head-actions.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
- html body #adibCalendar#adibCalendar#adibCalendar#adibCalendar .adib-calendar-bar .adib-standard-actions>:is(button,a,details):not(.adib-section-tick-trigger){display:none!important}
+ html body #adibCalendar#adibCalendar#adibCalendar#adibCalendar .adib-calendar-bar .adib-standard-actions>:is(button,a,details):not(.calendar-tick-control):not(.adib-section-tick-trigger){display:none!important}
  html body #adibCalendar#adibCalendar#adibCalendar#adibCalendar .adib-calendar-bar.adib-section-tick-ready>:is(button,a,details):not(.adib-section-tick-trigger){display:none!important}
  html body .kanban-modal .adib-equipment-head.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
  html body .modal-backdrop.open.kanban-modal .modal-head.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
