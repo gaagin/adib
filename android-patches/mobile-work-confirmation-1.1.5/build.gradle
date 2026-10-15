@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.adib.maintenance'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.adib.mobile.online'
+        minSdk 24
+        targetSdk 35
+        versionCode 7
+        versionName '1.1.5-mobile-ui'
+        buildConfigField 'String', 'APP_BASE_URL', '\"https://adib-production-eba3.up.railway.app/\"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    if (System.getenv('ADIB_KEYSTORE')) {
+        signingConfigs { existingAdib { storeFile file(System.getenv('ADIB_KEYSTORE')); storePassword System.getenv('ADIB_KEYSTORE_PASSWORD'); keyAlias System.getenv('ADIB_KEY_ALIAS'); keyPassword System.getenv('ADIB_KEY_PASSWORD') } }
+        buildTypes { debug { signingConfig signingConfigs.existingAdib }; release { signingConfig signingConfigs.existingAdib; minifyEnabled false } }
+    }
+}
