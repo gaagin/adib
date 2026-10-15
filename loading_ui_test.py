@@ -26,10 +26,17 @@ with sync_playwright() as pw:
   assert p.locator('#adibClockNotice').is_hidden()
   # No request interception, no duplicated fetch and correct overlapping operations.
   p.evaluate('window.fetch=window.realFetch;window.a=ADIBLoading.begin();window.b=ADIBLoading.begin("save");void 0')
-  p.wait_for_function("document.querySelector('#adibLoadingStatus [data-loading-label]').textContent==='Yadda saxlanılır…'");assert p.locator('#adibLoadingStatus').inner_text()=='Yadda saxlanılır…'
+  p.wait_for_selector('#adibLoadingProgress:not([hidden])')
+  assert p.locator('#adibLoadingStatus').is_hidden()
+  assert p.locator('#adibLoadingStatus').text_content()==''
   p.evaluate('window.b()');assert p.evaluate('ADIBLoading.pending')==1
-  assert p.locator('#adibLoadingStatus').inner_text()=='Sinxronizasiya edilir…'
-  p.evaluate('window.a()');p.wait_for_selector('#adibLoadingStatus[hidden]',state='attached');assert p.evaluate('ADIBLoading.pending')==0
+  assert p.locator('#adibLoadingStatus').is_hidden()
+  p.evaluate('window.a()');p.wait_for_selector('#adibLoadingProgress[hidden]',state='attached');assert p.evaluate('ADIBLoading.pending')==0
+  # Inline background status is silent; errors and initial-load indicators remain visible.
+  p.evaluate('''()=>{const s=document.createElement('p');s.className='adib-home-status';s.dataset.loading='true';s.textContent='Sinxronizasiya edilir…';document.body.append(s);window.localStatus=s}''')
+  assert p.locator('.adib-home-status').is_hidden()
+  p.evaluate("localStatus.dataset.loading='false';localStatus.classList.add('error');localStatus.textContent='Bağlantı xətası'")
+  assert p.locator('.adib-home-status.error').is_visible()
   # Visual authentication screen stays visible while private workspace stays hidden.
   p.evaluate('document.documentElement.style.visibility="hidden";document.documentElement.classList.add("adib-starting");window.authScreen=ADIBLoading.screen()')
   assert p.locator('.adib-loading-screen').is_visible()
@@ -46,5 +53,5 @@ with sync_playwright() as pw:
  p.evaluate("reply(new Response(JSON.stringify({trusted:true,now:1792051200000,timeZone:'Asia/Baku'}),{status:200}))");p.wait_for_selector('#adibClockNotice[hidden]',state='attached');c.close();print('PASS: offline error and retry; no fallback to device clock.')
  # Real wrapped fetch: pending indicator clears on rejection and aborted requests.
  c,p=page();p.evaluate("""()=>{window.calls=0;window.fetch=()=>{calls++;return new Promise((r,j)=>window.rejectRequest=j)};delete window.ADIBLoading}""");p.add_script_tag(content=LOAD)
- p.evaluate("window.request=fetch('/api/test').catch(()=>null);void 0");p.wait_for_selector('#adibLoadingStatus:not([hidden])');p.evaluate("rejectRequest(new DOMException('Aborted','AbortError'))");p.wait_for_selector('#adibLoadingStatus[hidden]',state='attached');assert p.evaluate('calls')==1;assert p.evaluate('ADIBLoading.pending')==0;c.close();print('PASS: aborted fetch releases progress, exactly one request.')
+ p.evaluate("window.request=fetch('/api/test').catch(()=>null);void 0");p.wait_for_selector('#adibLoadingProgress:not([hidden])');p.evaluate("rejectRequest(new DOMException('Aborted','AbortError'))");p.wait_for_selector('#adibLoadingProgress[hidden]',state='attached');assert p.evaluate('calls')==1;assert p.evaluate('ADIBLoading.pending')==0;c.close();print('PASS: aborted fetch releases progress, exactly one request.')
  browser.close()

@@ -133,3 +133,13 @@ html body .personal-eisenhower-modal[data-tick-hide-details="true"] .personal-ei
 .adib-tick-search-dialog{padding:20px;border-radius:22px;max-width:calc(100vw - 32px);background:var(--surface);color:var(--text)}.adib-tick-search-dialog h2{font-size:20px}.adib-tick-search-dialog input{box-sizing:border-box;width:100%;min-height:46px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:inherit;font:inherit}.adib-tick-search-dialog button{min-height:44px;padding:8px 16px;border-radius:10px;margin-right:6px}
 html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions.adib-section-tick-ready>.adib-design-overflow{display:none!important}
 html body:has(#adibWorkspaceHeader .adib-section-tick-trigger) #canvasActionsButton{display:none!important}
+
+/* The same navigation drawer is reachable from every primary view. */
+html body button.adib-global-menu.adib-global-menu{display:inline-flex!important;align-items:center!important;justify-content:center!important;position:static!important;inset:auto!important;order:-20!important;flex:0 0 40px!important;width:40px!important;min-width:40px!important;max-width:40px!important;height:44px!important;min-height:44px!important;margin:0!important;padding:8px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--text,#253047)!important;box-shadow:none!important;cursor:pointer!important}
+html body button.adib-global-menu.adib-global-menu svg{width:22px!important;height:22px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.7!important;stroke-linecap:round;stroke-linejoin:round}
+html body button.adib-global-menu:focus-visible{outline:2px solid var(--blue,#4b6bfa)!important;outline-offset:2px}
+html body .adib-has-global-menu>.adib-standard-heading,html body .adib-has-global-menu>.adib-home-heading-group{flex:1 1 0!important;min-width:0!important}
+html body.adib-focused-views .personal-eisenhower-head>div:not(.personal-eisenhower-head-actions){display:block!important;min-width:0!important;flex:1!important}
+html body .adib-chat-head.adib-has-global-menu{justify-content:flex-start!important;gap:8px!important}
+html body .adib-chat-head.adib-has-global-menu>span{flex:1;min-width:0}
+@media(max-width:700px){html body #adibPersistentSide#adibPersistentSide{z-index:60010!important}html body .adib-drawer-backdrop.adib-drawer-backdrop{z-index:60009!important}}

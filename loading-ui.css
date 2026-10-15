@@ -24,3 +24,6 @@ html.adib-account-loading main{visibility:hidden}#adibAccountLoading{display:non
 @media(min-width:800px){#adibLoadingStatus{bottom:22px}}@media(prefers-reduced-motion:reduce){.adib-loading-spinner,.comments-loading::before,[data-loading]::before{animation:none!important}#adibLoadingProgress i{animation:none;width:100%;opacity:.5}}
 
 #adibTimeWait,#adibBootStatus{visibility:visible!important}.adib-loading-screen{position:fixed;inset:0;z-index:100002;display:grid;place-items:center;visibility:visible!important;background:var(--surface,#fff);font:14px/1.6 system-ui,sans-serif;color:var(--muted,#78859a);text-align:center}.adib-loading-screen>div{max-width:320px;padding:24px}.adib-loading-screen .adib-loading-spinner{width:28px!important;height:28px!important}.adib-loading-screen [hidden]{display:none!important}.adib-loading-screen button{font:13px system-ui,sans-serif;min-height:44px;margin-top:14px;padding:10px 18px;border-radius:11px;border:1px solid #dce3ef;background:var(--surface,#fff);color:var(--text,#33415a)}
+
+/* Background reads and writes stay quiet; initial-load screens and errors remain visible. */
+#adibLoadingStatus:not(.is-error),#personalSyncStatus[data-loading="true"],.adib-home-status[data-loading="true"]:not(.error),.tm-sync-status[data-loading="true"]:not(.tm-warning){display:none!important}
