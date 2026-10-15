@@ -1,0 +1,75 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <queries><intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent></queries>
+    <application android:name=".AdibApplication" android:allowBackup="false" android:icon="@drawable/ic_adib" android:label="ADIB" android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
+        <provider android:name=".CameraPhotoProvider" android:authorities="${applicationId}.camera" android:exported="false" android:grantUriPermissions="true" />
+        <activity android:name=".AccountLoginActivity" android:exported="false" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".PomodoroFocusActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:exported="false" android:theme="@style/PomodoroBlackScreenTheme" android:taskAffinity="${applicationId}.focus" android:excludeFromRecents="true" android:launchMode="singleTop" />
+        <activity android:name=".QuickTaskActivity" android:exported="false" android:theme="@style/QuickPopupLight" android:taskAffinity="${applicationId}.quick" android:excludeFromRecents="true" android:launchMode="singleTop" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize|stateAlwaysVisible" />
+        <activity android:name=".TaskReminderActivity" android:exported="false" android:theme="@style/QuickPopupLight" android:taskAffinity="${applicationId}.reminder" android:excludeFromRecents="true" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ReminderSettingsActivity" android:exported="false" />
+        <activity android:name=".TaskCalendarActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".DirectSettingsActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".TaskManagementActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:exported="false" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".OnlineMainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:exported="true" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        <receiver android:name=".AdibPlusWidget" android:label="@string/widget_plus_label" android:description="@string/widget_plus_description" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_plus_widget" />
+        </receiver>
+        <receiver android:name=".AdibQuickAddWidget" android:description="@string/widget_description" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_quick_add_widget"/>
+        </receiver>
+        <receiver android:name=".AdibWidgetActionReceiver" android:exported="false" />
+        <receiver android:name=".TaskReminderReceiver" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/><action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/></intent-filter>
+        </receiver>
+        <service android:name=".ReminderPopupService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Displays a temporary user-enabled task reminder overlay with snooze, complete and start Pomodoro actions when a local reminder alarm fires" /></service>
+        <service android:name=".AdibWorkTimerOverlayService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Shows a user-requested task work timer in a movable system overlay and notification" /></service>
+        <service android:name=".AdibFloatingTimerService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Synchronizes user-enabled Pomodoro across devices and shows a movable system overlay" />
+        </service>
+        <receiver android:name=".AdibTodayWidget" android:label="Сегодня" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_today_widget"/>
+        </receiver>
+        <receiver android:name=".AdibUrgentWidget" android:label="Срочные задачи" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_urgent_widget"/>
+        </receiver>
+        <receiver android:name=".AdibQuickActionsWidget" android:label="Быстрые действия" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_actions_widget"/>
+        </receiver>
+        <receiver android:name=".AdibPomodoroWidget" android:label="Помодоро" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_pomodoro_widget"/>
+        </receiver>
+        <receiver android:name=".AdibKanbanWidget" android:label="Канбан-доски" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_kanban_widget"/>
+        </receiver>
+        <receiver android:name=".AdibEquipmentWidget" android:label="Оборудование" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_equipment_widget"/>
+        </receiver>
+        <receiver android:name=".AdibDaySummaryWidget" android:label="Сводка дня" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/adib_summary_widget"/>
+        </receiver>
+
+        <activity android:name=".OfflineSyncActivity" android:exported="false" />
+        <service android:name=".OfflineDeleteSyncService" android:exported="true" android:permission="android.permission.BIND_JOB_SERVICE" />
+    </application>
+</manifest>

@@ -1,0 +1,28 @@
+plugins { id 'java' }
+repositories { mavenCentral(); google() }
+def sdk=System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')
+if(!sdk)throw new GradleException('Set ANDROID_HOME to an Android SDK with platform android-35')
+dependencies {
+ compileOnly files("$sdk/platforms/android-35/android.jar")
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.16.1'
+ testImplementation 'org.robolectric:android-all:15-robolectric-13954326'
+}
+def generated=layout.buildDirectory.dir('generated/runtime')
+tasks.register('copyRuntime',Copy) { from '../../android-patches/mobile-camera-1.1.6'; include 'WebPhotoChooser.java','CameraPhotoProvider.java'; into generated }
+sourceSets.main.java.srcDir generated
+tasks.named('compileJava') { dependsOn 'copyRuntime' }
+tasks.withType(JavaCompile).configureEach { options.encoding='UTF-8'; options.failOnError=true }
+def aarJars=layout.buildDirectory.dir('test-aar-jars')
+tasks.register('extractTestAars') {
+ doLast { configurations.testRuntimeClasspath.files.findAll { it.name.endsWith('.aar') }.each { f ->
+  copy { from zipTree(f); include 'classes.jar'; into aarJars; rename 'classes.jar',f.name.replace('.aar','.jar') }
+ } }
+}
+test {
+ dependsOn 'extractTestAars'
+ classpath += files(aarJars.map { fileTree(it) { include '*.jar' } })
+ maxHeapSize='1024m'
+ systemProperty 'robolectric.dependency.repo.url','https://repo.maven.apache.org/maven2'
+ testLogging { events 'passed','failed'; exceptionFormat='short' }
+}
