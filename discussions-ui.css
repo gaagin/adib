@@ -23,7 +23,7 @@ html body .adib-discussion-quick-add>form{display:flex;flex-direction:column;gap
 html body .adib-discussion-quick-add header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 html body .adib-discussion-quick-add h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.02em}
 html body .adib-discussion-quick-add label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--muted,#78859a)}
-html body .adib-discussion-quick-add input,html body .adib-discussion-quick-add textarea{display:block;width:100%;min-width:0;min-height:46px;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line,#dce3ef);border-radius:11px;background:var(--soft,#f7f9fd);color:var(--text,#253047);font:16px/1.5 system-ui,sans-serif}
+html body .adib-discussion-quick-add input,html body .adib-discussion-quick-add textarea,html body .adib-discussion-quick-add select{display:block;width:100%;min-width:0;min-height:46px;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line,#dce3ef);border-radius:11px;background:var(--soft,#f7f9fd);color:var(--text,#253047);font:16px/1.5 system-ui,sans-serif}
 html body .adib-discussion-quick-add textarea{min-height:110px;resize:vertical}
 html body .adib-discussion-quick-add button{min-height:44px;padding:10px 14px;border:1px solid var(--line,#dce3ef);border-radius:11px;background:var(--surface,#fff);color:inherit;font:13px system-ui,sans-serif;cursor:pointer}
 html body .adib-discussion-quick-add header button{width:40px;min-width:40px;min-height:40px;padding:0;font-size:24px;border:0;background:transparent}
@@ -33,3 +33,6 @@ html body .adib-discussion-quick-add button:disabled{opacity:.55;cursor:default}
 html body .adib-discussion-create-error{margin:0;color:var(--danger,#bd3946);font-size:13px;overflow-wrap:anywhere}
 html body .adib-discussion-create-error:empty{display:none}
 @media(max-width:360px){html body dialog.adib-discussion-quick-add{padding:18px}html body .adib-discussion-quick-add footer{flex-direction:column-reverse;align-items:stretch}}
+
+html body .adib-discussion-equipment-fields{display:grid;gap:14px}
+html body .adib-discussion-equipment-fields[hidden]{display:none!important}
