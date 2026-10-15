@@ -53,15 +53,41 @@ with sync_playwright() as pw:
    menu.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
    p.locator('.adib-drawer-backdrop').click(position={'x':width-5,'y':300});p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
    print(f'PASS {width}px {label}: mobile navigation drawer remains available.')
-  check_menu('.adib-home-top','tasks')
+  def assert_search_and_kebab():
+   if width>700:
+    assert p.locator('.adib-design-search:visible,#miroMobileSearch:visible').count()>0,'search icon should be visible'
+    assert p.locator('.adib-home-tick-trigger:visible,.adib-section-tick-trigger:visible').count()>0,'vertical menu should be visible'
+  check_menu('.adib-home-top','tasks');assert_search_and_kebab()
+  if width>700:
+   home_actions=p.locator('#adibHome .adib-home-top-actions')
+   for button in home_actions.locator(':scope > button').all():
+    if button.evaluate("el=>el.matches('.adib-design-search,.adib-home-tick-trigger')"):assert button.is_visible()
+    else:assert not button.is_visible(),button.get_attribute('class')
   p.evaluate('()=>{ADIBHomeBridge.matrix();}')
-  check_menu('.personal-eisenhower-head','matrix')
+  check_menu('.personal-eisenhower-head','matrix');assert_search_and_kebab()
+  if width>700:
+   for button in p.locator('.personal-eisenhower-modal .personal-eisenhower-head-actions > button:not(.adib-section-tick-trigger)').all():assert not button.is_visible(),button.get_attribute('aria-label')
   p.evaluate('()=>{ADIBHomeBridge.closeViews();ADIBCalendar.open();}')
-  check_menu('.adib-calendar-bar','calendar')
+  check_menu('.adib-calendar-bar','calendar');assert_search_and_kebab()
+  if width>700:
+   for button in p.locator('#adibCalendar .adib-calendar-bar .adib-standard-actions > button:not(.adib-section-tick-trigger)').all():assert not button.is_visible(),button.get_attribute('aria-label')
   p.evaluate('()=>{ADIBHome.leave(()=>ADIBHomeBridge.canvas());}')
-  check_menu('#adibWorkspaceHeader','equipment')
+  check_menu('#adibWorkspaceHeader','equipment');assert_search_and_kebab()
+  if width>700:
+   actions=p.locator('#adibWorkspaceHeader .miro-mobile-actions')
+   actions.locator('#equipmentBackButton:not([hidden])').wait_for(state='visible')
+   for selector in ['#miroMobileAdd','#miroMobileList','#miroMobileFilter','#miroMobileRefresh','#miroMobileInfo','#miroMobileShare','#miroMobileChat','#miroMobileMore']:
+    assert not actions.locator(selector).is_visible(),selector
+   trigger=actions.locator('.adib-section-tick-trigger');trigger.click()
+   menu=p.locator('#adibSectionTickMenu');menu.wait_for(state='visible')
+   for label in ['Yeni tapşırıq','Tapşırıq siyahısını aç','Filtrlər','Xüsusiyyətlər','Linki paylaş','Şərhlər söhbəti','Yenilə','Rejimə keçin']:
+    assert menu.get_by_role('menuitem',name=label,exact=True).is_visible(),label
+   menu.get_by_role('menuitem',name='Rejimə keçin',exact=True).click()
+   for label in ['Avadanlıq Kətan','Tapşırıqlarım','Eyzenhauer matrisi','Şərhlər söhbəti']:
+    assert menu.get_by_role('menuitem',name=label,exact=True).is_visible(),label
+   p.keyboard.press('Escape');menu.wait_for(state='hidden')
   p.evaluate('()=>{openCommentChat();}')
-  check_menu('.adib-chat-head','discussions')
+  check_menu('.adib-chat-head','discussions');assert_search_and_kebab()
   if width<=700:
    p.evaluate("()=>{openCommentChat({id:'cached-t1',title:'Saxlanmış tapşırıq'});}")
    check_menu('.adib-chat-conversation-head','conversation')

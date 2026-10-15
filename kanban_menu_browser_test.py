@@ -35,7 +35,7 @@ with sync_playwright() as pw:
   p.evaluate('()=>ADIBHomeBridge.kanban()');board=p.locator('.personal-kanban-modal').last;board.wait_for(state='visible')
   p.evaluate("()=>{const button=document.createElement('button');button.id='kanban-close-probe';button.textContent='×';button.setAttribute('aria-label','Bağla');document.querySelector('.miro-mobile-actions').append(button)}")
   if(width<=700):p.wait_for_function("()=>{const b=document.getElementById('kanban-close-probe');return b&&b.hidden&&getComputedStyle(b).display==='none'}")
-  else:assert not p.locator('#kanban-close-probe').evaluate('(b)=>b.hidden')
+  else:assert not p.locator('#kanban-close-probe').is_visible()
   trigger=board.locator('.personal-kanban-actions > .adib-section-tick-trigger');trigger.wait_for(state='visible')
   assert trigger.count()==1
   assert not board.locator('.personal-kanban-actions > .adib-view-menu').is_visible()
@@ -60,8 +60,11 @@ with sync_playwright() as pw:
   show();p.keyboard.press('Escape');menu.wait_for(state='hidden');assert board.is_visible()
   show();p.locator('.personal-kanban-board').click(position={'x':8,'y':70});menu.wait_for(state='hidden');assert board.is_visible()
   assert not errors,errors
-  board.evaluate('(e)=>e.remove()');p.wait_for_function("()=>{const b=document.getElementById('kanban-close-probe');return b&&(!b.hidden)&&getComputedStyle(b).display!=='none'}")
-  assert not p.locator('#kanban-close-probe').evaluate("b=>b.hidden||b.style.getPropertyValue('display')==='none'")
+  board.evaluate('(e)=>e.remove()')
+  if width<=700:
+   p.wait_for_function("()=>{const b=document.getElementById('kanban-close-probe');return b&&(!b.hidden)&&getComputedStyle(b).display!=='none'}")
+   assert not p.locator('#kanban-close-probe').evaluate("b=>b.hidden||b.style.getPropertyValue('display')==='none'")
+  else:assert not p.locator('#kanban-close-probe').is_visible()
   print(f'PASS {width}px: one standard Kanban menu, compact geometry, list/board switching, real grouping/sort/direction/search/filter handlers, details, Escape and outside close.')
   c.close()
  b.close()
