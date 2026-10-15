@@ -34,20 +34,25 @@ with sync_playwright() as pw:
   p.evaluate('()=>window.releaseTime()');p.wait_for_function('()=>ADIBClock.trusted');p.wait_for_selector('#adibClockNotice[hidden]',state='attached')
   def check_menu(selector,label):
    head=p.locator(selector).first;head.wait_for(state='visible')
-   menu=head.locator(':scope > .adib-global-menu');menu.wait_for(state='visible');assert menu.count()==1
+   menu=head.locator(':scope > .adib-global-menu')
+   if width>700:
+    menu.wait_for(state='attached');assert menu.count()==1;assert not menu.is_visible(),label
+    toggle=p.locator('#adibPersistentSide .adib-side-toggle');toggle.wait_for(state='visible')
+    p.evaluate("document.body.classList.add('adib-side-collapsed')");toggle.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
+    toggle.click();p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
+    print(f'PASS {width}px {label}: duplicate header menu hidden; left sidebar toggle remains available.')
+    return
+   menu.wait_for(state='visible');assert menu.count()==1
    p.evaluate("document.body.classList.add('adib-side-collapsed')")
    menu.wait_for(state='visible');p.wait_for_function("document.querySelectorAll('.adib-global-menu[aria-expanded=\"false\"]').length>0")
    rect=menu.bounding_box();assert rect['width']>=40 and rect['height']>=44 and rect['x']>=0 and rect['x']+rect['width']<=width+1,(label,rect)
    menu.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
    assert menu.get_attribute('aria-controls')=='adibPersistentSide'
-   if width<=700:
-    assert p.evaluate("()=>document.elementFromPoint(24,160)?.closest('#adibPersistentSide')!==null"),label
-    p.keyboard.press('Escape');p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
-    menu.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
-    p.locator('.adib-drawer-backdrop').click(position={'x':width-5,'y':300});p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
-   else:
-    p.locator('#adibPersistentSide .adib-side-toggle').click();p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
-   print(f'PASS {width}px {label}: one visible menu, 44px target, shared drawer, correct overlay and closing.')
+   assert p.evaluate("()=>document.elementFromPoint(24,160)?.closest('#adibPersistentSide')!==null"),label
+   p.keyboard.press('Escape');p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
+   menu.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
+   p.locator('.adib-drawer-backdrop').click(position={'x':width-5,'y':300});p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
+   print(f'PASS {width}px {label}: mobile navigation drawer remains available.')
   check_menu('.adib-home-top','tasks')
   p.evaluate('()=>{ADIBHomeBridge.matrix();}')
   check_menu('.personal-eisenhower-head','matrix')

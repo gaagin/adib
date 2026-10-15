@@ -147,3 +147,6 @@ html body .adib-chat-head.adib-has-global-menu>span{flex:1;min-width:0}
 /* Personal Kanban/list uses the same compact menu as the other views. */
 html body .personal-kanban-actions.adib-section-tick-ready>:is(#personalKanbanNewTask,#personalKanbanViewModeButton,#personalKanbanFocus,.personal-kanban-board-exit){display:none!important}
 html body .personal-kanban-modal.adib-kanban-hide-details .adib-task-card :is(.adib-card-meta,.adib-card-chips){display:none!important}
+
+/* Desktop already has a persistent sidebar toggle; hide redundant header copies in every view. */
+@media(min-width:701px){html body button.adib-global-menu.adib-global-menu{display:none!important}}
