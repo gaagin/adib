@@ -173,3 +173,7 @@ html body .personal-kanban-modal.adib-kanban-hide-details .adib-task-card :is(.a
 
 /* The shared list/Kanban/canvas switch replaces legacy shortcuts that overlapped the add FAB. */
 html body:not(:has(#personalMode:not([hidden]))):has(#layout:not([hidden])) :is(#centerCurrentCanvasButton,#planTasksButton){display:none!important;visibility:hidden!important;pointer-events:none!important}
+
+
+/* Desktop Kanban actions live in the shared workspace menu, not a second control strip. */
+@media(min-width:701px){html body #taskModal#taskModal#taskModal.kanban-modal .kanban-controls{display:none!important}}

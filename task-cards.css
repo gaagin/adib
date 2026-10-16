@@ -1,5 +1,5 @@
 /* Shared contract for task cards only; object/container cards keep their own identity. */
-html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{display:grid!important;grid-template-columns:44px minmax(0,1fr) 36px!important;align-items:start!important;gap:0!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0 0 8px!important;padding:16px 10px!important;box-sizing:border-box!important;border:1px solid var(--line,#d7e2f5)!important;border-left:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;background:var(--surface,#fff)!important;color:var(--text,#243450)!important;box-shadow:none!important;min-height:0!important;position:relative!important;cursor:pointer;font-family:inherit!important}
+html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card{display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;align-items:start!important;gap:0!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0 0 8px!important;padding:16px 10px!important;box-sizing:border-box!important;border:1px solid var(--line,#d7e2f5)!important;border-left:1px solid var(--line,#d7e2f5)!important;border-radius:12px!important;background:var(--surface,#fff)!important;color:var(--text,#243450)!important;box-shadow:none!important;min-height:0!important;position:relative!important;cursor:pointer;font-family:inherit!important}
 html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.active,html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.selected{background:var(--blue-soft,#edf2ff)!important;border-color:var(--blue,#4674ef)!important}
 html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card:hover{border-color:color-mix(in srgb,var(--blue,#4674ef) 38%,var(--line,#d7e2f5))!important}
 html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-content{display:block!important;min-width:0!important;grid-column:2!important;grid-row:1!important;padding:0!important;margin:0!important;text-align:left!important}
@@ -75,3 +75,8 @@ html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-car
 /* My Tasks home list: hide the per-card overflow menu but keep task completion and opening controls. */
 html body.adib-home-open #adibHome .adib-home-rows .adib-task-card .adib-card-more{display:none!important}
 html body.adib-home-open #adibHome .adib-home-rows .adib-task-card{grid-template-columns:44px minmax(0,1fr)!important}
+
+
+/* The card itself opens task details; remove per-card overflow ellipses and their popovers. */
+html body .adib-task-card.adib-task-card.adib-task-card .adib-card-more,
+html body .adib-card-menu{display:none!important;visibility:hidden!important;pointer-events:none!important}

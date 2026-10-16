@@ -109,3 +109,7 @@ html .adib-task-detail .adib-autosave-status{padding:3px 6px!important}
 body.adib-side-ready.adib-home-open #taskModal.adib-home-docked.adib-properties-expanded.open{left:var(--adib-side-width)!important;inset:0 0 0 var(--adib-side-width)!important;width:calc(100% - var(--adib-side-width))!important;padding:8px!important;height:100dvh!important}
 html .adib-task-detail [data-task-pane=task] [hidden]{display:none!important}
 @container(min-width:620px){html .adib-task-detail [data-task-pane=task]>label:has(#personalEditEstimate),html .adib-task-detail [data-task-pane=task]>label:has(#taskEstimate){grid-column:1/-1}}
+
+
+/* Keep the floating canvas clear; the workspace header owns navigation. */
+html body .adib-home-return{display:none!important;visibility:hidden!important;pointer-events:none!important}
