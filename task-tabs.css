@@ -46,4 +46,13 @@ html body .adib-task-detail.adib-android-equipment-task [data-task-pane="chat"] 
 html body .adib-task-detail.adib-android-equipment-task [data-task-pane="chat"] .comment-compose #commentError{grid-column:1/-1!important;grid-row:auto!important;margin:0!important}
 html body .adib-task-detail.adib-android-equipment-task [data-task-pane="chat"] .comment-compose .adib-image-thumbs:empty{display:none!important}
 html body .adib-task-detail.adib-android-equipment-task [data-task-pane="chat"] .comment-compose #commentError:empty{display:none!important}
+
+/* Keep the task/description action buttons, but remove the leftover lower status area. */
+html body .adib-task-detail.adib-android-equipment-task:has([data-task-tab="task"][aria-selected="true"]) .adib-task-footer .adib-autosave-status,
+html body .adib-task-detail.adib-android-equipment-task:has([data-task-tab="description"][aria-selected="true"]) .adib-task-footer .adib-autosave-status{display:none!important}
+html body .adib-task-detail.adib-android-equipment-task:has([data-task-tab="task"][aria-selected="true"])>.adib-task-footer,
+html body .adib-task-detail.adib-android-equipment-task:has([data-task-tab="description"][aria-selected="true"])>.adib-task-footer{padding-top:4px!important;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 2px)!important}
+html body:has(.adib-task-detail.adib-android-equipment-task) button[aria-label="Daha çox"],
+html body:has(.adib-task-detail.adib-android-equipment-task) button[title="Daha çox"],
+html body:has(.adib-task-detail.adib-android-equipment-task) button[aria-label="Canvas Actions"]{display:none!important}
 }
