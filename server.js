@@ -211,6 +211,7 @@ async function uploadTaskImageFile(body){const image=validateImage(body.image);i
 const taskPhotos=require('./task-photos').create({notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}]});
 function mappedTaskImage(block){const image=block.image||{},url=image.file?.url||image.external?.url||'';return {id:block.id,url:/^https:\/\//.test(url)?url:'',expiryTime:image.file?.expiry_time||'',caption:(image.caption||[]).map(x=>x.plain_text||x.text?.content||'').join('')}}
 async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
+async function deleteTaskImage(body){const id=cleanId(String(body.id||'')),blockId=cleanId(String(body.blockId||''));if(!id||!blockId)throw Object.assign(new Error('Tapşırıq və şəkil ID-si tələb olunur'),{statusCode:400});const image=(await listPageBlocks(id)).find(block=>accountKey(block.id)===accountKey(blockId)&&block.type==='image');if(!image)throw Object.assign(new Error('Şəkil bu tapşırıqda tapılmadı'),{statusCode:404});await notion('/blocks/'+encodeURIComponent(image.id),{method:'DELETE'});return {ok:true,id,blockId:image.id,deleted:true};}
 async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Əvvəlcə tapşırığı yadda saxlayın');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Qoşma uğur qazana bilər. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Qoşma təsdiqi yoxdur. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
 
 async function listChatThreads(body) {
@@ -1617,7 +1618,8 @@ async function accountAuthorize(req,res,url,u,b){
  const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
  if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
- if(['/api/task-image','/api/personal-task-blocks'].includes(p)){need('edit');await accountTask(u,b.id);return;}
+ if(p==='/api/task-image'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
+ if(p==='/api/personal-task-blocks'){need('edit');await accountTask(u,b.id);return;}
  if(p==='/api/personal-pomodoro'){need('timer');await accountTask(u,b.id);return;}
  if(['/api/personal-task','/api/task'].includes(p)){
  const kind=p==='/api/personal-task'?'personal':'equipment';
@@ -1704,7 +1706,7 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
     if(request.method==='POST'&&url.pathname==='/api/image-upload')return json(response,201,await uploadTaskImageFile(await readBody(request)));
     if(request.method==='GET'&&url.pathname==='/api/task-images')return json(response,200,await listTaskImages(url.searchParams.get('id')));
-    if(request.method==='POST'&&url.pathname==='/api/task-image')return json(response,201,await attachTaskImage(await readBody(request)));
+    if(request.method==='POST'&&url.pathname==='/api/task-image'){const body=await readBody(request);if(body.remove)return json(response,200,await deleteTaskImage(body));return json(response,201,await attachTaskImage(body));}
     if (request.method === 'POST' && url.pathname === '/api/task-comments') {
       const body = await readBody(request);
       return json(response, 201, await addTaskComment(body));
