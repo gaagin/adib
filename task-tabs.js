@@ -26,8 +26,21 @@ function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteC
  const checklist=document.createElement('h3');checklist.textContent='Yoxlama siyahıları';const note=document.createElement('p');note.className='muted';note.textContent='Yoxlama nöqtələri və qeydlər tapşırığın təsvirindədir.';const desc=document.createElement('button');desc.type='button';desc.className='adib-task-link';desc.textContent='Təsviri açın';desc.onclick=()=>select('description');panes.subtasks.append(checklist,note,desc);
  }
  function activate(key){list.classList.toggle('adib-task-chat-active',key==='chat');keys.forEach(k=>{panes[k].hidden=k!==key;const tab=host.querySelector('[data-task-tab="'+k+'"]');tab.setAttribute('aria-selected',String(k===key));tab.tabIndex=k===key?0:-1});}
- function select(key){activate(key);if(key==='chat'&&root.openCommentChat)root.openCommentChat(task);}
- host.querySelector('nav').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();let i=keys.indexOf(document.activeElement?.dataset.taskTab);i=e.key==='Home'?0:e.key==='End'?keys.length-1:(i+(e.key==='ArrowRight'?1:keys.length-1))%keys.length;select(keys[i]);host.querySelector('[data-task-tab="'+keys[i]+'"]').focus()});if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}select('task');return {panes,select,androidEquipment};
+ function select(key){activate(key);if(key==='chat'){if(androidEquipment){if(task.id)root.loadTaskComments?.(task.id)}else if(root.openCommentChat)root.openCommentChat(task);}}
+ host.querySelector('nav').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();let i=keys.indexOf(document.activeElement?.dataset.taskTab);i=e.key==='Home'?0:e.key==='End'?keys.length-1:(i+(e.key==='ArrowRight'?1:keys.length-1))%keys.length;select(keys[i]);host.querySelector('[data-task-tab="'+keys[i]+'"]').focus()});
+ if(androidEquipment){
+  const normalizeChat=()=>{
+   const textarea=panes.chat.querySelector('#commentText');
+   if(textarea&&textarea.placeholder!=='Mesaj yazın…')textarea.placeholder='Mesaj yazın…';
+   const send=panes.chat.querySelector('#addComment');
+   if(send&&!send.dataset.chatButton){
+    send.dataset.chatButton='true';send.setAttribute('aria-label','Mesajı göndər');send.title='Mesajı göndər';
+    send.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>';
+   }
+  };
+  normalizeChat();
+ }
+ if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}select('task');return {panes,select,androidEquipment};
 }
 root.ADIBTaskTabs={install};
 })(window);
