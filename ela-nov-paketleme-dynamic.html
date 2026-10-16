@@ -3879,20 +3879,19 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 <style id="mobile-header-search-view-cycle">
 @media (max-width:650px){
   header.compact-top{
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr) 42px 42px 42px!important;
-    grid-template-rows:minmax(54px,58px)!important;
-    grid-template-areas:"brand search view more"!important;
-    align-items:center!important;
-    gap:4px!important;
+    display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;
+    grid-template-columns:none!important;grid-template-rows:none!important;grid-template-areas:none!important;min-height:58px!important;
   }
-  header.compact-top>.brandline{grid-area:brand!important;min-width:0!important;}
-  header.compact-top>.top-toolbar{display:contents!important;}
-  header.compact-top .top-toolbar>.miro-mobile-actions{display:contents!important;}
+  header.compact-top>.brandline{flex:1 1 auto!important;min-width:0!important;grid-area:auto!important;}
+  header.compact-top>.top-toolbar{
+    display:flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:flex-end!important;width:auto!important;min-width:0!important;height:48px!important;margin:0!important;padding:0!important;overflow:visible!important;background:transparent!important;border:0!important;box-shadow:none!important;
+  }
+  header.compact-top .top-toolbar>.miro-mobile-actions{display:flex!important;flex:0 0 auto!important;align-items:center!important;gap:2px!important;width:auto!important;height:auto!important;overflow:visible!important;}
   header.compact-top .miro-mobile-actions>button:not(#miroMobileSearch):not(#miroMobileList):not(#miroMobileMore){display:none!important;}
-  header.compact-top #miroMobileSearch{grid-area:search!important;display:grid!important;color:#273247!important;}
-  header.compact-top #miroMobileList{grid-area:view!important;display:grid!important;color:#273247!important;}
-  header.compact-top #miroMobileMore{grid-area:more!important;display:grid!important;color:#273247!important;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;border-radius:50%!important;appearance:none!important;-webkit-appearance:none!important;}
+  header.compact-top #miroMobileSearch,header.compact-top #miroMobileList,header.compact-top #miroMobileMore{
+    display:grid!important;place-items:center!important;flex:0 0 40px!important;width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;
+    color:#273247!important;border:0!important;outline:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;font-size:20px!important;line-height:1!important;appearance:none!important;-webkit-appearance:none!important;
+  }
   header.compact-top #miroMobileSearch svg,header.compact-top #miroMobileList svg,header.compact-top #miroMobileMore svg{display:block!important;width:22px!important;height:22px!important;}
   header.compact-top #miroMobileMore:focus,header.compact-top #miroMobileMore:focus-visible{outline:0!important;box-shadow:none!important;}
 }
