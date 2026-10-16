@@ -153,10 +153,12 @@ html body .personal-kanban-modal.adib-kanban-hide-details .adib-task-card :is(.a
 
 /* Desktop: keep search, the equipment back arrow, and the vertical menu in the header. */
 @media(min-width:701px){
- html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions>button:not(#miroMobileSearch):not(#equipmentBackButton):not(.adib-section-tick-trigger){display:none!important}
+ html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions>button:not(#miroMobileSearch):not(#miroMobileList):not(#equipmentBackButton):not(.adib-section-tick-trigger){display:none!important}
  html body #adibWorkspaceHeader .miro-mobile-actions>.adib-design-overflow{display:none!important}
  html body #adibWorkspaceHeader .miro-mobile-actions>#miroMobileSearch{display:grid!important;visibility:visible!important;place-items:center!important}
  html body #adibWorkspaceHeader .miro-mobile-actions>#miroMobileSearch .adib-header-action-label{display:none!important}
+ html body #adibWorkspaceHeader .miro-mobile-actions>#miroMobileList{display:grid!important;visibility:visible!important;place-items:center!important}
+ html body #adibWorkspaceHeader .miro-mobile-actions>#miroMobileList .adib-header-action-label{display:none!important}
  html body #adibWorkspaceHeader .miro-mobile-actions>#equipmentBackButton:not([hidden]){display:grid!important;visibility:visible!important;place-items:center!important}
  html body #adibHome.adib-tick-home .adib-home-top-actions>:is(button,details):not(.adib-design-search):not(.adib-home-tick-trigger){display:none!important}
  html body .personal-kanban-modal .personal-kanban-actions.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
@@ -167,3 +169,7 @@ html body .personal-kanban-modal.adib-kanban-hide-details .adib-task-card :is(.a
  html body .modal-backdrop.open.kanban-modal .modal-head.adib-section-tick-ready>button:not(.adib-section-tick-trigger){display:none!important}
  html body .modal-backdrop.open.kanban-modal .kanban-controls.adib-section-tick-ready>:not(.adib-section-tick-trigger){display:none!important}
 }
+
+
+/* The shared list/Kanban/canvas switch replaces legacy shortcuts that overlapped the add FAB. */
+html body:not(:has(#personalMode:not([hidden]))):has(#layout:not([hidden])) :is(#centerCurrentCanvasButton,#planTasksButton){display:none!important;visibility:hidden!important;pointer-events:none!important}
