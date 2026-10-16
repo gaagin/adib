@@ -237,3 +237,8 @@ html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-ce
 html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-cell .adib-calendar-task .calendar-task-title{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;height:15px!important;min-height:0!important;max-height:15px!important;margin:0!important;padding:0 2px!important;font-size:11px!important;line-height:15px!important;text-align:left!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-cell .adib-calendar-task>small{display:none!important}
 @media(max-width:700px){html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-cell{padding:3px 3px!important}html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-cell header{min-height:23px!important;margin-bottom:1px!important}html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-cell header strong{min-width:22px!important;min-height:22px!important;font-size:11px!important}}
+
+/* Mobile month view: day columns are 2.5x the fit-to-screen width and remain horizontally scrollable. */
+@media(max-width:700px){
+ html body #adibCalendar#adibCalendar[data-calendar-view=month] .adib-calendar-grid[data-view=month]{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;grid-template-columns:repeat(7,35.7143vw)!important;overflow-x:auto!important;overflow-y:auto!important;overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-x pan-y!important}
+}
