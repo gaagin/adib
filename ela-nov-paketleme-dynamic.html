@@ -3858,16 +3858,16 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 })().catch(()=>{});
 </script>
 <script src="pomodoro-session-ui.js?v=1.1.64-sessions-v2"></script><script src="browser-pomodoro.js?v=1.1.64-countdown-v4"></script><link rel="stylesheet" href="compact-design.css?v=section-menus-v1"><script src="compact-design.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="focused-views.css?v=focused-v4"><script src="focused-views.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="elegant-ui.css?v=timer-after-date-v1"><script src="elegant-ui.js?v=timer-after-date-v1"></script><style id="adib-android-task-footer-compact">
-/* Keep the Android equipment-task editor footer tight and anchored above system navigation. */
+/* Compact, anchored action footer on every Android equipment-task tab. */
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties>.modal{
   display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;
   height:100dvh!important;max-height:100dvh!important;min-height:0!important;border:0!important;border-radius:0!important;
 }
-:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties>.modal>.task-list.adib-task-chat-active{
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties>.modal>.task-list:has(.adib-task-detail.adib-android-equipment-task){
   display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;
   box-sizing:border-box!important;overflow:hidden!important;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 8px)!important;
 }
-:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .task-list.adib-task-chat-active>.task-editor{
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .task-list:has(.adib-task-detail.adib-android-equipment-task)>.task-editor{
   display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;
   gap:0!important;padding:0!important;overflow:hidden!important;
 }
@@ -3875,28 +3875,39 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
   display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;
   border-radius:0!important;overflow:hidden!important;
 }
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-detail-header,
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-tabs{flex:0 0 auto!important}
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-tabs{margin-bottom:6px!important}
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-panes{
+  display:flex!important;flex:1 1 0!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;
+}
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-panes>[data-task-pane]:not([hidden]){
+  display:block!important;flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:0 4px 10px!important;
+}
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-panes>[data-task-pane="chat"]:not([hidden]){
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;
+}
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer{
   position:static!important;display:flex!important;flex:0 0 auto!important;flex-direction:column!important;gap:0!important;
   margin:0!important;padding:7px 0 calc(env(safe-area-inset-bottom,0px) + 4px)!important;box-sizing:border-box!important;
 }
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions{
-  display:grid!important;grid-template-columns:minmax(0,.9fr) minmax(0,1fr) minmax(0,1.8fr)!important;
-  align-items:center!important;justify-content:stretch!important;gap:7px!important;margin:0!important;padding:0!important;
+  display:flex!important;align-items:center!important;justify-content:stretch!important;flex-wrap:wrap!important;gap:7px!important;margin:0!important;padding:0!important;
 }
-:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions:not(:has(#deleteTask)){
-  grid-template-columns:minmax(0,1fr) minmax(0,1.8fr)!important;
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions>button:not([hidden]){
+  box-sizing:border-box!important;flex:1 1 0!important;min-width:0!important;width:auto!important;min-height:44px!important;
+  padding:8px 7px!important;white-space:nowrap!important;font-size:14px!important;
 }
-:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions>button{
-  box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 7px!important;
-  white-space:nowrap!important;font-size:14px!important;
-}
+:is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions>#saveTask{flex:1.8 1 0!important}
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-task-footer .editor-actions>button[hidden]{display:none!important}
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task .adib-autosave-status{
-  grid-column:1/-1!important;margin:0!important;padding:2px 0 0!important;min-height:0!important;text-align:center!important;
-  font-size:11px!important;line-height:1.25!important;white-space:normal!important;
+  flex:0 0 100%!important;width:100%!important;box-sizing:border-box!important;margin:0!important;padding:2px 0 0!important;
+  min-height:0!important;text-align:center!important;font-size:11px!important;line-height:1.25!important;white-space:normal!important;
 }
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task #taskEditError:empty{display:none!important}
 :is(html,body).adib-android-wrapper #taskModal.open.adib-task-properties .adib-task-detail.adib-android-equipment-task #taskEditError{margin:2px 0 0!important;max-height:34px!important;overflow:auto!important}
+/* The canvas overflow menu is unrelated while the task editor is open. */
+:is(html,body).adib-android-wrapper:has(#taskModal.open.adib-task-properties) #canvasActionsButton{display:none!important}
 </style>
 </body></html>
