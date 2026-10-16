@@ -71,3 +71,7 @@ html body .personal-kanban-modal .personal-kanban-column .personal-kanban-column
 html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status,html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.main{color:#3157be!important}html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status,html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.main{color:#b4cbff!important}html.dark{--adib-check-ink:#162137}html body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status.complete{color:#23785d!important}html.dark body .adib-task-card.adib-task-card.adib-task-card.adib-task-card .adib-card-chip.status.complete{color:#9addc1!important}
 
 .adib-create-badge{display:block;margin-top:6px;color:var(--muted);font-size:11px}.adib-task-check:disabled{opacity:.45;cursor:default}
+
+/* My Tasks home list: hide the per-card overflow menu but keep task completion and opening controls. */
+html body.adib-home-open #adibHome .adib-home-rows .adib-task-card .adib-card-more{display:none!important}
+html body.adib-home-open #adibHome .adib-home-rows .adib-task-card{grid-template-columns:44px minmax(0,1fr)!important}
