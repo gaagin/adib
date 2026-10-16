@@ -47,10 +47,10 @@
    if(!files.length)return false;
    const accept=String(input.accept||'').toLowerCase(),allowed=files.filter(file=>accept.includes('image/*')||accept.split(',').some(type=>type.trim()===file.type.toLowerCase()));
    if(!allowed.length)return false;
-   event.preventDefault();
    try{
     const transfer=new root.DataTransfer();for(const file of allowed)transfer.items.add(file);input.files=transfer.files;
     if(input.files.length!==allowed.length)throw Error('Şəkli yapışdırmaq mümkün olmadı');
+    event.preventDefault();
     const status=input.closest('.adib-photo-fields')?.querySelector('.adib-photo-status')||input.closest('.adib-image-picker,.adib-photo-section,.adib-task-images')?.querySelector('[role="status"],small');
     if(status)status.textContent='Buferdən şəkil əlavə olunur…';
     input.dispatchEvent(new Event('change',{bubbles:true}));
