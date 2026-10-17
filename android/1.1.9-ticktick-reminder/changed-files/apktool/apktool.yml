@@ -1,0 +1,15 @@
+version: 3.0.3
+apkFileName: ADIB-Mobile-Android-1.1.7-SystemBack.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 24
+  targetSdkVersion: 35
+versionInfo:
+  versionCode: 11
+  versionName: 1.1.9-ticktick-reminder
+resourcesInfo:
+  packageId: 127
+doNotCompress:
+- arsc

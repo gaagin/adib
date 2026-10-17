@@ -1,0 +1,2 @@
+Source archive SHA-256: 3b0edc8635d7514be7cd4ca9eac3fb6c1d8024ff73e93b0e766e4f45c0ebf289
+APK SHA-256: d48200aaa5a1081cfaf66920f492bbc8cb9937f0ddbae2aa80d0f249fa534ade
