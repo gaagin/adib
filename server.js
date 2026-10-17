@@ -476,8 +476,12 @@ function combineFilters(...filters) {
 function editedSinceFilter(since) {
   const date=Date.parse(since);return Number.isFinite(date)?{timestamp:'last_edited_time',last_edited_time:{on_or_after:new Date(Math.max(0,date-120000)).toISOString()}}:null;
 }
+function equipmentTaskWindowFilter(dateName){
+ const cutoff=new Date(Date.now()-taskHistory.WINDOW).toISOString(),recentEdit={timestamp:'last_edited_time',last_edited_time:{on_or_after:cutoff}};
+ return dateName?{or:[{property:dateName,date:{on_or_after:cutoff}},recentEdit]}:recentEdit;
+}
 function changedCursor(pages,previous=''){let max=Date.parse(previous)||0;for(const p of pages)max=Math.max(max,Date.parse(p.last_edited_time)||0);return max?new Date(max).toISOString():previous;}
-function collectionNeedsFull(cursor,force){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000;}
+function collectionNeedsFull(cursor,force,windowVersion=0){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000||windowVersion>0&&cursor.windowVersion!==windowVersion;}
 function syncError(part,error){return {part,error:String(error?.message||error||'Cavab yoxdur Notion').slice(0,700)};}
 
 
@@ -486,7 +490,8 @@ async function queryTaskPages(machineIds = [], since = '', restrictToMachines = 
     try {
       const filter = combineFilters(
         restrictToMachines ? relationFilter(source.relationName, machineIds) : null,
-        editedSinceFilter(since)
+        editedSinceFilter(since),
+        equipmentTaskWindowFilter(source.dateName)
       );
       return { source, pages: await queryDatabase(source.databaseId, source.dataSourceId, filter ? { filter } : {}) };
     } catch (error) {
@@ -512,7 +517,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted 
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
       const assignee = person(page, source.assigneeName);
       const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
-      task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!recentTask(task))continue;
+      task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!taskHistory.visibleEquipment(task))continue;
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -550,7 +555,7 @@ function buildSnapshotFromRawCache(baseUrl = '') {
   const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl).map(plan => ({ ...plan, tasks: tasks.get(`plan:${plan.id}`) || [] }));
   const mappedEquipment = mapEquipment(machinePages, tasks, baseUrl);
   attachTaskCounts(mappedPlans, mappedEquipment);
-  return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat() };
+  return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat().filter(task=>taskHistory.visibleEquipment(task)) };
 }
 
 const realtimeTombstones=new Map();
@@ -587,17 +592,19 @@ function progressiveSnapshot(scope){
  if(scope==='personal')applyPersonalContainerDefaults(data.pomodoroTasks,data.containers);
  return {...data,cache:{...cacheHealth},sync:state?{...state,partial:state.pending.length>0||state.errors.length>0}:{revision:0,running:false,successful:[],errors:[],pending:[],partial:true}};
 }
-function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId}))];}
+function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId,dateName:source.dateName,windowVersion:1}))];}
 function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',db:TASKS_DB,ds:TASKS_DS},{key:'containers',label:'Qovluqlar',db:PERSONAL_CONTAINERS_DB,ds:PERSONAL_CONTAINERS_DS}];}
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
  const readStartedAt=new Date().toISOString();
+ const windowVersion=spec.windowVersion||0;
  let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
+ if(scan&&scan.windowVersion!==windowVersion)scan=null;
  const resumed=!!scan;
- const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||(light?false:collectionNeedsFull(cursor,false)));
+ const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||windowVersion>0&&cursor.windowVersion!==windowVersion||!light&&collectionNeedsFull(cursor,false,windowVersion));
  if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
+ if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',windowVersion,...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
  if(resumed)progress.resumedRecords+=scan.loaded||0;
  if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
  const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
@@ -607,7 +614,8 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
   else{cursors[spec.key]=state;mergePages(target,pages);saveRawSnapshotCache();}
  };
  if(!resumed){try{commitCheckpoint(scan,[],isFull);}catch(error){completeSnapshotPart(progress,spec,error);return Promise.reject(syncError(spec.label,error));}}
- const query={...(isFull?{}:{filter:editedSinceFilter(scan.filterSince)}),sorts:[{timestamp:'last_edited_time',direction:'descending'}]};if(!query.filter)delete query.filter;
+ const filter=combineFilters(isFull?null:editedSinceFilter(scan.filterSince),windowVersion?equipmentTaskWindowFilter(spec.dateName):null);
+ const query={...(filter?{filter}:{}),sorts:[{timestamp:'last_edited_time',direction:'descending'}]};
  const read=scan.done?Promise.resolve([]):queryDatabase(spec.db,spec.ds,query,(page,info)=>{
   if(!valid())return;
   const next={...scan,nextCursor:info.nextCursor,done:!info.hasMore,loaded:scan.loaded+page.length,maxEdited:changedCursor(page,scan.maxEdited),readBarrier:scan.readBarrier||info.readBarrier||''};
@@ -621,7 +629,7 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
  },background?'history':'interactive',scan);
  return read.then(()=>{
   if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
+   const current=cursors[spec.key]||{};const finished={...current,...(windowVersion?{windowVersion}:{}),since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
    if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
    else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
   }
@@ -643,7 +651,7 @@ async function syncEquipmentCollections(full,startedAt,baseUrl='',retry=false,li
 function reconcileSnapshot(scope){
  if(backgroundJobs.has(scope))return backgroundJobs.get(scope);
  const personal=scope==='personal',cursors=personal?personalRaw.cursors:(rawCache.cursors=rawCache.cursors||{});
- const specs=(personal?personalSnapshotSpecs():equipmentSnapshotSpecs()).filter(spec=>{const c=cursors[spec.key];return c?.fullAt&&!c.error&&collectionNeedsFull(c,false);});
+ const specs=(personal?personalSnapshotSpecs():equipmentSnapshotSpecs()).filter(spec=>{const c=cursors[spec.key];return c?.fullAt&&!c.error&&collectionNeedsFull(c,false,spec.windowVersion||0);});
  if(!specs.length)return Promise.resolve(null);
  const generation=personalTasksGeneration,valid=()=>!personal||generation===personalTasksGeneration;
  const progress=beginSnapshotProgress(scope,specs,true,true);

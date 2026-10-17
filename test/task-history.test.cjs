@@ -1,5 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
 const history=require('../task-history.js');
 
 test('completed tasks are visible only inside the last seven days',()=>{
@@ -23,4 +25,24 @@ test('Azerbaijani completion statuses with diacritics are treated as completed',
   assert.equal(history.visible({id:'old',status:'Tamamlandı',completedAt:new Date(now-8*86400000).toISOString()},now),false);
   assert.equal(history.visible({id:'recent',process:'İş görüldü',completedAt:new Date(now-6*86400000).toISOString()},now),true);
   assert.equal(history.done({status:'Problem həll olunmayıb'}),false);
+});
+
+test('equipment snapshots keep open work from the last seven days and upcoming work only',()=>{
+  const now=Date.parse('2026-10-17T12:00:00Z');
+  const date=days=>new Date(now+days*86400000).toISOString();
+  assert.equal(history.visibleEquipment({id:'recent',completed:false,date:date(-6)},now),true);
+  assert.equal(history.visibleEquipment({id:'old',completed:false,date:date(-8)},now),false);
+  assert.equal(history.visibleEquipment({id:'future',completed:false,date:date(30)},now),true);
+  assert.equal(history.visibleEquipment({id:'recently-edited-undated',completed:false,updatedAt:date(-1)},now),true);
+  assert.equal(history.visibleEquipment({id:'old-undated',completed:false,updatedAt:date(-10)},now),false);
+  assert.equal(history.visibleEquipment({id:'recent-date-old-completion',completed:true,date:date(-1),completedAt:date(-8)},now),false);
+  assert.equal(history.visibleEquipment({id:'old-date-recent-completion',completed:true,date:date(-30),completedAt:date(-1)},now),true);
+});
+
+test('server filters equipment snapshots and Notion reads to the rolling window',()=>{
+  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+  assert.match(server,/if\(!includeCompleted&&!taskHistory\.visibleEquipment\(task\)\)continue/);
+  assert.match(server,/pomodoroTasks:\[\.\.\.buildTaskMap\(taskSets,machineIds,baseUrl,true\)\.values\(\)\]\.flat\(\)\.filter\(task=>taskHistory\.visibleEquipment\(task\)\)/);
+  assert.match(server,/equipmentTaskWindowFilter\(spec\.dateName\)/);
+  assert.match(server,/windowVersion>0&&cursor\.windowVersion!==windowVersion/);
 });
