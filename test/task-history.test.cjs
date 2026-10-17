@@ -36,7 +36,9 @@ test('equipment snapshots keep open work from the last seven days and upcoming w
   assert.equal(history.visibleEquipment({id:'recently-edited-undated',completed:false,updatedAt:date(-1)},now),true);
   assert.equal(history.visibleEquipment({id:'old-undated',completed:false,updatedAt:date(-10)},now),false);
   assert.equal(history.visibleEquipment({id:'recent-date-old-completion',completed:true,date:date(-1),completedAt:date(-8)},now),false);
-  assert.equal(history.visibleEquipment({id:'old-date-recent-completion',completed:true,date:date(-30),completedAt:date(-1)},now),true);
+  assert.equal(history.visibleEquipment({id:'old-date-recent-completion',completed:true,date:date(-30),completedAt:date(-1)},now),false);
+  assert.equal(history.visibleEquipment({id:'old-due-date',completed:true,date:'2023-06-11',completedAt:date(-1)},now),false);
+  assert.equal(history.visibleEquipment({id:'recent-date-recent-completion',completed:true,date:date(-1),completedAt:date(-1)},now),true);
 });
 
 test('server filters equipment snapshots and Notion reads to the rolling window',()=>{
