@@ -63,6 +63,7 @@ const aiRequestTimes = [];
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
 const LINK_PROPERTY_DEFAULT = 'ADIB link';
+const TASK_LINK_PROPERTY_DEFAULT = 'URL';
 const linkSyncState = { baseUrl: '', at: 0, inFlight: null };
 
 function loadDotEnv(file) {
@@ -347,9 +348,13 @@ function serviceLink(baseUrl, element, id, extra = {}) {
   return `${base}/ela-nov-paketleme-dynamic.html#${params.toString()}`;
 }
 function linkPropertyName(sourceKey) {
-  if (sourceKey === 'gorulen') return process.env.GORULEN_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
-  if (sourceKey === 'todo') return process.env.TODO_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+  if (sourceKey === 'gorulen') return process.env.GORULEN_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
+  if (sourceKey === 'todo') return process.env.TODO_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
   return process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+}
+function taskAppLink(baseUrl, id, machineId = '', planId = '') {
+  const extra = machineId ? { machine: machineId } : planId ? { plan: planId } : {};
+  return serviceLink(baseUrl, 'task', id, extra);
 }
 
 function mapPlans(pages, baseUrl = '') {
@@ -707,7 +712,9 @@ async function syncServiceLinks(baseUrl, force = false) {
       const pages = await queryDatabase(source.databaseId, source.dataSourceId);
       for (const page of pages) {
         const machineId = relationIds(page, source.relationName)[0] || '';
-        targets.push({ page, propertyName: source.linkProperty || LINK_PROPERTY_DEFAULT, link: serviceLink(normalized, 'task', page.id, { machine: machineId }) });
+        const planId = relationIds(page, source.planRelationName)[0] || '';
+        if (!machineId && !planId) continue;
+        targets.push({ page, propertyName: source.linkProperty || TASK_LINK_PROPERTY_DEFAULT, link: taskAppLink(normalized, page.id, machineId, planId) });
       }
     }
     let updated = 0;
@@ -925,13 +932,16 @@ function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.es
 async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
 function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
 
-async function saveTask(body) {
+async function saveTask(body, baseUrl = '') {
   validateTaskEstimate(body);
   const id = String(body.id || '').trim();
   const sourceKey = String(body.sourceKey || 'todo');
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
   const config = taskConfig(sourceKey);
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties(body, config, Boolean(body.machineId))) }) });
+  const properties = await taskStatusOptions.properties(body,sourceKey,buildTaskProperties(body, config, Boolean(body.machineId)));
+  const appLink = taskAppLink(baseUrl, id, body.machineId, body.planId);
+  if (appLink) properties[config.linkProperty || TASK_LINK_PROPERTY_DEFAULT] = { url: appLink };
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
   if (body.machineId) taskCache.delete(String(body.machineId));
@@ -951,6 +961,8 @@ async function createTask(body, baseUrl = '') {
   if ((!machineId && !planId) || !titleValue) throw new Error('Tapşırığın adını və avadanlıq və ya planı göstərin');
   const config = taskConfig(sourceKey);
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)),{creating:true}) }) });
+  const appLink = taskAppLink(baseUrl, page.id, machineId, planId);
+  if (appLink) { try { await patchServiceLink(page, config.linkProperty || TASK_LINK_PROPERTY_DEFAULT, appLink); } catch (error) { console.warn('Task app link update failed:', page.id, error.message); } }
   await persistTaskEstimate(body,page.id,true);
   if (machineId) taskCache.delete(machineId);
   snapshotCache = null;
@@ -1773,7 +1785,7 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
       const body = await readBody(request);
-      return json(response, 200, await saveTask(body));
+      return json(response, 200, await saveTask(body, appBaseUrl(request)));
     }
     if (request.method === 'POST' && url.pathname === '/api/task') {
       const body = await readBody(request);
@@ -1794,7 +1806,7 @@ const server = http.createServer(async (request, response) => {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
     if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats},commentCache:{...commentReads.stats},authorCache:{...authorReads.stats}});
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS==='1')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS!=='0')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
