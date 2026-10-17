@@ -76,7 +76,7 @@ test('destroy removes listeners and clears pending timers', () => {
   assert.equal(f.states.length, 0);
 });
 
-test('all recurring network clients pause while idle and resume after activity', () => {
+test('recurring data clients pause while idle and the device clock makes no network requests', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'ela-nov-paketleme-dynamic.html'), 'utf8');
   const time = fs.readFileSync(path.join(__dirname, '..', 'network-time.js'), 'utf8');
   const account = fs.readFileSync(path.join(__dirname, '..', 'account-client.js'), 'utf8');
@@ -84,7 +84,8 @@ test('all recurring network clients pause while idle and resume after activity',
   assert.match(html, /window\.ADIBIdle\?\.isIdle\?\.\(\).*fetchChatThreads\(\)/);
   assert.match(html, /const shouldAutoSync=.*!window\.ADIBIdle\?\.isIdle\?\.\(\)/);
   assert.match(html, /window\.addEventListener\('adib-network-idle',resume\)/);
-  assert.match(time, /root\.ADIBIdle\?\.isIdle\?\.\(\).*refresh/);
+  assert.match(time, /function now\(\)\s*\{\s*return Date\.now\(\);?\s*\}/);
+  assert.doesNotMatch(time, /fetch\(|\/api\/time|network-only/);
   assert.match(account, /root\.ADIBIdle\?\.isIdle\?\.\(\)\)return/);
   assert.match(work, /root\.ADIBIdle\?\.isIdle\?\.\(\).*refresh/);
 });

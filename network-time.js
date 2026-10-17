@@ -1,17 +1,74 @@
-(function(root){'use strict';const mono=()=>performance.now();let anchor=null,inflight=null,timeZone='Asia/Baku',state={trusted:false,timeZone,policy:'network-only'},resolveReady,lastDay='';const ready=new Promise(r=>resolveReady=r);
-function now(){return anchor&&mono()-anchor.mono<anchor.maxAge?anchor.epoch+Math.max(0,mono()-anchor.mono):NaN;}
-function date(){return new root.ADIBZone.ZonedDate(now(),timeZone);}
-function stamp(){const at=now();return Number.isFinite(at)?at:mono();} // Monotonic UI/cache counters, never a civil-time fallback.
-function accept(s,rtt=0){if(s?.timeZone){new Intl.DateTimeFormat('en',{timeZone:s.timeZone});timeZone=s.timeZone;}state={...state,...s,timeZone};if(s?.trusted&&Number.isFinite(s.now)){anchor={epoch:s.now+rtt/2,mono:mono(),maxAge:Math.max(0,(s.maxAgeMs||86400000)-(s.ageMs||0))};resolveReady();}
- state.trusted=Number.isFinite(now());root.dispatchEvent(new Event('adib-clock-change'));root.dispatchEvent(new Event('adib-home-data'));notice();}
-function report(){const d=date();return ['ADIB Online 1.1.42 — yalnız şəbəkə vaxtı','Tətbiq vaxtı zonası: '+timeZone,'Cari vaxt: '+(Number.isFinite(now())?d.toLocaleString('az-AZ'):'hələ təsdiqlənməyib'),'Mənbə: '+(state.source||'gözlənilir'), 'Son uzlaşma: '+(state.checkedAt?new root.ADIBZone.ZonedDate(Date.parse(state.checkedAt),timeZone).toLocaleString('az-AZ'):'nömrə'),state.holdover?'Bağlantı yoxdur: son şəbəkə uzlaşmasından geri sayım davam edir.':'',state.error||'','Kompüterin saatı və saat qurşağı istifadə edilmir.'].filter(Boolean).join('\n');}
-async function refreshWorkspace(){const personal=document.getElementById('personalMode'),isPersonal=!!personal&&!personal.hidden,errorNode=document.getElementById(isPersonal?'personalError':'syncError');const refreshData=isPersonal?root.__refreshPersonalTasks:root.__refreshEquipmentData;if(typeof refreshData!=='function')throw Error('Aktiv bölmənin yeniləmə funksiyası tapılmadı');if(isPersonal)await refreshData(true);else await refreshData(true,true);const error=errorNode?.textContent?.trim();if(error)throw Error(error);return isPersonal?'Tapşırıqlarım':'Tapşırıqlar və avadanlıq';}
-function details(){const dialog=document.createElement('dialog');dialog.className='adib-clock-dialog';const title=document.createElement('h2');title.textContent='Şəbəkə vaxtı';const note=document.createElement('p');note.className='adib-clock-note';note.textContent='Bu xəbərdarlıq şəbəkə vaxtının yenilənməsini göstərir. Tapşırıqların sinxronizasiyasını da aşağıdan yoxlaya bilərsiniz.';const text=document.createElement('textarea');text.readOnly=true;text.value=report();const sync=document.createElement('button');sync.className='primary';sync.textContent='Sinxronizasiyanı yoxlayın';sync.onclick=async()=>{sync.disabled=true;sync.textContent='Yoxlanılır…';const [timeResult,dataResult]=await Promise.allSettled([refresh(true),refreshWorkspace()]);const timeOk=timeResult.status==='fulfilled'&&Number.isFinite(now())&&!state.error&&!state.holdover;const dataOk=dataResult.status==='fulfilled';text.value=report()+'\n\nTapşırıqlar: '+(dataOk?'yeniləndi — '+dataResult.value:'yeniləmə alınmadı — '+(dataResult.reason?.message||'naməlum xəta'))+'\nŞəbəkə vaxtı: '+(timeOk?'yeniləndi':'yenilənmədi');sync.textContent=dataOk?'Yenidən yoxlayın':'Təkrar cəhd edin';sync.disabled=false;};const close=document.createElement('button');close.textContent='Bağla';close.onclick=()=>{dialog.close();dialog.remove()};dialog.append(title,note,text,sync,close);dialog.oncancel=()=>dialog.remove();document.body.append(dialog);dialog.showModal();}
-function notice(){if(!document.body)return;let box=document.getElementById('adibClockNotice');if(!box){box=document.createElement('button');box.id='adibClockNotice';box.onclick=details;document.body.append(box);}box.hidden=Number.isFinite(now())&&!state.error&&!state.holdover;box.textContent=Number.isFinite(now())?'Şəbəkə vaxtı yenilənmədi · Sinxronizasiyanı yoxlayın':'Şəbəkə vaxtı hələ təsdiqlənməyib. Bağlantı yoxlayın';box.title=report();const side=document.getElementById('adibPersistentSide');if(side&&box.parentElement!==side)side.append(box);
- // Viewing cached tasks must not wait for clock synchronization. Timer APIs still require trusted time.
- document.getElementById('adibTimeWait')?.remove();const trusted=Number.isFinite(now());if(!trusted){box.hidden=false;box.textContent=state.error?'Vaxt sinxronlaşdırılmadı · Yenidən cəhd et':'Vaxt sinxronlaşdırılır…';box.classList.toggle('is-syncing',!state.error);box.onclick=details;}else{box.classList.remove('is-syncing');box.onclick=details;}}
+(function(root){
+  'use strict';
 
-async function refresh(force=false){if(inflight)return inflight;state.error=null;notice();inflight=(async()=>{const before=mono(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch('/api/time'+(force?'?force=1':''),{cache:'no-store',signal:controller.signal});const s=await r.json();if(!r.ok||!s.trusted||!Number.isFinite(s.now))throw Error(s.error||'Şəbəkə vaxtı hələ təsdiqlənməyib');accept(s,Math.max(0,mono()-before-Number(s.processingMs||0)));return state;}catch(e){state={...state,error:'Təsdiqlənmiş şəbəkə uzlaşması yoxdur',holdover:!!anchor,trusted:Number.isFinite(now())};notice();return state;}finally{clearTimeout(timer);}})().finally(()=>inflight=null);return inflight;}
-root.ADIBClock={now,date,stamp,elapsed:mono,ready,refresh,details,report,attach:notice,fromSystemTimestamp:value=>new root.ADIBZone.ZonedDate(Number(value),timeZone),get trusted(){return Number.isFinite(now());},get timeZone(){return timeZone;},get state(){return {...state,trusted:Number.isFinite(now()),timeZone};}};
-void refresh();root.addEventListener('DOMContentLoaded',notice);root.addEventListener('adib-home-data',notice);root.addEventListener('pageshow',()=>{if(!root.ADIBIdle?.isIdle?.())refresh(true)});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!root.ADIBIdle?.isIdle?.())void refresh(true)});root.addEventListener('online',()=>{if(!root.ADIBIdle?.isIdle?.())refresh(true)});root.addEventListener('adib-network-idle',event=>{if(!event.detail?.idle)refresh(true)});setInterval(()=>{notice();const day=date().toDateString();if(lastDay&&day!==lastDay&&Number.isFinite(now()))root.dispatchEvent(new Event('adib-clock-change'));lastDay=day;},15000);setInterval(()=>{if(!root.ADIBIdle?.isIdle?.())refresh()},60000);
+  const mono=()=>performance.now();
+  const deviceTimeZone=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Baku'}catch{return 'Asia/Baku'}};
+  let timeZone=deviceTimeZone();
+  let lastDay='';
+  let lastZone=timeZone;
+  const state={trusted:true,timeZone,source:'device',policy:'device-clock'};
+  const ready=Promise.resolve(state);
+
+  function now(){return Date.now();}
+  function date(){timeZone=deviceTimeZone();return new root.ADIBZone.ZonedDate(now(),timeZone);}
+  function report(){const current=date();return [
+    'ADIB Online 1.1.42 — vaxt cihazdan alınır',
+    'Cari vaxt: '+current.toLocaleString('az-AZ'),
+    'Saat qurşağı: '+timeZone,
+    'Mənbə: bu cihaz',
+    'Cihazın tarixi, saatı və saat qurşağı istifadə olunur.'
+  ].join('\n');}
+  function details(){
+    const dialog=document.createElement('dialog');
+    dialog.className='adib-clock-dialog';
+    const title=document.createElement('h2');
+    title.textContent='Cihaz vaxtı';
+    const text=document.createElement('textarea');
+    text.readOnly=true;
+    text.value=report();
+    const close=document.createElement('button');
+    close.textContent='Bağla';
+    close.onclick=()=>{dialog.close();dialog.remove();};
+    dialog.append(title,text,close);
+    dialog.oncancel=()=>dialog.remove();
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+  function notice(){
+    document.getElementById('adibClockNotice')?.remove();
+    document.getElementById('adibTimeWait')?.remove();
+  }
+  function refresh(){
+    const nextZone=deviceTimeZone();
+    const current=new root.ADIBZone.ZonedDate(now(),nextZone);
+    if(nextZone!==lastZone||lastDay&&current.toDateString()!==lastDay){
+      root.dispatchEvent(new Event('adib-clock-change'));
+    }
+    timeZone=nextZone;
+    lastZone=nextZone;
+    lastDay=current.toDateString();
+    state.timeZone=timeZone;
+    return Promise.resolve({...state,now:now(),checkedAt:new Date().toISOString()});
+  }
+
+  root.ADIBClock={
+    now,
+    date,
+    stamp:now,
+    elapsed:mono,
+    ready,
+    refresh,
+    details,
+    report,
+    attach:notice,
+    fromSystemTimestamp:value=>new root.ADIBZone.ZonedDate(Number(value),timeZone),
+    get trusted(){return true;},
+    get timeZone(){return timeZone=deviceTimeZone();},
+    get state(){return {...state,trusted:true,timeZone:deviceTimeZone()};}
+  };
+
+  notice();
+  root.addEventListener('DOMContentLoaded',notice);
+  root.addEventListener('adib-home-data',notice);
+  setInterval(()=>{void refresh();},15000);
 })(window);
