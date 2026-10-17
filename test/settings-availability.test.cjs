@@ -6,13 +6,12 @@ const path=require('node:path');
 const home=fs.readFileSync(path.join(__dirname,'..','home-screen.js'),'utf8');
 const focused=fs.readFileSync(path.join(__dirname,'..','focused-views.js'),'utf8');
 
-test('sidebar Ayarlar safely opens the settings menu across native bridge return types',()=>{
-  assert.match(home,/typeof root\.ADIBDesktop\?\.openSettings==='function'/);
-  assert.match(home,/result&&typeof result\.then==='function'/);
-  assert.match(home,/Promise\.resolve\(result\)\.catch\([^]*?fallback\(\)/);
-  assert.match(home,/root\.ADIBSettings\?\.open/);
-  assert.match(home,/getElementById\('adibSettingsButton'\)\?\.click\(\)/);
-  assert.doesNotMatch(home,/openSettings\(\)\.catch/);
+test('sidebar Ayarlar opens the visible panel above the navigation drawer',()=>{
+  assert.match(home,/root\.ADIBSettings\.open\(anchor\)/);
+  assert.match(home,/panel\.style\.setProperty\('position','fixed','important'\)/);
+  assert.match(home,/panel\.style\.setProperty\('z-index','2147483000','important'\)/);
+  assert.match(home,/getElementById\('adibSettingsMenu'\)/);
+  assert.doesNotMatch(home,/root\.ADIBDesktop\?\.openSettings/);
 });
 
 test('local Ayarlar panel remains available when an account lacks settings permissions',()=>{
