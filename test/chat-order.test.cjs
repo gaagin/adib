@@ -27,3 +27,28 @@ test('chat messages sort oldest first and keep the original list untouched', () 
 test('the chat bubble renderer applies chronological ordering', () => {
   assert.match(line('function chatBubbles('), /comments=chatSortedComments\(comments\)/);
 });
+
+test('task discussions sort newest activity first, independent of cache order', () => {
+  const context = vm.createContext({ chatDate: value => value ? new Date(value) : null });
+  vm.runInContext([
+    line('function chatCompareDates('),
+    line('function chatSortedComments('),
+    line('function chatThreadLastComment('),
+    line('function chatSortedThreads('),
+  ].join('\n'), context);
+  const input = [
+    { id: 'old', comments: [
+      { createdAt: '2023-02-22T10:00:00Z' },
+      { createdAt: '2023-04-27T10:00:00Z' },
+    ] },
+    { id: 'newest', comments: [{ createdAt: '2026-09-09T10:00:00Z' }] },
+    { id: 'middle', comments: [{ createdAt: '2024-11-08T10:00:00Z' }] },
+  ];
+  assert.deepEqual(Array.from(context.chatSortedThreads(input), item => item.id), ['newest', 'middle', 'old']);
+  assert.deepEqual(input.map(item => item.id), ['old', 'newest', 'middle']);
+});
+
+test('discussion list uses latest message date and latest-message preview', () => {
+  assert.match(html, /const discussionThreads=chatSortedThreads\(chatThreads\.filter/);
+  assert.match(html, /last=chatThreadLastComment\(item\)/);
+});
