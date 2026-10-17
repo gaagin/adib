@@ -1,0 +1,3 @@
+801e9c1b6074867ce1b378717d4c306931eecab915009d7419ad18c7b2ada9f5  ADIB-1.1.10-reminder-window.apk
+339090414f8cacd919e9548339534af9c6a28b46b64cf749d8cba2a985f1dfc2  ADIB-1.1.10-reminder-window.zip
+8105eae747c23fd8d52655c91bb26d235c710580109cc5249c78f7d24b1cfb69  ADIB-Android-1.1.10-Reminder-Source.zip
