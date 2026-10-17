@@ -1606,7 +1606,7 @@ function markChatThreadRead(taskId){if(window.ADIBDiscussions?.enabled()&&window
 const chatTextDrafts=new Map(),chatSending=new Set();let chatSearchQuery='';
 function chatInitials(value){return String(value||'?').trim().split(/\s+/).filter(Boolean).filter((x,i,a)=>i===0||i===a.length-1).map(x=>Array.from(x)[0]).join('').slice(0,4).toLocaleUpperCase('az-AZ')||'?'}
 function chatDate(value){const date=window.ADIBZone.parse(value,window.ADIBClock.timeZone);return date}
-function chatCompareDates(a,b){const x=chatDate(a)?.getTime(),y=chatDate(b)?.getTime(),hasX=Number.isFinite(x),hasY=Number.isFinite(y);return hasX?(hasY?y-x:-1):(hasY?1:0)}
+function chatCompareDates(a,b){const x=chatDate(a)?.getTime(),y=chatDate(b)?.getTime(),hasX=Number.isFinite(x),hasY=Number.isFinite(y);return hasX?(hasY?x-y:-1):(hasY?1:0)}
 function chatSortedComments(comments){return [...(comments||[])].sort((a,b)=>chatCompareDates(a?.createdAt,b?.createdAt))}
 function chatDayKey(value){const d=chatDate(value);return d?[d.getFullYear(),d.getMonth(),d.getDate()].join('-'):'unknown'}
 function chatDay(value){const d=chatDate(value);if(!d)return 'Tarixsiz';const now=window.ADIBClock?.date()||window.ADIBClock.date(),yesterday=now.clone();yesterday.setDate(now.getDate()-1);if(chatDayKey(value)===chatDayKey(now))return 'Bu gün';if(chatDayKey(value)===chatDayKey(yesterday))return 'Dünən';return d.toLocaleDateString('az-AZ',{day:'numeric',month:'long',...(d.getFullYear()!==now.getFullYear()?{year:'numeric'}:{})})}
