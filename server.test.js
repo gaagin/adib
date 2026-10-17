@@ -188,7 +188,7 @@ test('Back, list, and filter actions are always present in the shared toolbar', 
   assert.match(html, /id="miroMobileFilter"[^>]*aria-label="Фильтр"/);
   assert.match(html, /id="miroMobileRefresh"[^>]*aria-label="Обновить"/);
   assert.match(html, /bindMobileTap\(headerRefreshButton/);
-  assert.match(html, /window\.__refreshEquipmentData=\(\)=>refresh\(false,false\)/);
+  assert.match(html, /window\.__refreshEquipmentData=\(full=false,silent=false\)=>refresh\(silent,full\)/);
   assert.match(html, /window\.__refreshPersonalTasks=\(\)=>loadPersonalTasks\(\)/);
   assert.match(html, /personalEisenhowerSearch/);
   assert.match(html, /personal-kanban-filter-open/);
