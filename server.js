@@ -31,7 +31,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v17-delete-in-actions-menu';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
@@ -516,7 +516,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted 
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Tapşırıq';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
       const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
+      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', createdAt:page.created_time||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
       task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!taskHistory.visibleEquipment(task))continue;
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);

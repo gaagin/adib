@@ -33,12 +33,15 @@ test('equipment snapshots keep open work from the last seven days and upcoming w
   assert.equal(history.visibleEquipment({id:'recent',completed:false,date:date(-6)},now),true);
   assert.equal(history.visibleEquipment({id:'old',completed:false,date:date(-8)},now),false);
   assert.equal(history.visibleEquipment({id:'future',completed:false,date:date(30)},now),true);
-  assert.equal(history.visibleEquipment({id:'recently-edited-undated',completed:false,updatedAt:date(-1)},now),true);
+  assert.equal(history.visibleEquipment({id:'recently-created-undated',completed:false,createdAt:date(-1),updatedAt:date(-1)},now),true);
+  assert.equal(history.visibleEquipment({id:'old-created-recently-edited-undated',completed:false,createdAt:'2023-06-11T10:00:00Z',updatedAt:date(-1)},now),false);
   assert.equal(history.visibleEquipment({id:'old-undated',completed:false,updatedAt:date(-10)},now),false);
   assert.equal(history.visibleEquipment({id:'recent-date-old-completion',completed:true,date:date(-1),completedAt:date(-8)},now),false);
   assert.equal(history.visibleEquipment({id:'old-date-recent-completion',completed:true,date:date(-30),completedAt:date(-1)},now),false);
   assert.equal(history.visibleEquipment({id:'old-due-date',completed:true,date:'2023-06-11',completedAt:date(-1)},now),false);
   assert.equal(history.visibleEquipment({id:'recent-date-recent-completion',completed:true,date:date(-1),completedAt:date(-1)},now),true);
+  assert.equal(history.visibleEquipment({id:'recently-completed-untimed-due-date',completed:true,createdAt:'2023-06-11T10:00:00Z',completedAt:date(-1),completionDateSource:'recorded'},now),true);
+  assert.equal(history.visibleEquipment({id:'old-estimated-completion',completed:true,createdAt:'2023-06-11T10:00:00Z',updatedAt:date(-1),completedAt:date(-1),completionDateSource:'last-edited-estimate'},now),false);
 });
 
 test('server filters equipment snapshots and Notion reads to the rolling window',()=>{
@@ -46,5 +49,6 @@ test('server filters equipment snapshots and Notion reads to the rolling window'
   assert.match(server,/if\(!includeCompleted&&!taskHistory\.visibleEquipment\(task\)\)continue/);
   assert.match(server,/pomodoroTasks:\[\.\.\.buildTaskMap\(taskSets,machineIds,baseUrl,true\)\.values\(\)\]\.flat\(\)\.filter\(task=>taskHistory\.visibleEquipment\(task\)\)/);
   assert.match(server,/equipmentTaskWindowFilter\(spec\.dateName\)/);
+  assert.match(server,/createdAt:page\.created_time/);
   assert.match(server,/windowVersion>0&&cursor\.windowVersion!==windowVersion/);
 });
