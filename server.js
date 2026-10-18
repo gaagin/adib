@@ -31,7 +31,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window-timer-session-log-v1';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window-timer-session-log-v2-legacy-pomodoro';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
@@ -1520,7 +1520,13 @@ async function savePersonalPomodoroUnlocked(body){
  }else{
   properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,completedAt:null,completionReason:'reset',creditedMinutes:null};
  }
- if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();timer=sharedPomodoro.put({...timer,discovered:false});return answer(timer);
+ const startedAtMs=Date.parse(timer.startedAt),endedAtMs=Date.parse(iso),plannedMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||duration)),actualSeconds=Number.isFinite(startedAtMs)?Math.max(0,Math.min(plannedMinutes*60,(endedAtMs-startedAtMs)/1000)):0,finishedEarly=body.early===true;
+ const completedSession=action==='finish'&&!global&&mode!=='break'?{id:timer.sessionId||id+':'+(timer.startedAt||iso),taskId:id,title:task.title||timer.title||'Pomodoro',sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:body.__account?.id||'unidentified',worker:body.__account?.name||timer.worker||'İstifadəçi',status:'saved',startedAt:Number.isFinite(startedAtMs)?startedAtMs:endedAtMs-actualSeconds*1000,endedAt:endedAtMs,seconds:actualSeconds,plannedMinutes,fullPomodoro:!finishedEarly,completionReason:finishedEarly?'early':'elapsed',startOperation:body.operationId||'',notionLogEligible:true,notionSyncPending:true}:null;
+ if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();
+ const savedTimer={...timer,discovered:false};
+ if(completedSession){timer=sharedPomodoro.commit(savedTimer,completedSession,null);await browserPomodoroSessions.flushSessionLog(completedSession);timer=sharedPomodoro.get(id);}
+ else timer=sharedPomodoro.put(savedTimer);
+ return answer(timer);
 }
 
 async function aiChat(body) {
