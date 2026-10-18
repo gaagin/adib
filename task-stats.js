@@ -158,7 +158,7 @@
     title.id = 'adibTaskStatsTitle';
     const close = document.createElement('button');
     close.type = 'button'; close.className = 'adib-task-stats-close'; close.setAttribute('aria-label', 'Bağla'); close.textContent = '×';
-    close.onclick = () => dialog.close(); head.append(close);
+    close.onclick = () => { if (selectedEquipmentId) backToOverview(); else dialog.close(); }; head.append(close);
 
     const label = append(dialog, 'label', 'adib-task-stats-label', 'Plan');
     const select = document.createElement('select');
@@ -173,6 +173,13 @@
 
     function equipmentTitle(data, id) {
       return (data.equipment || []).find(item => String(item.id) === String(id))?.name || 'Avadanlıq';
+    }
+
+    function backToOverview() {
+      selectedEquipmentId = '';
+      title.textContent = 'Son 7 gün · avadanlıq üzrə tamamlanan tapşırıqlar';
+      back.hidden = true; label.hidden = false; summary.hidden = false; list.hidden = true; empty.textContent = '';
+      update();
     }
 
     function showEquipment(id) {
@@ -196,7 +203,7 @@
         row.addEventListener('click', () => {
           const taskId = String(task.id || ''), api = root.ADIBEquipmentCalendar;
           dialog.close();
-          setTimeout(() => { if (taskId && api?.open) api.open(taskId).catch?.(() => {}); }, 0);
+          setTimeout(() => { if (taskId && api?.open) api.open(taskId, { returnToStats: true }).catch?.(() => {}); }, 0);
         });
         list.append(row);
       }
@@ -251,8 +258,9 @@
       if (button) showEquipment(button.dataset.equipmentId);
     });
     select.addEventListener('change', update);
-    back.addEventListener('click', () => { selectedEquipmentId = ''; title.textContent = 'Son 7 gün · avadanlıq üzrə tamamlanan tapşırıqlar'; back.hidden = true; label.hidden = false; summary.hidden = false; list.hidden = true; empty.textContent = ''; update(); });
-    dialog.addEventListener('cancel', () => dialog.remove()); dialog.addEventListener('close', () => dialog.remove());
+      back.addEventListener('click', backToOverview);
+    dialog.addEventListener('cancel', event => { if (selectedEquipmentId) { event.preventDefault(); backToOverview(); } else dialog.remove(); });
+    dialog.addEventListener('close', () => dialog.remove());
     let active = true;
     const refresh = () => { if (active && dialog.isConnected) { if (selectedEquipmentId) showEquipment(selectedEquipmentId); else update(); } };
     for (const name of ['adib-equipment-data', 'adib-create-data', 'adib-home-data']) root.addEventListener(name, refresh);

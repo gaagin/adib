@@ -31,7 +31,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v12-fullscreen-equipment-task-details';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v13-chart-return-navigation';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});

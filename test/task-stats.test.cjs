@@ -34,7 +34,7 @@ test('equipment overflow menu is wired to the statistics module and task data ex
  const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'..');
  const menu=fs.readFileSync(path.join(root,'compact-design.js'),'utf8'),html=fs.readFileSync(path.join(root,'ela-nov-paketleme-dynamic.html'),'utf8'),server=fs.readFileSync(path.join(root,'server.js'),'utf8');
  assert.match(menu,/Son 7 gün · tamamlanan tapşırıqlar/);assert.match(menu,/ADIBTaskStats\?\.open/);
- assert.match(html,/ADIBEquipmentCalendar\.statsSnapshot=/);assert.match(html,/title:String\(t\.title\|\|t\.name\|\|'Tapşırıq'\)/);assert.match(html,/task-stats\.js\?v=/);assert.match(server,/"task-stats\.js"/);const css=fs.readFileSync(path.join(root,'focused-views.css'),'utf8');assert.match(css,/dialog\.adib-task-stats-dialog\{position:fixed!important;inset:0!important/);assert.match(css,/adib-task-stats-task-list/);
+ assert.match(html,/ADIBEquipmentCalendar\.statsSnapshot=/);assert.match(html,/title:String\(t\.title\|\|t\.name\|\|'Tapşırıq'\)/);assert.match(html,/open:async\(id,options=\{\}\)/);assert.match(html,/if\(options\.returnToStats\)setTimeout/);assert.match(menu,/ADIBTaskStats\?\.open/);assert.match(html,/task-stats\.js\?v=/);assert.match(server,/"task-stats\.js"/);const chart=fs.readFileSync(path.join(root,'task-stats.js'),'utf8');assert.match(chart,/event\.preventDefault\(\); backToOverview\(\)/);assert.match(chart,/returnToStats: true/);const css=fs.readFileSync(path.join(root,'focused-views.css'),'utf8');assert.match(css,/dialog\.adib-task-stats-dialog\{position:fixed!important;inset:0!important/);assert.match(css,/adib-task-stats-task-list/);
 });
 
 test('pie chart distributes recent completed tasks among equipment in the selected plan',()=>{
