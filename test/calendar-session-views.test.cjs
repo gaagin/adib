@@ -44,6 +44,12 @@ test('a Pomodoro interval segments into all time-based views', () => {
   }
 });
 
+test('calendar weekday strip is compact while day controls remain touch-friendly', () => {
+  assert.match(css, /calendar-header-day\{[^}]*height:58px!important/);
+  assert.match(css, /calendar-header-number\{[^}]*width:28px;height:28px/);
+  assert.match(css, /calendar-header-weekday\{font-size:11px;line-height:14px/);
+});
+
 test('three-day mode uses the same native horizontal scroller as day and week', () => {
   assert.match(css, /data-view=week\],\.adib-calendar-grid\[data-view=three\],\.adib-calendar-grid\[data-view=day\]/);
   assert.match(css, /-webkit-overflow-scrolling:touch/);
