@@ -56,3 +56,11 @@ html body:has(.adib-task-detail.adib-android-equipment-task) button[aria-label="
 html body:has(.adib-task-detail.adib-android-equipment-task) button[title="Daha çox"],
 html body:has(.adib-task-detail.adib-android-equipment-task) button[aria-label="Canvas Actions"]{display:none!important}
 }
+
+/* Tasks opened from the equipment statistics chart use the Android task-tab
+   footer, not .adib-elegant-footer. Dock this specific footer at the viewport
+   edge so the chart-origin editor cannot leave a blank band below the actions. */
+@media(max-width:700px){
+html body #taskModal#taskModal#taskModal#taskModal.adib-task-stats-origin .adib-task-detail.adib-android-equipment-task>.adib-task-footer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;box-sizing:border-box!important;margin:0!important;padding:7px 12px max(4px,env(safe-area-inset-bottom,0px))!important;background:var(--surface,#fff)!important;border-top:1px solid var(--line,#dfe5ef)!important;z-index:2147481200!important}
+html body #taskModal#taskModal#taskModal#taskModal.adib-task-stats-origin .task-list:has(.adib-task-detail.adib-android-equipment-task){padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))!important}
+}
