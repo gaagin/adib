@@ -69,7 +69,7 @@ html .adib-task-discussion>summary::after{content:'⌄';float:right;color:var(--
 html .adib-task-discussion-body{padding:0 16px 16px;font-size:14px}
 @media(max-width:799px){html .adib-elegant-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea,.personal-property-picker>summary,.adib-notion-date-trigger){font-size:16px!important}html .adib-elegant-form :is(#taskTitle,#personalEditTitle){font-size:21px!important}html .adib-elegant-footer{padding:10px 14px max(10px,env(safe-area-inset-bottom))}}
 
-@media(max-width:799px){html body :is(#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties>.adib-task-properties-panel.adib-elegant-sheet{min-height:0!important;bottom:auto!important;height:var(--adib-elegant-sheet-height,calc(100dvh - 130px))!important;max-height:var(--adib-elegant-sheet-height,calc(100dvh - 130px))!important}}
+@media(max-width:799px){html body :is(#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties>.adib-task-properties-panel.adib-elegant-sheet{min-height:0!important;bottom:auto!important;height:var(--adib-elegant-sheet-height,100dvh)!important;max-height:var(--adib-elegant-sheet-height,100dvh)!important}}
 /* Canvas-only controls must not intercept property form actions. */
 html body:has(.adib-elegant-sheet) #centerCurrentCanvasButton{display:none!important;pointer-events:none!important}
 
@@ -80,6 +80,13 @@ html:not(.adib-desktop-app) body :is(#taskModal#taskModal#taskModal#taskModal,.k
 html:not(.adib-desktop-app) body :is(#taskModal#taskModal#taskModal#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties:has(.task-editor)>.adib-task-properties-panel>:is(.modal-head,.kanban-task-editor-head,.personal-kanban-editor-head){display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important}
 html:not(.adib-desktop-app) body :is(#taskModal#taskModal#taskModal#taskModal,.kanban-task-editor-layer,.personal-kanban-editor-layer).adib-task-properties:has(.task-editor)>.adib-task-properties-panel>.task-list{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain;margin-top:0!important;padding-top:0!important}
 html:not(.adib-desktop-app) body:has(:is(#taskModal.open,.kanban-task-editor-layer:not([hidden]),.personal-kanban-editor-layer:not([hidden])).adib-task-properties:has(.task-editor)) :is(.adib-design-nav,.adib-nav-dock,.mobile-nav,.miro-mobile-dock){display:none!important}
+}
+
+/* Keep the task actions pinned to the actual phone viewport. The underlying
+   mobile navigation must not reserve a blank strip below the modal footer. */
+@media(max-width:799px){
+html:not(.adib-desktop-app) body #taskModal#taskModal#taskModal#taskModal.open.adib-task-properties>.adib-task-properties-panel.adib-elegant-sheet>.adib-elegant-footer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;box-sizing:border-box!important;width:100%!important;margin:0!important}
+html:not(.adib-desktop-app) body #taskModal#taskModal#taskModal#taskModal.open.adib-task-properties>.adib-task-properties-panel.adib-elegant-sheet>#taskList{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))!important}
 }
 
 /* Keep the original task timer directly after the date field in all property editors. */
