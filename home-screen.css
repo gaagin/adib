@@ -1,5 +1,5 @@
 /* New default home. Existing editors are docked, never duplicated. */
-.adib-home[hidden],.adib-home-return[hidden]{display:none!important}
+.adib-home[hidden]{display:none!important}
 body.adib-home-open>.app{display:none!important}
 .adib-home{position:fixed;inset:0;background:var(--bg);color:var(--text);z-index:4;display:flex;flex-direction:column}
 .adib-home-top{height:64px;flex:0 0 64px;display:flex;align-items:center;gap:12px;padding:10px 22px;background:var(--soft);border-bottom:1px solid var(--line)}
@@ -29,7 +29,6 @@ body.adib-home-open #taskModal.adib-home-docked>.modal{width:100%!important;heig
 body.adib-home-open #taskModal.adib-home-docked .modal-head{padding:8px 8px 12px!important}
 body.adib-home-open #taskModal.adib-home-docked .task-list{padding:10px 8px!important;flex:1;min-height:0}
 .adib-home-add-menu{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--text);width:min(360px,90vw)}.adib-home-add-menu::backdrop{background:#18223566}.adib-home-add-menu h2{font-size:19px;margin:0 0 16px}.adib-home-add-menu button{display:block;width:100%;min-height:48px;margin-top:8px;background:var(--soft);border-color:var(--line);color:var(--text);text-align:left}
-.adib-home-return{position:fixed;z-index:19;right:18px;bottom:18px;background:var(--surface)!important;color:var(--blue)!important;border-color:var(--line)!important;box-shadow:var(--shadow);min-height:44px}
 @media(max-width:1050px) and (min-width:751px){.adib-home-layout{grid-template-columns:180px 290px minmax(0,1fr)}body.adib-home-open #taskModal.adib-home-docked.open{left:470px!important;padding:8px!important}.adib-home-list{padding:20px 10px 0}}
 @media(max-width:750px){.adib-home-layout{grid-template-columns:140px minmax(0,1fr)}.adib-home-detail{display:none}.adib-home-side{padding:12px 5px}.adib-home-nav,.adib-home-container{font-size:12px;padding:8px!important}.adib-home-top{padding:10px 12px}.adib-home-list{padding:16px 12px 0}body.adib-home-open #taskModal.adib-home-docked.open{inset:64px 0 0 0!important;padding:0!important}.adib-home-status{font-size:11px}}
 body.adib-home-open .tm-launchers{display:none!important}
@@ -110,6 +109,3 @@ body.adib-side-ready.adib-home-open #taskModal.adib-home-docked.adib-properties-
 html .adib-task-detail [data-task-pane=task] [hidden]{display:none!important}
 @container(min-width:620px){html .adib-task-detail [data-task-pane=task]>label:has(#personalEditEstimate),html .adib-task-detail [data-task-pane=task]>label:has(#taskEstimate){grid-column:1/-1}}
 
-
-/* Keep the floating canvas clear; the workspace header owns navigation. */
-html body .adib-home-return{display:none!important;visibility:hidden!important;pointer-events:none!important}
