@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const FIELD='İş vaxtı, dəq',key=v=>String(v||'').replace(/-/g,'').toLowerCase();
 const fail=(message,statusCode=400,code='WORK_TIMER_ERROR')=>Object.assign(Error(message),{statusCode,code});
 class WorkTimerStore{
- constructor({file,now,notion,sources,changed=()=>{}}){Object.assign(this,{file,now,notion,sources,changed});this.tail=Promise.resolve();this.data={version:1,revision:0,sessions:[],tasks:{}};if(fs.existsSync(file)){const d=JSON.parse(fs.readFileSync(file,'utf8'));if(d.version!==1||!Array.isArray(d.sessions)||!d.tasks)throw Error('Invalid work timer store');this.data=d;}}
+ constructor({file,now,notion,sources,saveSession=async()=>null,changed=()=>{}}){Object.assign(this,{file,now,notion,sources,saveSession,changed});this.tail=Promise.resolve();this.data={version:1,revision:0,sessions:[],tasks:{}};if(fs.existsSync(file)){const d=JSON.parse(fs.readFileSync(file,'utf8'));if(d.version!==1||!Array.isArray(d.sessions)||!d.tasks)throw Error('Invalid work timer store');this.data=d;}}
  locked(fn){const job=this.tail.catch(()=>{}).then(fn);this.tail=job;return job;}
  save(){fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.tmp',fd=fs.openSync(temp,'w',0o600);try{fs.writeFileSync(fd,JSON.stringify(this.data));fs.fsyncSync(fd);}finally{fs.closeSync(fd);}fs.renameSync(temp,this.file);}
  commit(change){const old=structuredClone(this.data);try{change();this.data.revision++;this.save();}catch(e){this.data=old;throw e;}this.changed();}
@@ -20,6 +20,15 @@ class WorkTimerStore{
    if(row.lastSyncedMinutes!==total)await this.notion('/pages/'+id,{method:'PATCH',body:JSON.stringify({properties:{[FIELD]:{number:total}}})});
    await this.locked(()=>{const t=this.data.tasks[key(id)];this.commit(()=>{t.lastSyncedMinutes=total;if(this.total(id)===total){t.dirty=false;delete t.syncError;delete t.retryAt;delete t.retryTotal;delete t.syncFailures;}});});
   }catch(e){await this.locked(()=>{const t=this.data.tasks[key(id)];if(t){t.syncError=String(e.message).slice(0,300);t.syncFailures=t.retryTotal===total?(t.syncFailures||0)+1:1;t.retryTotal=total;t.retryAt=Date.now()+Math.min(1800000,60000*2**Math.min(t.syncFailures-1,5));this.save();}});}
+ }
+ for(const row of [...this.data.sessions]){
+  if(row.status!=='saved'||!row.notionLogEligible||row.notionPageId||(row.notionRetryAt||0)>Date.now())continue;
+  try{
+   const result=await this.saveSession({...row,kind:'work',mode:'work'});
+   await this.locked(()=>{const current=this.data.sessions.find(s=>s.id===row.id);if(!current)return;this.commit(()=>Object.assign(current,{notionPageId:result?.id||'recorded',notionSyncPending:false,notionSyncError:'',notionRetryAt:0,notionSyncFailures:0}));});
+  }catch(e){
+   await this.locked(()=>{const current=this.data.sessions.find(s=>s.id===row.id);if(!current)return;const attempts=(current.notionSyncFailures||0)+1;Object.assign(current,{notionSyncPending:true,notionSyncError:String(e.message||e).slice(0,300),notionSyncFailures:attempts,notionRetryAt:Date.now()+Math.min(1800000,60000*2**Math.min(attempts-1,5))});this.save();this.changed();});
+  }
  }
  })().finally(()=>this.flushing=null);return this.flushing;}
  async action(b,actor,task,provided){let prepared;
@@ -58,7 +67,7 @@ class WorkTimerStore{
  if(s.status!=='pending')throw fail('Əvvəlcə taymeri dayandırın',409);let start=b.startedAt===undefined?s.startedAt:Number(b.startedAt),end=b.endedAt===undefined?s.endedAt:Number(b.endedAt);/* Inputs display whole seconds: retain the exact recorded boundary in that same second. */if(Number.isFinite(start)&&Math.floor(start/1000)===Math.floor(s.startedAt/1000))start=s.startedAt;if(Number.isFinite(end)&&Math.floor(end/1000)===Math.floor(s.endedAt/1000))end=s.endedAt;if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||start<s.startedAt||end>s.endedAt)throw fail('Başlanğıc/son vaxtı etibarsızdır; qeydə alınmış interval daxilində seçin');
  if(this.data.sessions.some(x=>x.id!==s.id&&(x.actorId===actor.id||x.worker===s.worker)&&x.status==='saved'&&start<x.endedAt&&end>x.startedAt))throw fail('Bu vaxt digər iş seansı ilə üst-üstə düşür',409);
  let next;if(b.action==='continue'){if(at<end)throw fail('Şəbəkə vaxtı dayandırılmış seansdan əvvəldir. Yenidən yoxlayın',503,'WORK_CLOCK_UNAVAILABLE');if(this.data.sessions.some(x=>x.id!==s.id&&x.status!=='saved'&&(x.actorId===actor.id||x.worker===s.worker)))throw fail('Əvvəlki işi dayandırın və vaxtı təsdiqləyin',409,'WORK_ALREADY_ACTIVE');if(this.data.sessions.length>=100000)throw fail('Seans arxivi limitinə çatıb; administratorla əlaqə saxlayın',507);next={id:crypto.randomUUID(),taskId:s.taskId,sourceKey:s.sourceKey,title:task?.title||s.title,actorId:actor.id,actorName:actor.name,worker:s.worker,status:'running',startedAt:at,endedAt:null,seconds:0,revision:1,startOperation:token};}
- this.commit(()=>{s.originalStartedAt=s.startedAt;s.originalEndedAt=s.endedAt;s.startedAt=start;s.endedAt=end;s.seconds=(end-start)/1000;s.status='saved';s.revision++;s.lastOperation=token;this.data.tasks[key(s.taskId)].dirty=true;if(next)this.data.sessions.push(next);});if(next)return {ok:true,session:structuredClone(next),savedSession:structuredClone(s),totalMinutes:this.total(s.taskId),syncPending:true};
+ this.commit(()=>{s.originalStartedAt=s.startedAt;s.originalEndedAt=s.endedAt;s.startedAt=start;s.endedAt=end;s.seconds=(end-start)/1000;s.status='saved';s.revision++;s.lastOperation=token;s.notionLogEligible=true;s.notionSyncPending=true;this.data.tasks[key(s.taskId)].dirty=true;if(next)this.data.sessions.push(next);});if(next)return {ok:true,session:structuredClone(next),savedSession:structuredClone(s),totalMinutes:this.total(s.taskId),syncPending:true};
  }else throw fail('Yanlış taymer əməliyyatı');return {ok:true,session:structuredClone(s),totalMinutes:this.total(s.taskId),syncPending:!!this.data.tasks[key(s.taskId)].dirty};
  });}
 }

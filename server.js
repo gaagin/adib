@@ -49,6 +49,7 @@ const GORULEN_DB = cleanId(process.env.GORULEN_ISLER_DATABASE_ID || '02f39358-eb
 const GORULEN_DS = cleanId(process.env.GORULEN_ISLER_DATA_SOURCE_ID || '3136a23f839c40d3b6387de4d60af7f5');
 const TASKS_DB = cleanId(process.env.TASKS_DATABASE_ID || '275e0789-d560-8063-8af3-efcbf4729097');
 const TASKS_DS = cleanId(process.env.TASKS_DATA_SOURCE_ID || '275e0789-d560-80ea-9d85-000b5d73a234');
+const TIMER_SESSIONS_DS = cleanId(process.env.TIMER_SESSIONS_DATA_SOURCE_ID || '32f630e9-0157-41e1-9a67-a7ec2285e28d');
 const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_ID || '73df6f961625407d89c202bc1c3b749c');
 const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
@@ -1461,7 +1462,9 @@ async function savePersonalTaskUnlocked(body) {
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
 const {PomodoroSessions}=require('./pomodoro-sessions');
-const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();},authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
+const {TimerSessionLog}=require('./timer-session-log');
+const timerSessionLog=new TimerSessionLog({notion,queryDatabase,dataSourceId:TIMER_SESSIONS_DS});
+const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();},saveSession:session=>timerSessionLog.record(session),authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
 setInterval(()=>void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session retry deferred:',e.message)),60000).unref();
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
@@ -1655,7 +1658,7 @@ async function accountAuthorize(req,res,url,u,b){
 }
 
 const {WorkTimerStore}=require('./work-timer');
-const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
+const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,saveSession:session=>timerSessionLog.record(session),sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
 function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
 async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
 async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}
