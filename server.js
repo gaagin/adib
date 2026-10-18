@@ -1487,8 +1487,13 @@ async function sharedPomodoroSnapshot(){
 const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
   const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
+  const action=String(body.action||'').trim();
+  const request={...body,id,browserSessions:true};
+  // Old Android clients do not send an operation ID. Give those requests an
+  // idempotency key too, and use the same session logger for every client.
+  if(action==='start'&&!request.operationId)request.operationId=crypto.randomUUID();
   const lockId='all-timers';const previous=personalPomodoroLocks.get(lockId)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(lockId,current);await previous;
-  try{if(body.browserSessions===true&&['start','open'].includes(body.action))await sharedPomodoroSnapshot();return body.browserSessions===true?await browserPomodoroSessions.handle({...body,id,__account:body.__account}):await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
+  try{if(['start','open'].includes(action))await sharedPomodoroSnapshot();return await browserPomodoroSessions.handle({...request,__account:body.__account});}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
 }
 async function savePersonalPomodoroUnlocked(body){
  const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
