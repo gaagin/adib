@@ -5,7 +5,7 @@ const path = require('node:path');
 const { URL } = require('node:url');
 const crypto = require('node:crypto');
 const {UiAssets}=require('./ui-assets');
-const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-stats.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
 const uiAssets=new UiAssets(__dirname,publicAssets);
 const {RealtimeHub}=require('./realtime-server');
 const {NotionRateGate}=require('./notion-rate');
@@ -31,7 +31,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v9-remove-home-return';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v10-weekly-equipment-stats';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
