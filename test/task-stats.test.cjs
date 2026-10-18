@@ -34,7 +34,7 @@ test('equipment overflow menu is wired to the statistics module and task data ex
  const fs=require('node:fs'),path=require('node:path'),root=path.join(__dirname,'..');
  const menu=fs.readFileSync(path.join(root,'compact-design.js'),'utf8'),html=fs.readFileSync(path.join(root,'ela-nov-paketleme-dynamic.html'),'utf8'),server=fs.readFileSync(path.join(root,'server.js'),'utf8');
  assert.match(menu,/Son 7 gün · tamamlanan tapşırıqlar/);assert.match(menu,/ADIBTaskStats\?\.open/);
- assert.match(html,/ADIBEquipmentCalendar\.statsSnapshot=/);assert.match(html,/task-stats\.js\?v=/);assert.match(server,/"task-stats\.js"/);
+ assert.match(html,/ADIBEquipmentCalendar\.statsSnapshot=/);assert.match(html,/title:String\(t\.title\|\|t\.name\|\|'Tapşırıq'\)/);assert.match(html,/task-stats\.js\?v=/);assert.match(server,/"task-stats\.js"/);const css=fs.readFileSync(path.join(root,'focused-views.css'),'utf8');assert.match(css,/dialog\.adib-task-stats-dialog\{position:fixed!important;inset:0!important/);assert.match(css,/adib-task-stats-task-list/);
 });
 
 test('pie chart distributes recent completed tasks among equipment in the selected plan',()=>{
@@ -52,4 +52,19 @@ test('pie chart distributes recent completed tasks among equipment in the select
  const all=equipmentBreakdown(data,'all',now,'en-US');
  assert.deepEqual(all.items.map(item=>[item.name,item.count]),[['M1',3],['M2',2],['M3',1]]);
  assert.equal(all.total,6);
+});
+
+
+test('hides zero-count equipment, sorts by share, and opens only its recent completed tasks',()=>{
+ const now=new Date(2026,9,18,15,0,0,0).getTime(),recent=hours=>new Date(now-hours*3600000).toISOString();
+ const data={plans:[{id:'p',parentId:''}],equipment:[
+  {id:'m1',name:'M1',planId:'p',tasks:[{id:'a',title:'A1',completed:true,completedAt:recent(1)},{id:'b',title:'A2',completed:true,completedAt:recent(2)},{id:'old',title:'Old',completed:true,completedAt:new Date(now-9*86400000).toISOString()}]},
+  {id:'m2',name:'M2',planId:'p',tasks:[{id:'c',title:'B1',completed:true,completedAt:recent(3)}]},
+  {id:'m3',name:'M3',planId:'p',tasks:[{id:'open',title:'Open',completed:false,completedAt:recent(4)}]}
+ ]};
+ const {equipmentBreakdown,completedTasksForEquipment}=require('../task-stats');
+ const stats=equipmentBreakdown(data,'plan:p',now,'en-US');
+ assert.deepEqual(stats.items.map(item=>[item.name,item.count]),[['M1',2],['M2',1]]);
+ assert.equal(stats.equipmentCount,3);assert.equal(stats.total,3);
+ assert.deepEqual(completedTasksForEquipment(data,'m1',now).map(task=>task.title),['A1','A2']);
 });
