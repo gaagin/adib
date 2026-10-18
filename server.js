@@ -31,7 +31,7 @@ const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
 
 const TOKEN = process.env.NOTION_TOKEN || '';
-const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window-timer-session-log-v2-legacy-pomodoro';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window-timer-session-log-v3';
 const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
 const {QueryPolicy}=require('./query-policy');
 const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
@@ -1465,7 +1465,17 @@ const {PomodoroSessions}=require('./pomodoro-sessions');
 const {TimerSessionLog}=require('./timer-session-log');
 const timerSessionLog=new TimerSessionLog({notion,queryDatabase,dataSourceId:TIMER_SESSIONS_DS});
 const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();},saveSession:session=>timerSessionLog.record(session),authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
+const legacyPomodoroCutoff=Date.now()-7*24*60*60*1000,knownPomodoroSessionIds=new Set(sharedPomodoro.sessions.map(session=>session.id));
+let legacyPomodoroSessionsAdded=0;
+for(const timer of sharedPomodoro.timers.values()){
+ const startedAt=Date.parse(timer.startedAt||''),endedAt=Date.parse(timer.completedAt||'');
+ if(timer.status!=='completed'||timer.mode==='break'||!timer.sessionId||knownPomodoroSessionIds.has(timer.sessionId)||!Number.isFinite(startedAt)||!Number.isFinite(endedAt)||endedAt<legacyPomodoroCutoff)continue;
+ const plannedMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||25)),seconds=Math.max(0,Math.min(plannedMinutes*60,(endedAt-startedAt)/1000));
+ const session={id:timer.sessionId,taskId:timer.id,title:timer.title||'Pomodoro',sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:timer.actorId||'unidentified',worker:timer.worker||'İstifadəçi',status:'saved',startedAt,endedAt,seconds,plannedMinutes,fullPomodoro:timer.completionReason!=='early'&&seconds>=plannedMinutes*60,completionReason:timer.completionReason||'elapsed',startOperation:timer.startOperation||'',notionLogEligible:true,notionSyncPending:true,legacyBackfill:true};
+ sharedPomodoro.commit(null,session,null);knownPomodoroSessionIds.add(timer.sessionId);legacyPomodoroSessionsAdded++;
+}
 setInterval(()=>void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session retry deferred:',e.message)),60000).unref();
+if(legacyPomodoroSessionsAdded)void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session backfill deferred:',e.message));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
   if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
