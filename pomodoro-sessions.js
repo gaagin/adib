@@ -7,11 +7,11 @@ class PomodoroSessions{
  locked(fn){const p=this.tail.then(fn);this.tail=p.catch(()=>{});return p}
  handle(body){return this.locked(()=>this.run(body))}
  async flushSessionLog(session){
-  if(!session||session.status!=='saved'||!session.notionLogEligible||session.notionPageId||(session.notionRetryAt||0)>this.now())return;
+  if(!session||!['saved','sync-pending'].includes(session.status)||!session.notionLogEligible||session.notionPageId||(session.notionRetryAt||0)>this.now())return;
   try{
    const result=await this.saveSession(session);
    const current=this.store.sessions.find(s=>s.id===session.id);
-   if(current){this.store.commit(null,{...current,notionPageId:result?.id||'recorded',notionSyncPending:false,notionSyncError:'',notionRetryAt:0,notionSyncFailures:0},null);this.changed();}
+   if(current){this.store.commit(null,{...current,status:'saved',notionPageId:result?.id||'recorded',notionSyncPending:false,notionSyncError:'',notionRetryAt:0,notionSyncFailures:0},null);this.changed();}
   }catch(e){
    const current=this.store.sessions.find(s=>s.id===session.id);if(!current)return;
    const attempts=(current.notionSyncFailures||0)+1;
@@ -20,6 +20,7 @@ class PomodoroSessions{
  }
  async flushJob(job){if(!job||job.retryAt>this.now())return;try{await this.patchTask(job.taskId,job.properties);const timer=this.store.get(job.taskId);const session=this.store.sessions.find(s=>s.id===job.sessionId);this.store.commit(timer?{...timer,syncPending:false}:null,session?{...session,status:'saved'}:null,{taskId:job.taskId,remove:true});this.changed();if(session)await this.flushSessionLog({...session,status:'saved'});}catch(e){const attempts=(job.attempts||0)+1;this.store.commit(null,null,{...job,attempts,retryAt:this.now()+Math.min(1800000,60000*2**Math.min(5,attempts-1))});}}
  retryDue(){return this.locked(async()=>{for(const job of [...this.store.jobs])await this.flushJob(job);for(const session of [...this.store.sessions])await this.flushSessionLog(session)})}
+ finishExpired(){return this.locked(async()=>{const now=this.now();let firstError=null;for(const timer of [...this.store.timers.values()])if(timer.running&&Number.isFinite(Number(timer.endsAt))&&Number(timer.endsAt)>0&&Number(timer.endsAt)<=now){try{await this.run({id:timer.id,action:timer.mode==='break'?'break-finish':'finish',sessionId:timer.sessionId})}catch(error){firstError ||= error}}if(firstError)throw firstError})}
  answer(timer,extra={}){return{ok:true,id:timer.id,timer,serverNow:this.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,syncPending:!!timer.syncPending,...extra}}
  async finish(timer){
   const now=this.now(),start=Date.parse(timer.startedAt);if(!Number.isFinite(start))throw fail('Seansın başlanğıcı məlum deyil');
@@ -28,7 +29,7 @@ class PomodoroSessions{
   const properties={'Начало отчета':{date:{start:timer.startedAt}},'Pomodoro текущая длительность':{number:planned},'Pomodoro режим':{select:{name:timer.mode==='break'?'Короткий перерыв — 5 мин':'Работа — 25 мин'}},'Отчет запущен':{checkbox:false},'Конец отчета':{date:{start:new Date(end).toISOString()}}};if(work){properties['Pomodoro количество']={number:count};properties['Pomodoro всего минут']={number:minutes}}
   const session=work?{id:timer.sessionId,taskId:timer.id,title:timer.title,sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:timer.actorId||'',worker:timer.worker||'',status:timer.id===GLOBAL?'saved':'sync-pending',startedAt:start,endedAt:end,seconds,plannedMinutes:planned,fullPomodoro:full,completionReason:seconds>=planned*60?'elapsed':'early',startOperation:timer.startOperation||'',notionLogEligible:timer.id!==GLOBAL,notionSyncPending:timer.id!==GLOBAL}:null;
   const next={...timer,running:false,status:'completed',endsAt:0,remainingSeconds:0,completedAt:new Date(end).toISOString(),completionReason:seconds>=planned*60?'elapsed':'early',creditedMinutes:credited,pomodoroMinutes:work?minutes:timer.pomodoroMinutes,pomodoroCount:work?count:timer.pomodoroCount,syncPending:timer.id!==GLOBAL,browserSessions:true,nextMode:work&&full?'break':'work'};
-  const job=timer.id===GLOBAL?null:{taskId:timer.id,sessionId:session?.id||'',properties,retryAt:0,attempts:0};this.store.commit(next,session,job);this.changed();if(job)await this.flushJob(job);return this.store.get(timer.id);
+  const job=timer.id===GLOBAL?null:{taskId:timer.id,sessionId:session?.id||'',properties,retryAt:0,attempts:0};this.store.commit(next,session,job);this.changed();if(session)await this.flushSessionLog(session);if(job)await this.flushJob(job);return this.store.get(timer.id);
  }
  async run(body){const id=String(body.id),original=String(body.action),action=['pause','reset'].includes(original)?'finish':original;let timer=this.store.get(id);const now=this.now();if(!['open','hide','start','finish','break-finish'].includes(action))throw fail('Yanlış Pomodoro əməliyyatı',400);
   if(body.sessionId&&timer?.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return this.answer(timer,{stale:true,duplicate:true});

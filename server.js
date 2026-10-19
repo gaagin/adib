@@ -1881,4 +1881,5 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on?.('close',()=>realtime.close());
+setInterval(()=>void browserPomodoroSessions.finishExpired().catch(e=>console.warn('Pomodoro expiry check deferred:',e.message)),5000).unref();
 server.listen(PORT, () => console.log('ADIB Online 1.1.64: http://localhost:'+server.address().port));
