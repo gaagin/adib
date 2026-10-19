@@ -21,6 +21,22 @@ test('server-side expiry completes an unattended timer and writes its session',a
  assert.equal(timer.status,'completed');assert.equal(timer.running,false);assert.equal(timer.completionReason,'elapsed');
  assert.ok(record?.notionPageId);assert.equal(e.saves(),1);assert.equal(e.store.jobs.length,0);
 });
+test('natural completion tolerates the countdown rounding window and records a full pomodoro',async()=>{
+ const e=make();
+ const end=e.now()+250;
+ e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(end-60000).toISOString(),endsAt:end,sessionId:'session-task',pomodoroCount:0,pomodoroMinutes:0});
+ await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task',natural:true});
+ const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
+ assert.equal(timer.status,'completed');assert.equal(timer.completionReason,'elapsed');assert.equal(timer.pomodoroCount,1);
+ assert.equal(record?.fullPomodoro,true);assert.equal(record?.completionReason,'elapsed');assert.ok(record?.notionPageId);assert.equal(e.saves(),1);
+});
+test('manual early finish is still recorded as an early session',async()=>{
+ const e=make();
+ e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-5000).toISOString(),endsAt:e.now()+55000,sessionId:'session-task',pomodoroCount:0,pomodoroMinutes:0});
+ await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task',natural:false});
+ const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
+ assert.equal(timer.completionReason,'early');assert.equal(timer.pomodoroCount,0);assert.equal(record?.fullPomodoro,false);assert.equal(record?.completionReason,'early');assert.ok(record?.notionPageId);
+});
 test('journal retry can succeed while its independent task patch remains pending',async()=>{
  let failLog=true;const e=make({patchTask:async()=>{throw new Error('PATCH unavailable')},saveSession:async()=>{if(failLog)throw new Error('journal unavailable');return{id:'saved-later'}}});
  e.seed();await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task'});
