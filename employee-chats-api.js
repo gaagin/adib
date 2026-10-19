@@ -40,18 +40,20 @@ class EmployeeChatsAPI {
    return {ok:true,...this.chats.messages(u.id,peerId,peer.name)};
   }
   if(!a.action(u,'comment'))throw fail('Mesaj göndərmək icazəsi yoxdur');
-  const text=String(body.text||'').trim(),op=String(body.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(op))throw fail('Əməliyyat identifikatoru yanlışdır',400);
-  if(!text||text.length>4000)throw fail('Mesaj 1–4000 simvoldan ibarət olmalıdır',400);
+  const text=String(body.text||'').trim(),attachments=body.attachments===undefined?[]:body.attachments,op=String(body.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(op))throw fail('Əməliyyat identifikatoru yanlışdır',400);
+  if(!Array.isArray(attachments)||attachments.length>3)throw fail('Mesaja 3-ə qədər şəkil əlavə edə bilərsiniz',400);
+  if((!text&&!attachments.length)||text.length>4000)throw fail('Mesaj və ya şəkil əlavə edin',400);
   const previous=this.chats.findOperation(u.id,peerId,op);if(previous)return {ok:true,message:previous,duplicate:true};
   const sendKey=this.chats.key(u.id,peerId)+':'+op;if(this.inFlight.has(sendKey))return this.inFlight.get(sendKey);
   const job=(async()=>{
    const conversation=this.chats.conversation(u.id,peerId),pageId=conversation?.notionPageId||this.pageFor(u,peer);
+   if(attachments.length&&(!pageId||!this.comments?.create))throw fail('Şəkil göndərmək üçün söhbətin iştirakçısını Personal profili ilə bağlayın',409);
    if(pageId&&this.comments?.create){
     if(text.length>1850)throw fail('Mesajlar Personal şərhləri üçün 1850 simvoldan qısa olmalıdır',400);
-    const result=await this.comments.create({pageId,discussionId:conversation?.notionDiscussionId||'',user:u,text});
+    const result=await this.comments.create({pageId,discussionId:conversation?.notionDiscussionId||'',user:u,text,attachments});
     const discussionId=result.discussionId||conversation?.notionDiscussionId||'';if(!discussionId)throw fail('Notion cavabında söhbət mövzusu yoxdur. Yoxlayın Personal qeydlərinə şərh yazmaq icazəsini.',502);
     this.chats.bindNotionThread(u.id,peerId,pageId,discussionId);
-    const comment=result.comment||{},message={id:String(comment.id||''),senderId:u.id,senderName:u.name,recipientId:peer.id,text:String(comment.text||text),createdAt:Number.isFinite(Date.parse(comment.createdAt||''))?Date.parse(comment.createdAt):Date.now(),operationId:op,attachments:comment.attachments||[]};
+    const comment=result.comment||{},message={id:String(comment.id||''),senderId:u.id,senderName:u.name,recipientId:peer.id,text:String(comment.text||text||(attachments.length?'📷 Şəkil':'')),createdAt:Number.isFinite(Date.parse(comment.createdAt||''))?Date.parse(comment.createdAt):Date.now(),operationId:op,attachments:comment.attachments||[]};
     if(!message.id)message.id=op;this.chats.record(u.id,peerId,message);return {ok:true,message};
    }
    const message=this.chats.send(u,peerId,text,op);return {ok:true,message};

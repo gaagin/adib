@@ -182,10 +182,11 @@ async function listEmployeeChatComments(pageId,discussionId){
  const id=cleanId(String(pageId||'')),thread=String(discussionId||'');if(!id||!thread)return[];
  const result=await cachedTaskComments(id,true);return result.value.filter(comment=>comment.discussionId===thread);
 }
-async function createEmployeeChatComment({pageId,discussionId,user,text}){
- const id=cleanId(String(pageId||'')),thread=String(discussionId||''),value=String(text||'').trim();if(!id||!value||value.length>1850)throw Object.assign(Error('Personal söhbəti üçün səhifə və 1850 simvoldan qısa mesaj tələb olunur'),{statusCode:400});
- const authorName=String(user?.name||'Əməkdaş').replace(/[\[\]]/g,'').slice(0,120)||'Əməkdaş',storedText='['+authorName+'] '+value;
- const payload={rich_text:[{type:'text',text:{content:storedText}}]};if(thread)payload.discussion_id=thread;else payload.parent={page_id:id};
+async function createEmployeeChatComment({pageId,discussionId,user,text,attachments=[]}){
+ const id=cleanId(String(pageId||'')),thread=String(discussionId||''),value=String(text||'').trim(),notionAttachments=await validatedCommentAttachments(attachments);
+ if(!id||(!value&&!notionAttachments.length)||value.length>1850)throw Object.assign(Error('Personal söhbəti üçün səhifə, mətn və ya şəkil tələb olunur; mətn 1850 simvoldan qısa olmalıdır'),{statusCode:400});
+ const authorName=String(user?.name||'Əməkdaş').replace(/[\[\]]/g,'').slice(0,120)||'Əməkdaş',storedText='['+authorName+'] '+(value||'📷 Şəkil');
+ const payload={rich_text:[{type:'text',text:{content:storedText}}],...(notionAttachments.length?{attachments:notionAttachments}:{})};if(thread)payload.discussion_id=thread;else payload.parent={page_id:id};
  const raw=await notion('/comments',{method:'POST',body:JSON.stringify(payload)});let mapped=await resolveCommentAuthor(raw),nextThread=String(raw.discussion_id||thread||'');
  if(!nextThread){const cached=await cachedTaskComments(id,true);nextThread=cached.value.find(comment=>comment.id===raw.id)?.discussionId||'';}
  if(!nextThread)throw Object.assign(Error('Notion şərh mövzusunun identifikatorini qaytarmadı'),{statusCode:502});
@@ -1671,7 +1672,13 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/pomodoro-state')return;
  if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
  if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Həddindən artıq tapşırıq',400);for(const id of ids)await accountTask(u,id);return;}
- if(p==='/api/image-upload'){need('edit');if(b.id)await accountTask(u,b.id);return;}
+ if(p==='/api/image-upload'){
+  if(b.peerId){
+   const peer=accounts.state.users.find(v=>v.id===String(b.peerId)&&!v.disabled&&v.id!==u.id&&accounts.section(v,'chat'));
+   if(!accounts.section(u,'chat')||!accounts.action(u,'comment')||!peer||!(u.personalPageId||peer.personalPageId))deny();
+  }else{need('edit');if(b.id)await accountTask(u,b.id);}
+  return;
+ }
  if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
  if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
  if(p==='/api/task-photo-schema')deny();
