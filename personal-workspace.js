@@ -31,14 +31,19 @@ function createTimer(task,{isNew=false}={}){
  const stats=make('div','adib-timer-total-group');stats.append(make('strong','adib-workspace-total','0 · 0 dəq'),make('small','','Ümumi fokus vaxtı'));
  const feedback=make('small','adib-workspace-timer-feedback');feedback.setAttribute('role','status');
  const start=button('▶ Başlat',async()=>{if(start.disabled||!task?.id)return;timer.dataset.timerBusy='true';start.disabled=true;feedback.textContent='';try{const info=root.ADIBHomeBridge.timerInfo(String(task.id));if(!info)throw Error('Pomodoro tapşırığı hələ yüklənməyib');if(info.status==='running'){if(!root.ADIBBrowserPomodoro?.action)throw Error('Pomodoro əməliyyatları yüklənməyib');await root.ADIBBrowserPomodoro.action(String(task.id),'finish');}else await root.ADIBHomeBridge.timerAction(String(task.id),'start');}catch(e){feedback.textContent=e.message;}finally{delete timer.dataset.timerBusy;updateTimer(timer);}},'adib-workspace-timer-start primary');
- start.disabled=true;timer.append(timeGroup,stats,start,feedback);timer.__task=task;timer.dataset.timerIsNew=String(isNew);updateTimer(timer);return timer;
+ const sessions=button('Seanslar · 0',()=>{if(!task?.id)return;if(root.ADIBSessions?.history)root.ADIBSessions.history(String(task.id),undefined,'pomodoro');else feedback.textContent='Pomodoro seansları yüklənməyib';},'adib-workspace-sessions');
+ sessions.disabled=isNew||!task?.id||!!task.creationPending||String(task?.id||'').startsWith('local-create-');
+ const actions=make('div','adib-workspace-timer-actions');actions.append(start,sessions);
+ start.disabled=true;timer.append(timeGroup,stats,actions,feedback);timer.__task=task;timer.dataset.timerIsNew=String(isNew);updateTimer(timer);return timer;
 }
 function updateTimer(node){
- if(!root.ADIBHomeBridge?.timerInfo)return;try{const task=node.__task||{},info=node.dataset.workspaceTimer?root.ADIBHomeBridge.timerInfo(node.dataset.workspaceTimer):null,start=node.querySelector('.adib-workspace-timer-start'),unsaved=node.dataset.timerIsNew==='true'||!node.dataset.workspaceTimer||String(node.dataset.workspaceTimer).startsWith('local-create-')||task.creationPending;
+ try{const task=node.__task||{},sessionButton=node.querySelector('.adib-workspace-sessions'),sessionCount=task.id&&root.ADIBSessions?root.ADIBSessions.rows(String(task.id)).filter(s=>s.kind==='pomodoro').length:0;if(sessionButton){sessionButton.textContent='Seanslar · '+sessionCount;sessionButton.disabled=node.dataset.timerIsNew==='true'||!task.id||!!task.creationPending||String(task.id).startsWith('local-create-')||!root.ADIBSessions;}
+ if(!root.ADIBHomeBridge?.timerInfo)return;const info=node.dataset.workspaceTimer?root.ADIBHomeBridge.timerInfo(node.dataset.workspaceTimer):null,start=node.querySelector('.adib-workspace-timer-start'),unsaved=node.dataset.timerIsNew==='true'||!node.dataset.workspaceTimer||String(node.dataset.workspaceTimer).startsWith('local-create-')||task.creationPending;
  start.disabled=!!node.dataset.timerBusy||unsaved||!info||info.trusted===false||info.finishing||(info.status!=='running'&&(task.completed||task.status==='Done'||info.syncPending));
  start.textContent=unsaved?'Əvvəlcə tapşırıq yaradın':info?.status==='running'?'■ Bitir':info?.status==='paused'?'▶ Davam et':'▶ Başlat';
  if(!info)return;const seconds=Math.max(0,Math.ceil(Number(info.remaining)||0));node.querySelector('.adib-workspace-clock').textContent=Math.floor(seconds/60).toString().padStart(2,'0')+':'+(seconds%60).toString().padStart(2,'0');node.querySelector('.adib-workspace-total').textContent='Vaxt: '+Math.round(Number(info.minutes)||0)+' dəq';node.querySelector('.adib-timer-time-group small').textContent=info.isBreak?'Fasilə':'Pomodoro';}catch{}
 }
 setInterval(()=>document.querySelectorAll('[data-workspace-timer]').forEach(updateTimer),1000);
+root.addEventListener('adib-pomodoro-sessions',()=>document.querySelectorAll('[data-workspace-timer]').forEach(updateTimer));
 root.ADIBPersonalWorkspace={install,formatDate,createTimer,updateTimer};
 })(window);

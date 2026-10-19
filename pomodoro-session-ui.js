@@ -25,11 +25,11 @@ function finishDialog(s,historyDialog){
  }catch(e){error.textContent=e.message||'Seansı bitirmək mümkün olmadı';finish.disabled=false;cancel.disabled=false;}};
  historyDialog.append(popup);popup.showModal();finish.focus();
 }
-function history(id,focusId){
+function history(id,focusId,kindFilter){
  const doc=root.document,d=doc.createElement('dialog');d.className='adib-session-history';
  const add=(tag,text,parent=d)=>{const e=doc.createElement(tag);e.textContent=text;parent.append(e);return e;};
- const header=add('header','');add('h2','İş seansları',header);const close=add('button','×',header);close.type='button';close.setAttribute('aria-label','Bağla');close.onclick=()=>d.close();
- const sessions=rows(id).slice().reverse(),list=add('div','');list.className='adib-session-list';if(!sessions.length)add('p','Hələ seans yoxdur',list);
+ const header=add('header','');add('h2',kindFilter==='pomodoro'?'Pomodoro seansları':'İş seansları',header);const close=add('button','×',header);close.type='button';close.setAttribute('aria-label','Bağla');close.onclick=()=>d.close();
+ const sessions=rows(id).filter(s=>!kindFilter||s.kind===kindFilter).slice().reverse(),list=add('div','');list.className='adib-session-list';if(!sessions.length)add('p','Hələ seans yoxdur',list);
  const local=n=>new Date(n).toLocaleString('az',{timeZone:root.ADIBClock?.timeZone||'Asia/Baku',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
  for(const s of sessions){
   const item=add('article','',list);item.className='session-row '+(s.status==='saved'?'session-completed':s.status==='running'?'session-active':'session-pending');

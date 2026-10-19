@@ -16,7 +16,7 @@
 <script src="task-cards.js?v=1.1.64"></script><script src="pomodoro-rollup.js?v=1.1.64"></script>
 <script src="task-history.js?v=1.1.64"></script><script src="task-stats.js?v=1.1.64-weekly"></script>
 <script src="autosave.js?v=1.1.64-create-confirm-v1"></script>
-<link rel="stylesheet" href="task-tabs.css?v=1.1.64-android-equipment-chat-v3"><script src="zoned-time.js?v=1.1.64"></script><script src="network-time.js?v=fast-start-v1"></script><link rel="stylesheet" href="network-time.css?v=1.1.64"><script src="task-tabs.js?v=1.1.64-equipment-chat-v1"></script><link rel="stylesheet" href="task-concept.css?v=2.5.76"><link rel="stylesheet" href="notion-date-picker.css?v=2.5.80"><script src="notion-date-picker.js?v=2.5.80"></script><script src="task-concept.js?v=2.5.76"></script>
+<link rel="stylesheet" href="task-tabs.css?v=1.1.64-android-equipment-chat-v3"><script src="zoned-time.js?v=1.1.64"></script><script src="network-time.js?v=fast-start-v1"></script><link rel="stylesheet" href="network-time.css?v=1.1.64"><script src="task-tabs.js?v=1.1.64-equipment-chat-v1"></script><link rel="stylesheet" href="task-concept.css?v=1.1.65-pomodoro-history-v1"><link rel="stylesheet" href="notion-date-picker.css?v=2.5.80"><script src="notion-date-picker.js?v=2.5.80"></script><script src="task-concept.js?v=2.5.76"></script>
 <script src="personal-options.js?v=1.1.64"></script>
 <script>if(/Android/i.test(navigator.userAgent)&&/\bwv\b/i.test(navigator.userAgent))document.documentElement.classList.add('adib-native-android');</script>
 <meta name="theme-color" content="#2383e2">
@@ -3860,10 +3860,10 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 
 <link rel="stylesheet" href="home-screen.css?v=1.1.65-personal-fab-v1">
 <script src="day-plan-refresh.js?v=1.1.64"></script>
-<script src="personal-workspace.js?v=timer-after-date-v1"></script>
+<script src="personal-workspace.js?v=1.1.65-pomodoro-history-v1"></script>
 <script src="home-screen.js?v=1.1.65-personal-fab-v1"></script>
 <link rel="stylesheet" href="calendar-view.css?v=calendar-editor-bottom-space-v1"><script src="calendar-time.js?v=1.1.64"></script>
-<script src="calendar-filter.js?v=1.1.64-sessions-v2"></script><script src="calendar-view.js?v=month-horizontal-day-columns-v1"></script><script src="widget-hub.js?v=1.1.64"></script>
+<script src="calendar-filter.js?v=1.1.64-sessions-v2"></script><script src="calendar-view.js?v=1.1.65-pomodoro-calendar-v1"></script><script src="widget-hub.js?v=1.1.64"></script>
 
 <script src="ui-theme.js?v=1.1.64"></script>
 <link rel="stylesheet" href="ui-system.css?v=1.1.64">
@@ -3881,7 +3881,7 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
  const resume=()=>{if(document.hidden||window.ADIBIdle?.isIdle?.()){client.stop();return;}client.start();};document.addEventListener('visibilitychange',resume);window.addEventListener('adib-network-idle',resume);window.addEventListener('pagehide',()=>client.stop());resume();
 })().catch(()=>{});
 </script>
-<script src="pomodoro-session-ui.js?v=1.1.64-sessions-v2"></script><script src="browser-pomodoro.js?v=1.1.64-countdown-v4"></script><link rel="stylesheet" href="compact-design.css?v=section-menus-v1"><script src="compact-design.js?v=equipment-header-cleanup-v1"></script><link rel="stylesheet" href="focused-views.css?v=focused-v4"><script src="focused-views.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="elegant-ui.css?v=timer-after-date-v1"><script src="elegant-ui.js?v=timer-after-date-v1"></script>
+<script src="pomodoro-session-ui.js?v=1.1.65-pomodoro-history-v1"></script><script src="browser-pomodoro.js?v=1.1.64-countdown-v4"></script><link rel="stylesheet" href="compact-design.css?v=section-menus-v1"><script src="compact-design.js?v=equipment-header-cleanup-v1"></script><link rel="stylesheet" href="focused-views.css?v=focused-v4"><script src="focused-views.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="elegant-ui.css?v=timer-after-date-v1"><script src="elegant-ui.js?v=timer-after-date-v1"></script>
 
 <style id="mobile-header-search-view-cycle">
 /* Explicitly reveal the mobile workspace controls even when the older compact/desktop rules hide them. */
