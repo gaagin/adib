@@ -1412,6 +1412,59 @@ body.adib-chat-open .tm-launchers{display:none!important}
 <script src="filter-memory.js?v=1.1.64"></script>
 <script src="realtime-client.js?v=1.1.64"></script><script src="filter-dialog.js?v=1.1.64"></script>
 <style id="notion-content-fullscreen-style">body.notion-page-content-fullscreen-open{overflow:hidden!important}.personal-page-content-field.is-fullscreen{position:fixed!important;inset:0!important;z-index:40000!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;gap:8px!important;width:auto!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;margin:0!important;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;overflow:hidden!important;border:0!important;border-radius:0!important;background:var(--notion-bg,#fff)!important;color:var(--notion-text,#243044)!important}.personal-page-content-field.is-fullscreen #personalPageContentLabel{flex:0 0 auto!important;font-size:14px!important;font-weight:650!important}.personal-page-content-field.is-fullscreen #personalEditPageContent{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-width:0!important;min-height:0!important;overflow:hidden!important}.personal-page-content-field.is-fullscreen .notion-block-toolbar{flex:0 0 auto!important}.personal-page-content-field.is-fullscreen .notion-block-canvas{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow:auto!important}.personal-page-content-field.is-fullscreen>small{flex:0 0 auto!important}.notion-block-toolbar [data-page-content-fullscreen]{margin-left:auto!important;min-width:34px!important;min-height:30px!important;font-size:17px!important;font-weight:700!important}@media(max-width:650px){.personal-page-content-field.is-fullscreen{gap:6px!important}}</style>
+<style id="entity-create-modal-layout-fix">
+/* The global mobile rules turn every legacy modal into a viewport sheet.
+   Keep the plan/equipment dialogs inside the workspace instead of letting
+   the persistent desktop sidebar cover their left side. */
+html body #entityModal.open{
+  position:fixed!important;
+  inset:0 0 0 var(--adib-side-width,0px)!important;
+  z-index:60020!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:24px!important;
+  box-sizing:border-box!important;
+}
+html body #entityModal.open>.modal{
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(760px,100%)!important;
+  height:auto!important;
+  max-width:760px!important;
+  max-height:calc(100dvh - 48px)!important;
+  border-radius:16px!important;
+  overflow:hidden!important;
+}
+html body #entityModal.open>.modal>#entityForm{
+  flex:0 1 auto!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 150px)!important;
+  overflow-y:auto!important;
+  padding:12px 22px 22px!important;
+}
+html body #entityModal #entityForm>.task-editor{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-content:start!important;
+  gap:16px 20px!important;
+  padding:8px 0!important;
+}
+html body #entityModal #entityForm>.task-editor>label:first-child,
+html body #entityModal #entityForm>.task-editor>.editor-actions,
+html body #entityModal #entityError{grid-column:1/-1!important}
+html body #entityModal #entityForm .task-editor>label{min-width:0!important}
+html body #entityModal #entityForm .task-editor :is(input,select){box-sizing:border-box!important;width:100%!important;min-width:0!important}
+@media(max-width:700px){
+  html body #entityModal.open{inset:0!important;padding:0!important;align-items:stretch!important;justify-content:stretch!important}
+  html body #entityModal.open>.modal{width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
+  html body #entityModal.open>.modal>#entityForm{flex:1 1 auto!important;max-height:none!important;padding:12px 16px 24px!important}
+  html body #entityModal #entityForm>.task-editor{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}
+  html body #entityModal #entityForm>.task-editor>label:first-child,
+  html body #entityModal #entityForm>.task-editor>.editor-actions,
+  html body #entityModal #entityError{grid-column:1!important}
+}
+</style>
 </head>
 <body><section id="adibBootStatus" role="status" aria-live="polite"><div><span class="adib-loading-spinner" aria-hidden="true"></span><h2>Yüklənir…</h2><p hidden></p><button type="button" hidden onclick="location.reload()">Yenidən cəhd et</button></div></section>
 <main class="app">
