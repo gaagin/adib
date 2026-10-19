@@ -22,7 +22,7 @@ class WorkTimerStore{
   }catch(e){await this.locked(()=>{const t=this.data.tasks[key(id)];if(t){t.syncError=String(e.message).slice(0,300);t.syncFailures=t.retryTotal===total?(t.syncFailures||0)+1:1;t.retryTotal=total;t.retryAt=Date.now()+Math.min(1800000,60000*2**Math.min(t.syncFailures-1,5));this.save();}});}
  }
  for(const row of [...this.data.sessions]){
-  if(row.status!=='saved'||!row.notionLogEligible||row.notionPageId||(row.notionRetryAt||0)>Date.now())continue;
+  if(row.status!=='saved'||row.completionReason==='cancelled'||!row.notionLogEligible||row.notionPageId||(row.notionRetryAt||0)>Date.now())continue;
   try{
    const result=await this.saveSession({...row,kind:'work',mode:'work'});
    await this.locked(()=>{const current=this.data.sessions.find(s=>s.id===row.id);if(!current)return;this.commit(()=>Object.assign(current,{notionPageId:result?.id||'recorded',notionSyncPending:false,notionSyncError:'',notionRetryAt:0,notionSyncFailures:0}));});
@@ -62,7 +62,7 @@ class WorkTimerStore{
  if(s.lastOperation===token)return {ok:true,session:structuredClone(s),totalMinutes:this.total(s.taskId)};
  if(Number(b.revision)!==s.revision)throw fail('Seans digər cihazda dəyişib. Yeniləyin',409,'WORK_STALE');
  if(b.action==='stop'){if(s.status!=='running')throw fail('Taymer artıq dayanıb',409);this.commit(()=>{s.status='pending';s.endedAt=at;s.seconds=Math.max(0,(at-s.startedAt)/1000);s.revision++;s.lastOperation=token;});}
- else if(b.action==='cancel'){if(!['running','pending'].includes(s.status))throw fail('Yalnız davam edən və ya gözləyən seansı ləğv etmək olar',409);this.commit(()=>{if(s.status==='running'){s.endedAt=at;s.seconds=Math.max(0,(at-s.startedAt)/1000);}s.status='saved';s.revision++;s.lastOperation=token;s.completionReason='cancelled';s.excludeFromTotals=true;s.notionLogEligible=true;s.notionSyncPending=true;});}
+ else if(b.action==='cancel'){if(!['running','pending'].includes(s.status))throw fail('Yalnız davam edən və ya gözləyən seansı ləğv etmək olar',409);this.commit(()=>{if(s.status==='running'){s.endedAt=at;s.seconds=Math.max(0,(at-s.startedAt)/1000);}s.status='saved';s.revision++;s.lastOperation=token;s.completionReason='cancelled';s.excludeFromTotals=true;s.notionLogEligible=false;s.notionSyncPending=false;});}
  else if(b.action==='resume'){if(s.status!=='pending')throw fail('Yalnız təsdiq gözləyən seans davam etdirilə bilər',409);this.commit(()=>{s.status='running';s.endedAt=null;s.seconds=0;s.revision++;s.lastOperation=token;});}
  else if(b.action==='save'||b.action==='continue'){
  if(s.status!=='pending')throw fail('Əvvəlcə taymeri dayandırın',409);let start=b.startedAt===undefined?s.startedAt:Number(b.startedAt),end=b.endedAt===undefined?s.endedAt:Number(b.endedAt);/* Inputs display whole seconds: retain the exact recorded boundary in that same second. */if(Number.isFinite(start)&&Math.floor(start/1000)===Math.floor(s.startedAt/1000))start=s.startedAt;if(Number.isFinite(end)&&Math.floor(end/1000)===Math.floor(s.endedAt/1000))end=s.endedAt;if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||start<s.startedAt||end>s.endedAt)throw fail('Başlanğıc/son vaxtı etibarsızdır; qeydə alınmış interval daxilində seçin');

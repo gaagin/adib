@@ -37,6 +37,14 @@ test('manual early finish is still recorded as an early session',async()=>{
  const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
  assert.equal(timer.completionReason,'early');assert.equal(timer.pomodoroCount,0);assert.equal(record?.fullPomodoro,false);assert.equal(record?.completionReason,'early');assert.ok(record?.notionPageId);
 });
+test('cancelled pomodoro is not added to the session journal',async()=>{
+ const e=make();
+ e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-5000).toISOString(),endsAt:e.now()+55000,sessionId:'session-task',pomodoroCount:0,pomodoroMinutes:0});
+ await e.sessions.handle({id:'task',action:'cancel',sessionId:'session-task'});
+ const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
+ assert.equal(timer.completionReason,'cancelled');assert.equal(timer.pomodoroCount,0);
+ assert.equal(record?.completionReason,'cancelled');assert.equal(record?.notionLogEligible,false);assert.equal(record?.notionPageId,undefined);assert.equal(e.saves(),0);
+});
 test('journal retry can succeed while its independent task patch remains pending',async()=>{
  let failLog=true;const e=make({patchTask:async()=>{throw new Error('PATCH unavailable')},saveSession:async()=>{if(failLog)throw new Error('journal unavailable');return{id:'saved-later'}}});
  e.seed();await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task'});
