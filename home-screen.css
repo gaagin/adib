@@ -17,10 +17,12 @@ body.adib-home-open>.app{display:none!important}
 .adib-home-search{background:var(--soft)!important;color:var(--text)!important;border:1px solid var(--line);border-radius:12px;height:46px;padding:10px 13px;width:100%;font:inherit;margin-top:10px}
 .adib-home-scope{display:flex;padding:20px 6px 12px;font-size:12px;color:var(--muted);font-weight:600}
 .adib-home-rows{flex:1;min-height:0;overflow:auto;padding-bottom:96px}
-.adib-home-fab{position:absolute!important;right:22px;bottom:22px;z-index:5;display:grid!important;place-items:center;width:58px;height:58px;min-height:58px;padding:0!important;border:0!important;border-radius:50%!important;background:#4776ef!important;color:#fff!important;box-shadow:0 6px 20px #4776ef55;font-size:34px;line-height:1;cursor:pointer;transition:transform .15s,box-shadow .15s}
-.adib-home-fab:hover{transform:translateY(-2px);box-shadow:0 9px 24px #4776ef66}
-.adib-home-fab:focus-visible{outline:3px solid #4776ef66;outline-offset:3px}
-@media(max-width:750px){.adib-home-fab{right:16px;bottom:16px;width:54px;height:54px;min-height:54px;font-size:31px}}
+.adib-home-fab{position:absolute!important;right:14px;bottom:12px;z-index:5;display:grid!important;place-items:center;box-sizing:border-box;width:56px;height:56px;min-width:56px;min-height:56px;padding:0!important;border:0!important;border-radius:50%!important;background:#4875f5!important;color:#fff!important;box-shadow:0 5px 16px #4875f533;font-size:0!important;line-height:1;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.adib-home-fab::before,.adib-home-fab::after{content:'';position:absolute;left:50%;top:50%;width:18px;height:2px;border-radius:2px;background:#fff}
+.adib-home-fab::before{transform:translate(-50%,-50%)}.adib-home-fab::after{transform:translate(-50%,-50%) rotate(90deg)}
+.adib-home-fab:hover{transform:translateY(-2px);box-shadow:0 7px 20px #4875f544}
+.adib-home-fab:focus-visible{outline:3px solid #4875f566;outline-offset:3px}
+@media(max-width:750px){.adib-home-fab{right:14px;bottom:12px;width:56px;height:56px;min-width:56px;min-height:56px}}
 .adib-home-row{display:flex;align-items:flex-start;border-radius:14px;padding:10px 4px;margin-bottom:8px;border:1px solid transparent}
 .adib-home-row:hover{background:var(--soft)}.adib-home-row.active{background:var(--blue-soft);border-color:var(--line)}
 .adib-home-check{flex:0 0 38px;height:44px;width:38px;padding:0;border:0!important;background:transparent!important;color:var(--blue)!important;font-size:25px}
