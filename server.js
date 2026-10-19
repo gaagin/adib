@@ -25,7 +25,7 @@ const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
 const {DirectChats}=require('./direct-chats');
 const {EmployeeChatsAPI}=require('./employee-chats-api');
-const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')})});
+const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')}),comments:{list:listEmployeeChatComments,create:createEmployeeChatComment}});
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -52,6 +52,8 @@ const TASKS_DS = cleanId(process.env.TASKS_DATA_SOURCE_ID || '275e0789-d560-80ea
 const TIMER_SESSIONS_DS = cleanId(process.env.TIMER_SESSIONS_DATA_SOURCE_ID || '32f630e9-0157-41e1-9a67-a7ec2285e28d');
 const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_ID || '73df6f961625407d89c202bc1c3b749c');
 const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
+const PERSONAL_DIRECTORY_DB = cleanId(process.env.PERSONAL_DIRECTORY_DATABASE_ID || '23df536b064f42609b5cb4b5ed7983ad');
+const PERSONAL_DIRECTORY_DS = cleanId(process.env.PERSONAL_DIRECTORY_DATA_SOURCE_ID || 'ee6a85c11e97477b99dddd204c4013fb');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
@@ -139,6 +141,7 @@ function mapComment(comment) {
     text: authored ? authored[2] : rawText,
     createdAt: comment.created_time || '',
     authorId: author.id || '',
+    discussionId: comment.discussion_id || '',
     authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'İstifadəçi Notion'),
     attachments: (comment.attachments||[]).filter(a=>a.category==='image').map(a=>({category:'image',url:a.file?.url||a.file?.file?.url||'',expiryTime:a.file?.expiry_time||'',name:a.file?.name||'Şəkil'})).filter(a=>/^https:\/\//.test(a.url))
   };
@@ -173,6 +176,20 @@ async function cachedTaskComments(pageId,foreground=false){
 async function listTaskComments(body){
  const pageId=cleanId(String(body.id||'').trim());if(!pageId)throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
  const result=await cachedTaskComments(pageId,true);return {ok:true,id:pageId,comments:result.value,...(result.stale?{stale:true,error:result.error}: {})};
+}
+
+async function listEmployeeChatComments(pageId,discussionId){
+ const id=cleanId(String(pageId||'')),thread=String(discussionId||'');if(!id||!thread)return[];
+ const result=await cachedTaskComments(id,true);return result.value.filter(comment=>comment.discussionId===thread);
+}
+async function createEmployeeChatComment({pageId,discussionId,user,text}){
+ const id=cleanId(String(pageId||'')),thread=String(discussionId||''),value=String(text||'').trim();if(!id||!value||value.length>1850)throw Object.assign(Error('Personal söhbəti üçün səhifə və 1850 simvoldan qısa mesaj tələb olunur'),{statusCode:400});
+ const authorName=String(user?.name||'Əməkdaş').replace(/[\[\]]/g,'').slice(0,120)||'Əməkdaş',storedText='['+authorName+'] '+value;
+ const payload={rich_text:[{type:'text',text:{content:storedText}}]};if(thread)payload.discussion_id=thread;else payload.parent={page_id:id};
+ const raw=await notion('/comments',{method:'POST',body:JSON.stringify(payload)});let mapped=await resolveCommentAuthor(raw),nextThread=String(raw.discussion_id||thread||'');
+ if(!nextThread){const cached=await cachedTaskComments(id,true);nextThread=cached.value.find(comment=>comment.id===raw.id)?.discussionId||'';}
+ if(!nextThread)throw Object.assign(Error('Notion şərh mövzusunun identifikatorini qaytarmadı'),{statusCode:502});
+ mapped.discussionId=nextThread;commentReads.append(accountKey(id),mapped);return {discussionId:nextThread,comment:mapped};
 }
 
 async function requestedCommentAuthor(body) {
@@ -320,6 +337,8 @@ function title(page, name) { return (property(page, name)?.title || []).map(x =>
 function richText(page, name) { const value = property(page, name); return (value?.rich_text || value?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
 function number(page, name) { return property(page, name)?.number ?? null; }
 function select(page, name) { const p = property(page, name); return p?.select?.name || p?.status?.name || ''; }
+let personalDirectoryCache={at:0,rows:null,flight:null};
+async function personalDirectory(force=false){if(!force&&personalDirectoryCache.rows&&Date.now()-personalDirectoryCache.at<60000)return personalDirectoryCache.rows;if(personalDirectoryCache.flight)return personalDirectoryCache.flight;personalDirectoryCache.flight=(async()=>{const pages=await queryDatabase(PERSONAL_DIRECTORY_DB,PERSONAL_DIRECTORY_DS),rows=pages.filter(p=>!p.archived&&!p.in_trash).map(p=>({id:cleanId(p.id),name:title(p,'Name'),department:select(p,'Bolme'),url:p.url||''})).filter(p=>p.id&&p.name).sort((a,b)=>a.name.localeCompare(b.name,'az'));personalDirectoryCache={at:Date.now(),rows,flight:null};return rows;})().catch(error=>{personalDirectoryCache.flight=null;throw error});return personalDirectoryCache.flight;}
 function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
 function relationIds(page, name) { return (property(page, name)?.relation || []).map(x => x.id); }
 function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
@@ -1694,12 +1713,15 @@ const server = http.createServer(async (request, response) => {
     }
     const url = new URL(request.url, 'http://localhost');
     await accounts.ready;
-    if(employeeChats.routes(url.pathname))return json(response,200,employeeChats.handle(request,url,request.method==='GET'?{}:await readBody(request)));
+    if(employeeChats.routes(url.pathname))return json(response,200,await employeeChats.handle(request,url,request.method==='GET'?{}:await readBody(request)));
     if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
-      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE']};
+      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE'],'/api/admin/personal-directory':['GET']};
       if(!verbs[url.pathname]?.includes(request.method))throw accessError('Metod icazə verilmir',405);
       if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Yanlış sorğu mənbəyi');}
-      const result=await accounts.route(request,url.pathname,request.method==='GET'?{}:await readBody(request));
+      const body=request.method==='GET'?{}:await readBody(request);
+      if(url.pathname==='/api/admin/personal-directory'){const admin=accounts.user(request);accounts.requireAdmin(admin);return json(response,200,{ok:true,employees:await personalDirectory()});}
+      if((url.pathname==='/api/admin/invites'&&request.method==='POST'||url.pathname==='/api/admin/users'&&request.method==='PATCH')&&body.personalPageId){const id=cleanId(String(body.personalPageId));if(!id||!(await personalDirectory()).some(person=>person.id===id))throw accessError('İşçi Personal bazasında tapılmadı',400);const mapped=accounts.state.users.find(item=>item.id!==body.id&&!item.disabled&&cleanId(item.personalPageId)===id),invited=accounts.state.invites.find(item=>!item.used&&item.expires>accounts.now()&&cleanId(item.personalPageId)===id);if(mapped||invited)throw accessError('Bu Personal profili artıq ADIB istifadəçisinə və ya dəvətə bağlanıb',409);body.personalPageId=id;}
+      const result=await accounts.route(request,url.pathname,body);
       const secure=process.env.ADIB_COOKIE_SECURE!=='0';
       const cookie=result.token?'adib_session='+result.token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000'+(secure?'; Secure':''):url.pathname==='/api/auth/logout'?'adib_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'+(secure?'; Secure':''):null;
       return json(response,200,result,cookie?{'Set-Cookie':cookie}:{});
