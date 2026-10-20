@@ -65,6 +65,24 @@ test('timer session log reuses existing page after a retry', async () => {
   assert.equal(creates, 0);
 });
 
+test('timer session log archives the Notion row for a deleted session', async () => {
+  const calls = [];
+  const log = new TimerSessionLog({
+    dataSourceId: 'session-ds',
+    queryDatabase: async (...args) => {
+      calls.push(['query', ...args]);
+      return [{ id: 'notion-row' }];
+    },
+    notion: async (...args) => { calls.push(['archive', ...args]); return {}; },
+  });
+  const result = await log.remove({ id: 'session-to-delete', notionLogEligible: true });
+  assert.deepEqual(result, { deleted: 1 });
+  assert.equal(calls[0][0], 'query');
+  assert.equal(calls[0][3].filter.rich_text.equals, 'session-to-delete');
+  assert.equal(calls[1][1], '/pages/notion-row');
+  assert.deepEqual(JSON.parse(calls[1][2].body), { archived: true });
+});
+
 test('saved work timer sessions are logged once and remain persisted', async () => {
   const fs = require('node:fs');
   const os = require('node:os');

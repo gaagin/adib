@@ -73,6 +73,28 @@ class TimerSessionLog {
     });
     return { id: page.id, existing: false };
   }
+
+  async remove(session) {
+    if (!session?.id) return { deleted: 0 };
+    const id = String(session.id);
+    let pages = [];
+    if (session.notionPageId && session.notionPageId !== 'recorded') {
+      pages = [{ id: String(session.notionPageId) }];
+    } else if (this.dataSourceId) {
+      pages = await this.queryDatabase('', this.dataSourceId, {
+        page_size: 100,
+        filter: { property: 'ID сеанса', rich_text: { equals: id } },
+      });
+    }
+    for (const page of pages || []) {
+      if (!page?.id) continue;
+      await this.notion('/pages/' + encodeURIComponent(page.id), {
+        method: 'PATCH',
+        body: JSON.stringify({ archived: true }),
+      });
+    }
+    return { deleted: (pages || []).length };
+  }
 }
 
 module.exports = { TimerSessionLog, asIso };

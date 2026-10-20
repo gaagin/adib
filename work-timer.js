@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const FIELD='İş vaxtı, dəq',key=v=>String(v||'').replace(/-/g,'').toLowerCase();
 const fail=(message,statusCode=400,code='WORK_TIMER_ERROR')=>Object.assign(Error(message),{statusCode,code});
 class WorkTimerStore{
- constructor({file,now,notion,sources,saveSession=async()=>null,changed=()=>{}}){Object.assign(this,{file,now,notion,sources,saveSession,changed});this.tail=Promise.resolve();this.data={version:1,revision:0,sessions:[],tasks:{}};if(fs.existsSync(file)){const d=JSON.parse(fs.readFileSync(file,'utf8'));if(d.version!==1||!Array.isArray(d.sessions)||!d.tasks)throw Error('Invalid work timer store');this.data=d;}}
+ constructor({file,now,notion,sources,saveSession=async()=>null,deleteSession=async()=>({deleted:0}),changed=()=>{}}){Object.assign(this,{file,now,notion,sources,saveSession,deleteSession,changed});this.tail=Promise.resolve();this.data={version:1,revision:0,sessions:[],tasks:{},deletedSessions:[]};if(fs.existsSync(file)){const d=JSON.parse(fs.readFileSync(file,'utf8'));if(d.version!==1||!Array.isArray(d.sessions)||!d.tasks)throw Error('Invalid work timer store');this.data=d;this.data.deletedSessions ||= [];}}
  locked(fn){const job=this.tail.catch(()=>{}).then(fn);this.tail=job;return job;}
  save(){fs.mkdirSync(path.dirname(this.file),{recursive:true});const temp=this.file+'.tmp',fd=fs.openSync(temp,'w',0o600);try{fs.writeFileSync(fd,JSON.stringify(this.data));fs.fsyncSync(fd);}finally{fs.closeSync(fd);}fs.renameSync(temp,this.file);}
  commit(change){const old=structuredClone(this.data);try{change();this.data.revision++;this.save();}catch(e){this.data=old;throw e;}this.changed();}
@@ -31,7 +31,7 @@ class WorkTimerStore{
   }
  }
  })().finally(()=>this.flushing=null);return this.flushing;}
- async action(b,actor,task,provided){let prepared;
+ async action(b,actor,task,provided){if(b.action==='delete'&&this.flushing)await this.flushing.catch(()=>{});let prepared;
  if(b.action==='continue'){
  const token=String(b.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(token))throw fail('Əməliyyat ID-si tələb olunur');
  const duplicate=this.data.sessions.find(x=>x.startOperation===token&&x.actorId===actor.id);if(duplicate)return {ok:true,session:structuredClone(duplicate),savedSession:structuredClone(this.data.sessions.find(x=>x.actorId===actor.id&&x.lastOperation===token&&x.status==='saved')),totalMinutes:this.total(duplicate.taskId)};
@@ -48,6 +48,7 @@ class WorkTimerStore{
  await this.schema(source,p.parent?.data_source_id,actor.role==='admin');
  }
  return this.locked(async()=>{const at=this.now();if(!Number.isFinite(at))throw fail('Şəbəkə vaxtı təsdiqlənməyib',503);const token=String(b.operationId||'');if(!/^[a-zA-Z0-9-]{8,100}$/.test(token))throw fail('Əməliyyat ID-si tələb olunur');if(b.action==='continue'){const duplicate=this.data.sessions.find(x=>x.startOperation===token&&x.actorId===actor.id);if(duplicate)return {ok:true,session:structuredClone(duplicate),savedSession:structuredClone(this.data.sessions.find(x=>x.actorId===actor.id&&x.lastOperation===token&&x.status==='saved')),totalMinutes:this.total(duplicate.taskId)};}let s=this.data.sessions.find(x=>x.id===b.sessionId);
+ if(!s&&b.action==='delete'){const deleted=(this.data.deletedSessions||[]).find(x=>x.id===b.sessionId&&x.actorId===actor.id&&x.operationId===token);if(deleted)return {ok:true,deleted:true,duplicate:true,sessionId:deleted.id,taskId:deleted.taskId,totalMinutes:this.total(deleted.taskId)};}
  if(b.action==='start'){
  const duplicate=this.data.sessions.find(x=>x.startOperation===token&&x.actorId===actor.id);if(duplicate)return {ok:true,session:structuredClone(duplicate)};
  const current=this.data.sessions.find(x=>x.actorId===actor.id&&x.status!=='saved');if(current)throw Object.assign(fail('Əvvəlki işi dayandırın və vaxtı təsdiqləyin',409,'WORK_ALREADY_ACTIVE'),{session:structuredClone(current)});
@@ -61,6 +62,7 @@ class WorkTimerStore{
  if(!s)throw fail('Seans tapılmadı',404);if(s.actorId!==actor.id)throw fail('Başqa əməkdaşın seansını dəyişmək olmaz',403);
  if(s.lastOperation===token)return {ok:true,session:structuredClone(s),totalMinutes:this.total(s.taskId)};
  if(Number(b.revision)!==s.revision)throw fail('Seans digər cihazda dəyişib. Yeniləyin',409,'WORK_STALE');
+ if(b.action==='delete'){if(s.status!=='saved')throw fail('Yalnız tamamlanmış seansı silmək olar. Davam edən seansı əvvəlcə ləğv edin.',409);await this.deleteSession(structuredClone(s));this.commit(()=>{this.data.sessions=this.data.sessions.filter(x=>x.id!==s.id);const taskRow=this.data.tasks[key(s.taskId)];if(taskRow){taskRow.dirty=true;delete taskRow.retryAt;delete taskRow.retryTotal;}this.data.deletedSessions ||= [];this.data.deletedSessions.push({id:s.id,taskId:s.taskId,actorId:actor.id,operationId:token});if(this.data.deletedSessions.length>10000)this.data.deletedSessions.splice(0,this.data.deletedSessions.length-10000);});return {ok:true,deleted:true,sessionId:s.id,taskId:s.taskId,totalMinutes:this.total(s.taskId)};}
  if(b.action==='stop'){if(s.status!=='running')throw fail('Taymer artıq dayanıb',409);this.commit(()=>{s.status='pending';s.endedAt=at;s.seconds=Math.max(0,(at-s.startedAt)/1000);s.revision++;s.lastOperation=token;});}
  else if(b.action==='cancel'){if(!['running','pending'].includes(s.status))throw fail('Yalnız davam edən və ya gözləyən seansı ləğv etmək olar',409);this.commit(()=>{if(s.status==='running'){s.endedAt=at;s.seconds=Math.max(0,(at-s.startedAt)/1000);}s.status='saved';s.revision++;s.lastOperation=token;s.completionReason='cancelled';s.excludeFromTotals=true;s.notionLogEligible=false;s.notionSyncPending=false;});}
  else if(b.action==='resume'){if(s.status!=='pending')throw fail('Yalnız təsdiq gözləyən seans davam etdirilə bilər',409);this.commit(()=>{s.status='running';s.endedAt=null;s.seconds=0;s.revision++;s.lastOperation=token;});}

@@ -88,6 +88,8 @@ html.dark .calendar-session.session-pending{background:#352e20!important;color:#
 .adib-session-history header,.adib-session-history footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .adib-session-history h2{font-size:20px;margin:0}.adib-session-history button{min-height:44px;min-width:44px;padding:8px 12px;border:1px solid var(--line,#d8dfe8);border-radius:8px;background:var(--soft,#f3f5f8);color:inherit;font:inherit;cursor:pointer}
 .adib-session-history button:focus-visible{outline:3px solid #315ccf;outline-offset:2px}
+.adib-session-history .session-delete-button{display:block;min-height:34px;margin:10px 0 0 auto;padding:5px 10px;border-color:#e5b8bb;background:#fff4f4;color:#a3313b;font-size:13px}
+.adib-session-history .session-delete-error{margin-top:8px;color:#a3313b;font-size:13px}
 .adib-session-list{overflow:auto;max-height:58vh;margin:16px 0;display:grid;gap:12px}.session-row{padding:12px;border:1px solid var(--line,#d8dfe8);border-left:3px solid #315ccf;border-radius:8px;overflow-wrap:anywhere}.session-row strong{font-weight:600}.session-row p{margin:8px 0 0;line-height:1.5}.session-row.session-completed{background:var(--soft,#f3f5f8);border-left-color:#8994a6}.session-row.session-pending{border-left-color:#b17b12}.session-row.session-selected{outline:2px solid #315ccf;outline-offset:-2px}
 .personal-pomodoro-head{flex-wrap:wrap}
 /* Keep current-time marker behind event text and short-session controls inside bounds. */

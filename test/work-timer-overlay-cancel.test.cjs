@@ -4,11 +4,14 @@ const fs=require('node:fs');
 const path=require('node:path');
 
 const overlay=fs.readFileSync(path.join(__dirname,'../android-patches/mobile-work-confirmation-1.1.5/AdibWorkTimerOverlayService.java'),'utf8');
+const overlay116=fs.readFileSync(path.join(__dirname,'../android-patches/mobile-work-confirmation-1.1.6/AdibWorkTimerOverlayService.java'),'utf8');
 
-test('native work-time confirmation offers an explicit cancel action',()=>{
+test('native work-time confirmation patch offers an explicit cancel action',()=>{
  assert.match(overlay,/cancelButton=actionButton\("Ləğv et"\)/);
  assert.match(overlay,/cancelButton\.setOnClickListener\(v->cancelConfirmedTime\(\)\)/);
  assert.match(overlay,/cancelParams\.setMargins\(0,0,dp\(8\),0\)/);
+ assert.match(overlay116,/cancelButton=actionButton\("Ləğv et"\)/);
+ assert.match(overlay116,/cancelButton\.setOnClickListener\(v->cancelConfirmedTime\(\)\)/);
 });
 
 test('native timer cancellation is acknowledged by the server before clearing the pending session',()=>{
