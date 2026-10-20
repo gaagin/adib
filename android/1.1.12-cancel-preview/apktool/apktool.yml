@@ -1,5 +1,5 @@
 version: 3.0.3
-apkFileName: ADIB-1.1.12-cancel-preview.apk
+apkFileName: ADIB-1.1.13-cancel-preview.apk
 usesFramework:
   ids:
   - 1
@@ -7,8 +7,8 @@ sdkInfo:
   minSdkVersion: 24
   targetSdkVersion: 35
 versionInfo:
-  versionCode: 14
-  versionName: 1.1.12-cancel-preview
+  versionCode: 15
+  versionName: 1.1.13-cancel-preview
 resourcesInfo:
   packageId: 127
 doNotCompress:

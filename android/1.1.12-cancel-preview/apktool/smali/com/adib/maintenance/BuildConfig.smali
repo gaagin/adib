@@ -12,9 +12,9 @@
 
 .field public static final DEBUG:Z = false
 
-.field public static final VERSION_CODE:I = 0xe
+.field public static final VERSION_CODE:I = 0xf
 
-.field public static final VERSION_NAME:Ljava/lang/String; = "1.1.12-cancel-preview"
+.field public static final VERSION_NAME:Ljava/lang/String; = "1.1.13-cancel-preview"
 
 
 # direct methods

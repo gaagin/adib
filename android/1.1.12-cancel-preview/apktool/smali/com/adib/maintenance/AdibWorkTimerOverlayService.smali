@@ -2498,6 +2498,20 @@
 
     move-result-object v1
 
+    const-string v2, "operationId"
+
+    invoke-static {}, Ljava/util/UUID;->randomUUID()Ljava/util/UUID;
+
+    move-result-object v3
+
+    invoke-virtual {v3}, Ljava/util/UUID;->toString()Ljava/lang/String;
+
+    move-result-object v3
+
+    invoke-virtual {v1, v2, v3}, Lorg/json/JSONObject;->put(Ljava/lang/String;Ljava/lang/Object;)Lorg/json/JSONObject;
+
+    move-result-object v1
+
     invoke-static {p0, v1}, Lcom/adib/maintenance/WorkTimerApi;->action(Landroid/content/Context;Lorg/json/JSONObject;)Lorg/json/JSONObject;
     :try_end_0
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
