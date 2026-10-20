@@ -3,7 +3,7 @@
 <head>
 <link rel="stylesheet" href="/loading-ui.css?v=loading-v1"><script src="/loading-ui.js?v=loading-v1"></script>
 <link rel="stylesheet" href="/discussions-ui.css?v=modern-thread-v2"><script src="/discussions-ui.js?v=1.1.64-chat-images-v1"></script>
-<link rel="stylesheet" href="/work-timer-ui.css?v=timer-cancel-v1"><script src="/local-timer-visibility.js?v=1.1.64-local-work-v1"></script><script src="/network-idle.js?v=10m"></script><script src="/work-timer-ui.js?v=timer-cancel-v1"></script>
+<link rel="stylesheet" href="/work-timer-ui.css?v=timer-cancel-v1"><script src="/local-timer-visibility.js?v=1.1.64-local-work-v1"></script><script src="/network-idle.js?v=10m"></script><script src="/work-timer-ui.js?v=timer-delete-v1"></script>
 <script src="/az-locale.js?v=1.1.64"></script>
 <script src="account-client.js?v=fast-start-v1"></script>
 <meta charset="utf-8">
@@ -3918,7 +3918,7 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 <script src="day-plan-refresh.js?v=1.1.64"></script>
 <script src="personal-workspace.js?v=1.1.65-pomodoro-history-v1"></script>
 <script src="home-screen.js?v=1.1.68-open-task-count-v1"></script>
-<link rel="stylesheet" href="calendar-view.css?v=calendar-editor-bottom-space-v1"><script src="calendar-time.js?v=1.1.64"></script>
+<link rel="stylesheet" href="calendar-view.css?v=calendar-session-delete-v1"><script src="calendar-time.js?v=1.1.64"></script>
 <script src="calendar-filter.js?v=1.1.64-sessions-v2"></script><script src="calendar-view.js?v=1.1.65-pomodoro-calendar-v1"></script><script src="widget-hub.js?v=1.1.64"></script>
 
 <script src="ui-theme.js?v=1.1.64"></script>
@@ -3937,7 +3937,7 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
  const resume=()=>{if(document.hidden||window.ADIBIdle?.isIdle?.()){client.stop();return;}client.start();};document.addEventListener('visibilitychange',resume);window.addEventListener('adib-network-idle',resume);window.addEventListener('pagehide',()=>client.stop());resume();
 })().catch(()=>{});
 </script>
-<script src="pomodoro-session-ui.js?v=1.1.65-pomodoro-cancel-v1"></script><script src="browser-pomodoro.js?v=1.1.65-natural-completion-v1"></script><link rel="stylesheet" href="compact-design.css?v=section-menus-v1"><script src="compact-design.js?v=equipment-header-cleanup-v1"></script><link rel="stylesheet" href="focused-views.css?v=focused-v4"><script src="focused-views.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="elegant-ui.css?v=timer-after-date-v1"><script src="elegant-ui.js?v=timer-after-date-v1"></script>
+<script src="pomodoro-session-ui.js?v=1.1.65-session-delete-v1"></script><script src="browser-pomodoro.js?v=1.1.65-natural-completion-v1"></script><link rel="stylesheet" href="compact-design.css?v=section-menus-v1"><script src="compact-design.js?v=equipment-header-cleanup-v1"></script><link rel="stylesheet" href="focused-views.css?v=focused-v4"><script src="focused-views.js?v=undated-drawer-v1"></script><link rel="stylesheet" href="elegant-ui.css?v=timer-after-date-v1"><script src="elegant-ui.js?v=timer-after-date-v1"></script>
 
 <style id="mobile-header-search-view-cycle">
 /* Explicitly reveal the mobile workspace controls even when the older compact/desktop rules hide them. */
