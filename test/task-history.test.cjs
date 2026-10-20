@@ -17,6 +17,26 @@ test('completed tasks fail closed when a usable current timestamp is unavailable
   assert.equal(history.visible({id:'open',completed:false},NaN),true);
 });
 
+test('partial realtime snapshots preserve known tasks if the task read failed',()=>{
+  const old={id:'active',title:'Still working',completed:false};
+  const newer={id:'updated',title:'Fresh row',completed:false};
+  const merged=history.mergeTaskSnapshot([old], [newer], {partial:true,successful:['containers']});
+  assert.deepEqual(merged,[old,newer]);
+});
+
+test('personal realtime rendering uses the partial-snapshot task preservation guard',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../ela-nov-paketleme-dynamic.html'),'utf8');
+  assert.match(html,/mergeTaskSnapshot\(personalTasks,snapshot\.tasks,sync\)/);
+  assert.match(html,/mergeTaskSnapshot\(window\.ADIBPersonalPomodoroTasks,snapshot\.pomodoroTasks,sync\)/);
+});
+
+test('healthy task snapshots remain authoritative and may remove missing tasks',()=>{
+  const old={id:'archived',title:'Archived'};
+  const incoming={id:'active',title:'Active'};
+  assert.deepEqual(history.mergeTaskSnapshot([old], [incoming], {partial:false,successful:['tasks','containers']}),[incoming]);
+  assert.deepEqual(history.mergeTaskSnapshot([old], [incoming], {partial:true,successful:['tasks']}),[incoming]);
+});
+
 test('Azerbaijani completion statuses with diacritics are treated as completed',()=>{
   const now=Date.parse('2026-10-17T12:00:00Z');
   for(const status of ['Tamamlandı','İş görüldü','İş görülüb']){
