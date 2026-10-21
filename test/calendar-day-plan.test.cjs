@@ -1,130 +1,116 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const DayPlan = require("../calendar-day-plan");
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const DayPlan = require('../calendar-day-plan.js');
 
-const key = (task) => String(task.date || "").slice(0, 10);
+const key = (task) => String(task.date || '').slice(0, 10);
 
-test("day plan uses estimated minutes and reports remaining capacity", () => {
-  const result = DayPlan.build(
-    [
-      { id: "a", date: "2026-10-15", estimateMinutes: 90 },
-      { id: "b", date: "2026-10-15", estimateMinutes: 120 },
-      { id: "other", date: "2026-10-16", estimateMinutes: 60 },
-    ],
-    "2026-10-15",
-    { dayKey: key },
-  );
-
+test('day plan uses estimated minutes and reports remaining capacity', () => {
+  const result = DayPlan.build([
+    { id: 'a', date: '2026-10-15', estimateMinutes: 90 },
+    { id: 'b', date: '2026-10-15', estimateMinutes: 120 },
+    { id: 'other', date: '2026-10-16', estimateMinutes: 60 },
+  ], '2026-10-15', { dayKey: key });
   assert.equal(result.taskCount, 2);
+  assert.equal(result.dayCapacityMinutes, 540);
   assert.equal(result.totalMinutes, 210);
-  assert.equal(result.freeMinutes, 270);
+  assert.equal(result.freeMinutes, 330);
   assert.equal(result.blocks[0].start, 0);
   assert.equal(result.blocks[1].start, 90);
   assert.equal(result.full, false);
 });
 
-test("day plan flags overflow and points to a task that can be moved", () => {
-  const result = DayPlan.build(
-    [
-      { id: "a", date: "2026-10-15", estimateMinutes: 300 },
-      { id: "b", date: "2026-10-15", estimateMinutes: 240 },
-    ],
-    "2026-10-15",
-    { dayKey: key },
-  );
-
-  assert.equal(result.totalMinutes, 540);
-  assert.equal(result.filledMinutes, 480);
-  assert.equal(result.freeMinutes, 0);
-  assert.equal(result.overflowMinutes, 60);
-  assert.equal(result.firstOverflow.id, "b");
-  assert.equal(result.blocks[1].visibleMinutes, 180);
+test('work window is nine hours from 09:00 through 18:00', () => {
+  const window = DayPlan.workWindow('2026-10-21', '2026-10-21', 9 * 60);
+  assert.equal(window.startHour, 9);
+  assert.equal(window.endHour, 18);
+  assert.equal(window.totalMinutes, 540);
+  assert.equal(window.elapsedMinutes, 0);
+  assert.equal(window.capacityMinutes, 540);
 });
 
-test("completed, child, session, and unestimated tasks do not consume capacity", () => {
-  const result = DayPlan.build(
-    [
-      { id: "done", date: "2026-10-15", estimateMinutes: 100, completed: true },
-      { id: "child", date: "2026-10-15", parentId: "p", estimateMinutes: 90 },
-      { id: "session", date: "2026-10-15", estimateMinutes: 50, workSession: {} },
-      { id: "unknown", date: "2026-10-15", title: "No estimate" },
-      { id: "open", date: "2026-10-15", estimateMinutes: 40 },
-    ],
-    "2026-10-15",
-    {
-      dayKey: key,
-      isDone: (task) => task.completed === true,
-    },
-  );
+test('elapsed time reduces the available work window for today', () => {
+  const beforeStart = DayPlan.workWindow('2026-10-21', '2026-10-21', 8 * 60 + 59);
+  assert.equal(beforeStart.state, 'before');
+  assert.equal(beforeStart.capacityMinutes, 540);
 
+  const midday = DayPlan.workWindow('2026-10-21', '2026-10-21', 12 * 60 + 30);
+  assert.equal(midday.elapsedMinutes, 210);
+  assert.equal(midday.startMinute, 210);
+  assert.equal(midday.capacityMinutes, 330);
+
+  const afterEnd = DayPlan.workWindow('2026-10-21', '2026-10-21', 18 * 60 + 15);
+  assert.equal(afterEnd.state, 'after');
+  assert.equal(afterEnd.elapsedMinutes, 540);
+  assert.equal(afterEnd.capacityMinutes, 0);
+});
+
+test('past days have no remaining capacity and future days keep the full window', () => {
+  const past = DayPlan.workWindow('2026-10-20', '2026-10-21', 12 * 60);
+  const future = DayPlan.workWindow('2026-10-22', '2026-10-21', 12 * 60);
+  assert.equal(past.state, 'past');
+  assert.equal(past.capacityMinutes, 0);
+  assert.equal(past.elapsedMinutes, 540);
+  assert.equal(future.state, 'future');
+  assert.equal(future.capacityMinutes, 540);
+  assert.equal(future.elapsedMinutes, 0);
+});
+
+test('tasks start at the current point and overflow beyond 18:00', () => {
+  const result = DayPlan.build([
+    { id: 'a', date: '2026-10-21', estimateMinutes: 180 },
+    { id: 'b', date: '2026-10-21', estimateMinutes: 240 },
+  ], '2026-10-21', {
+    totalCapacityMinutes: 540,
+    startMinute: 210,
+    dayKey: key,
+  });
+  assert.equal(result.startMinute, 210);
+  assert.equal(result.capacityMinutes, 330);
+  assert.equal(result.totalMinutes, 420);
+  assert.equal(result.blocks[0].start, 210);
+  assert.equal(result.blocks[0].visibleMinutes, 180);
+  assert.equal(result.blocks[1].start, 390);
+  assert.equal(result.blocks[1].visibleMinutes, 150);
+  assert.equal(result.blocks[1].overflowMinutes, 90);
+  assert.equal(result.overflowMinutes, 90);
+  assert.equal(result.firstOverflow.id, 'b');
+});
+
+test('completed, child, session, and unestimated tasks do not consume capacity', () => {
+  const result = DayPlan.build([
+    { id: 'done', date: '2026-10-15', estimateMinutes: 100, completed: true },
+    { id: 'child', date: '2026-10-15', parentId: 'p', estimateMinutes: 90 },
+    { id: 'session', date: '2026-10-15', estimateMinutes: 50, workSession: {} },
+    { id: 'unknown', date: '2026-10-15', title: 'No estimate' },
+    { id: 'open', date: '2026-10-15', estimateMinutes: 40 },
+  ], '2026-10-15', {
+    dayKey: key,
+    isDone: (task) => task.completed === true,
+  });
   assert.equal(result.taskCount, 2);
   assert.equal(result.totalMinutes, 40);
-  assert.deepEqual(result.unknown.map((task) => task.id), ["unknown"]);
+  assert.deepEqual(result.unknown.map((task) => task.id), ['unknown']);
 });
 
-test("a full day with no overflow offers the last task as a move candidate", () => {
-  const result = DayPlan.build(
-    [{ id: "exact", date: "2026-10-15", estimateMinutes: 480 }],
-    "2026-10-15",
-    { dayKey: key },
-  );
+test('a full day with no overflow offers the last task as a move candidate', () => {
+  const result = DayPlan.build([
+    { id: 'exact', date: '2026-10-15', estimateMinutes: 480 },
+  ], '2026-10-15', { capacityMinutes: 480, dayKey: key });
   assert.equal(result.full, true);
   assert.equal(result.overflowMinutes, 0);
-  assert.equal(result.firstOverflow.id, "exact");
+  assert.equal(result.firstOverflow.id, 'exact');
 });
 
-const dayPlan = require('../calendar-day-plan.js');
-
-function memoryStorage() {
-  const values = new Map();
-  return {
-    getItem(key) { return values.has(key) ? values.get(key) : null; },
-    setItem(key, value) { values.set(key, String(value)); },
-  };
-}
-
-test('daily capacity defaults to eight hours and is saved independently per date', () => {
-  const storage = memoryStorage();
-  assert.equal(dayPlan.capacityHoursForDay('2026-10-23', storage), 8);
-  assert.equal(dayPlan.setCapacityHoursForDay('2026-10-23', 5.5, storage), 5.5);
-  assert.equal(dayPlan.capacityHoursForDay('2026-10-23', storage), 5.5);
-  assert.equal(dayPlan.capacityHoursForDay('2026-10-24', storage), 8);
-});
-
-test('daily capacity is bounded to 0–8 hours in half-hour increments', () => {
-  const storage = memoryStorage();
-  assert.equal(dayPlan.setCapacityHoursForDay('2026-10-23', -3, storage), 0);
-  assert.equal(dayPlan.capacityHoursForDay('2026-10-23', storage), 0);
-  assert.equal(dayPlan.setCapacityHoursForDay('2026-10-24', 12, storage), 8);
-  assert.equal(dayPlan.setCapacityHoursForDay('2026-10-25', 3.26, storage), 3.5);
-});
-
-test('day-plan model respects custom capacity and reports overflow', () => {
-  const tasks = [
-    { id: 'a', title: 'A', date: '2026-10-23', estimateMinutes: 120 },
-    { id: 'b', title: 'B', date: '2026-10-23', estimateMinutes: 240 },
-  ];
-  const plan = dayPlan.build(tasks, '2026-10-23', {
-    capacityMinutes: 300,
-    dayKey: (task) => task.date,
+test('when the work window is over, unfinished tasks are overflow and not drawn', () => {
+  const result = DayPlan.build([
+    { id: 'late', date: '2026-10-20', estimateMinutes: 60 },
+  ], '2026-10-20', {
+    totalCapacityMinutes: 540,
+    startMinute: 540,
+    dayKey: key,
   });
-  assert.equal(plan.capacityMinutes, 300);
-  assert.equal(plan.filledMinutes, 300);
-  assert.equal(plan.full, true);
-  assert.equal(plan.overflowMinutes, 60);
-  assert.equal(plan.overflow.length, 1);
-});
-
-test('zero-hour day remains valid and all estimated work is overflow', () => {
-  const plan = dayPlan.build([
-    { id: 'a', title: 'A', date: '2026-10-23', estimateMinutes: 30 },
-  ], '2026-10-23', {
-    capacityMinutes: 0,
-    dayKey: (task) => task.date,
-  });
-  assert.equal(plan.capacityMinutes, 0);
-  assert.equal(plan.full, true);
-  assert.equal(plan.filledMinutes, 0);
-  assert.equal(plan.overflowMinutes, 30);
-  assert.equal(plan.overflow.length, 1);
+  assert.equal(result.capacityMinutes, 0);
+  assert.equal(result.blocks[0].visibleMinutes, 0);
+  assert.equal(result.overflowMinutes, 60);
+  assert.equal(result.overflow[0].task.id, 'late');
 });

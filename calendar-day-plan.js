@@ -5,76 +5,62 @@
 })(typeof window === "object" ? window : globalThis, function () {
   "use strict";
 
-  const DEFAULT_CAPACITY_HOURS = 8;
-  const MIN_CAPACITY_HOURS = 0;
-  const MAX_CAPACITY_HOURS = 8;
-  const CAPACITY_MINUTES = DEFAULT_CAPACITY_HOURS * 60;
-  const START_HOUR = 0;
-  const STORAGE_KEY = "adib-day-plan-capacity-v1";
+  const START_HOUR = 9;
+  const END_HOUR = 18;
+  const START_MINUTE = START_HOUR * 60;
+  const END_MINUTE = END_HOUR * 60;
+  const CAPACITY_MINUTES = END_MINUTE - START_MINUTE;
 
-  function resolveStorage(storage) {
-    if (storage) return storage;
-    try {
-      return globalThis.localStorage || null;
-    } catch {
-      return null;
-    }
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
   }
 
-  function normalizeHours(value) {
-    const hours = Number(value);
-    if (!Number.isFinite(hours)) return DEFAULT_CAPACITY_HOURS;
-    return Math.round(
-      Math.max(MIN_CAPACITY_HOURS, Math.min(MAX_CAPACITY_HOURS, hours)) * 2,
-    ) / 2;
-  }
-
-  function readCapacityMap(storage) {
-    try {
-      const raw = resolveStorage(storage)?.getItem(STORAGE_KEY);
-      const value = raw ? JSON.parse(raw) : {};
-      return value && typeof value === "object" && !Array.isArray(value)
-        ? value
-        : {};
-    } catch {
-      return {};
+  // The timeline's zero is 09:00; elapsedMinutes is the offset from that point.
+  function workWindow(day, today, minuteOfDay) {
+    let elapsedMinutes = 0;
+    let state = "future";
+    if (typeof day !== "string" || !day || typeof today !== "string" || !today) {
+      state = "unknown";
+    } else if (day < today) {
+      elapsedMinutes = CAPACITY_MINUTES;
+      state = "past";
+    } else if (day === today) {
+      const nowMinute = Number.isFinite(Number(minuteOfDay))
+        ? Number(minuteOfDay)
+        : START_MINUTE;
+      elapsedMinutes = Math.floor(clamp(nowMinute - START_MINUTE, 0, CAPACITY_MINUTES));
+      state =
+        nowMinute < START_MINUTE
+          ? "before"
+          : nowMinute >= END_MINUTE
+            ? "after"
+            : "today";
     }
-  }
 
-  function capacityHoursForDay(day, storage) {
-    if (typeof day !== "string" || !day) return DEFAULT_CAPACITY_HOURS;
-    const value = readCapacityMap(storage)[day];
-    if (value === undefined || value === null || value === "") {
-      return DEFAULT_CAPACITY_HOURS;
-    }
-    const hours = Number(value);
-    return Number.isFinite(hours) && hours >= MIN_CAPACITY_HOURS && hours <= MAX_CAPACITY_HOURS
-      ? normalizeHours(hours)
-      : DEFAULT_CAPACITY_HOURS;
-  }
-
-  function setCapacityHoursForDay(day, value, storage) {
-    const hours = normalizeHours(value);
-    if (typeof day !== "string" || !day) return hours;
-    const target = resolveStorage(storage);
-    if (!target) return hours;
-    try {
-      const capacities = readCapacityMap(target);
-      capacities[day] = hours;
-      target.setItem(STORAGE_KEY, JSON.stringify(capacities));
-    } catch {
-      // Keep the current UI usable when browser storage is unavailable.
-    }
-    return hours;
+    return {
+      startHour: START_HOUR,
+      endHour: END_HOUR,
+      totalMinutes: CAPACITY_MINUTES,
+      elapsedMinutes,
+      startMinute: elapsedMinutes,
+      capacityMinutes: CAPACITY_MINUTES - elapsedMinutes,
+      state,
+    };
   }
 
   function build(tasks, day, options = {}) {
     const dayKey = options.dayKey || (() => "");
     const isVisible = options.isVisible || (() => true);
     const isDone = options.isDone || (() => false);
-    const capacityMinutes = Number.isInteger(options.capacityMinutes)
-      ? Math.max(0, options.capacityMinutes)
-      : CAPACITY_MINUTES;
+    const dayCapacityMinutes = Number.isInteger(options.totalCapacityMinutes)
+      ? Math.max(0, options.totalCapacityMinutes)
+      : Number.isInteger(options.capacityMinutes)
+        ? Math.max(0, options.capacityMinutes)
+        : CAPACITY_MINUTES;
+    const startMinute = Number.isInteger(options.startMinute)
+      ? clamp(options.startMinute, 0, dayCapacityMinutes)
+      : 0;
+    const capacityMinutes = Math.max(0, dayCapacityMinutes - startMinute);
     const matching = (tasks || []).filter((task) => {
       if (!task || task.workSession || task.parentId) return false;
       if (!isVisible(task) || isDone(task)) return false;
@@ -103,7 +89,7 @@
     });
     unknown.sort((a, b) => a.index - b.index);
 
-    let cursor = 0;
+    let cursor = startMinute;
     const blocks = known.map((row) => {
       const start = cursor;
       cursor += row.minutes;
@@ -112,24 +98,32 @@
         minutes: row.minutes,
         start,
         end: cursor,
-        visibleMinutes: Math.max(0, Math.min(cursor, capacityMinutes) - start),
-        overflowMinutes: Math.max(0, cursor - Math.max(start, capacityMinutes)),
+        visibleMinutes: Math.max(0, Math.min(cursor, dayCapacityMinutes) - start),
+        overflowMinutes: Math.max(
+          0,
+          cursor - Math.max(start, dayCapacityMinutes),
+        ),
       };
     });
-    const overflow = blocks.filter((block) => block.end > capacityMinutes);
+    const totalMinutes = cursor - startMinute;
+    const overflow = blocks.filter((block) => block.end > dayCapacityMinutes);
     const firstOverflow =
       overflow[0]?.task ||
-      (capacityMinutes > 0 && cursor >= capacityMinutes ? blocks.at(-1)?.task : null) ||
+      (capacityMinutes > 0 && totalMinutes >= capacityMinutes
+        ? blocks.at(-1)?.task
+        : null) ||
       null;
 
     return {
       day,
+      dayCapacityMinutes,
+      startMinute,
       capacityMinutes,
-      totalMinutes: cursor,
-      freeMinutes: Math.max(0, capacityMinutes - cursor),
-      filledMinutes: Math.min(capacityMinutes, cursor),
-      full: capacityMinutes === 0 || cursor >= capacityMinutes,
-      overflowMinutes: Math.max(0, cursor - capacityMinutes),
+      totalMinutes,
+      freeMinutes: Math.max(0, capacityMinutes - totalMinutes),
+      filledMinutes: Math.min(capacityMinutes, totalMinutes),
+      full: capacityMinutes === 0 || totalMinutes >= capacityMinutes,
+      overflowMinutes: Math.max(0, totalMinutes - capacityMinutes),
       blocks,
       overflow,
       firstOverflow,
@@ -139,14 +133,12 @@
   }
 
   return {
-    CAPACITY_MINUTES,
-    DEFAULT_CAPACITY_HOURS,
-    MIN_CAPACITY_HOURS,
-    MAX_CAPACITY_HOURS,
     START_HOUR,
-    STORAGE_KEY,
+    END_HOUR,
+    START_MINUTE,
+    END_MINUTE,
+    CAPACITY_MINUTES,
+    workWindow,
     build,
-    capacityHoursForDay,
-    setCapacityHoursForDay,
   };
 });
