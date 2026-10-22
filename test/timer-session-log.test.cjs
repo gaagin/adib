@@ -83,6 +83,68 @@ test('timer session log archives the Notion row for a deleted session', async ()
   assert.deepEqual(JSON.parse(calls[1][2].body), { archived: true });
 });
 
+test('renaming a task renames every linked Notion session without changing its timing', async () => {
+  const calls = [];
+  const log = new TimerSessionLog({
+    dataSourceId: 'session-ds',
+    queryDatabase: async (...args) => { calls.push(['query', ...args]); return [
+      { id: 'session-a', properties: { Сеанс: { title: [{ plain_text: 'Old task title' }] } } },
+      { id: 'session-b', properties: { Сеанс: { title: [{ plain_text: 'Old task title' }] } } },
+      { id: 'session-c', properties: { Сеанс: { title: [{ plain_text: 'New task title' }] } } },
+    ]; },
+    notion: async (...args) => { calls.push(['patch', ...args]); return {}; },
+  });
+  const result = await log.renameTask('12345678123412341234123456789abc', 'personal', 'New task title');
+  assert.deepEqual(result, { updated: 2, skipped: false });
+  const query = calls[0];
+  assert.equal(query[3].filter.property, 'Задача (Мои задачи)');
+  assert.equal(query[3].filter.relation.contains, '12345678-1234-1234-1234-123456789abc');
+  assert.equal(calls.length, 3);
+  for (const [, endpoint, options] of calls.slice(1)) {
+    assert.match(endpoint, /^\/pages\/session-/);
+    const body = JSON.parse(options.body);
+    assert.deepEqual(body.properties.Сеанс.title, [{ text: { content: 'New task title' } }]);
+  }
+});
+
+test('saved work timer session titles follow a task rename and persist', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'adib-session-rename-work-'));
+  const file = path.join(dir, 'work.json');
+  try {
+    const store = new WorkTimerStore({ file, now: () => Date.now(), notion: async () => ({}), sources: () => [] });
+    store.data.sessions.push({ id: 'work-1', taskId: '12345678-1234-1234-1234-123456789abc', title: 'Old title', status: 'saved' });
+    store.save();
+    assert.equal(store.renameTask('12345678123412341234123456789abc', 'New title'), 1);
+    const reloaded = new WorkTimerStore({ file, now: () => Date.now(), notion: async () => ({}), sources: () => [] });
+    assert.equal(reloaded.data.sessions[0].title, 'New title');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('Pomodoro timer and saved session titles follow a task rename and persist', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'adib-session-rename-pomodoro-'));
+  const file = path.join(dir, 'pomodoro.json');
+  try {
+    const store = new SharedPomodoroStore(file);
+    store.commit({ id: '12345678-1234-1234-1234-123456789abc', title: 'Old title', running: false }, {
+      id: 'pomo-1', taskId: '12345678123412341234123456789abc', title: 'Old title', status: 'saved',
+    });
+    assert.equal(store.renameTask('12345678123412341234123456789abc', 'New title'), 2);
+    const reloaded = new SharedPomodoroStore(file);
+    assert.equal(reloaded.get('12345678-1234-1234-1234-123456789abc').title, 'New title');
+    assert.equal(reloaded.sessions[0].title, 'New title');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('saved work timer sessions are logged once and remain persisted', async () => {
   const fs = require('node:fs');
   const os = require('node:os');

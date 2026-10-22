@@ -972,12 +972,15 @@ async function saveTask(body, baseUrl = '') {
   const appLink = taskAppLink(baseUrl, id, body.machineId, body.planId);
   if (appLink) properties[config.linkProperty || TASK_LINK_PROPERTY_DEFAULT] = { url: appLink };
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  const sessionTitleSync = body.title !== undefined
+    ? await syncTaskSessionTitle(id, sourceKey, String(body.title || '').trim())
+    : undefined;
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
   if (body.machineId) taskCache.delete(String(body.machineId));
   snapshotCache = null;
   console.log('Task saved:', id, sourceKey);
-  return { ok: true, id, sourceKey,completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id, sourceKey,...(sessionTitleSync?{sessionTitleSync}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 async function createTask(body, baseUrl = '') {
@@ -1472,12 +1475,15 @@ async function savePersonalTaskUnlocked(body) {
   if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
   if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined && body.machineId===undefined && body.planId===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
   if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  const sessionTitleSync = body.title !== undefined
+    ? await syncTaskSessionTitle(id, 'personal', String(body.title || '').trim())
+    : undefined;
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
   await persistTaskEstimate(body,id);
   if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
   invalidatePersonalTasks();
-  return { ok: true, id,...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id,...(sessionTitleSync?{sessionTitleSync}:{}),...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
@@ -1707,6 +1713,13 @@ async function accountAuthorize(req,res,url,u,b){
 
 const {WorkTimerStore}=require('./work-timer');
 const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,saveSession:session=>timerSessionLog.record(session),deleteSession:session=>timerSessionLog.remove(session),sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
+async function syncTaskSessionTitle(taskId,sourceKey,title){
+ const result={workTimer:0,pomodoro:0,notion:0};
+ try{result.workTimer=workTimer.renameTask(taskId,title)}catch(error){console.warn('Work timer session title update failed:',taskId,error.message)}
+ try{result.pomodoro=sharedPomodoro.renameTask(taskId,title);if(result.pomodoro)realtime.invalidate(['pomodoro','personal'])}catch(error){console.warn('Pomodoro session title update failed:',taskId,error.message)}
+ try{const updated=await timerSessionLog.renameTask(taskId,sourceKey,title);result.notion=updated.updated||0}catch(error){result.notionError=String(error.message||error).slice(0,300);console.warn('Notion session title update failed:',taskId,error.message)}
+ return result;
+}
 function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
 async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
 async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}

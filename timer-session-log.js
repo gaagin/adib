@@ -13,6 +13,28 @@ function asIso(value) {
   return new Date(numeric).toISOString();
 }
 
+function taskRelationName(sourceKey) {
+  return sourceKey === 'personal'
+    ? 'Задача (Мои задачи)'
+    : sourceKey === 'todo'
+      ? 'Задача (ToDo)'
+      : sourceKey === 'gorulen'
+        ? 'Задача (Gorulen isler)'
+        : '';
+}
+
+function notionPageId(value) {
+  const compact = String(value || '').replace(/-/g, '');
+  if (!/^[a-f0-9]{32}$/i.test(compact)) return '';
+  return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
+}
+
+function pageTitle(page, propertyName) {
+  return (page?.properties?.[propertyName]?.title || [])
+    .map(item => item.plain_text || item.text?.content || '')
+    .join('');
+}
+
 class TimerSessionLog {
   constructor({ notion, queryDatabase, dataSourceId }) {
     Object.assign(this, { notion, queryDatabase, dataSourceId });
@@ -35,13 +57,7 @@ class TimerSessionLog {
         : sourceKey === 'gorulen'
           ? 'Gorulen isler'
           : '';
-    const relationName = sourceKey === 'personal'
-      ? 'Задача (Мои задачи)'
-      : sourceKey === 'todo'
-        ? 'Задача (ToDo)'
-        : sourceKey === 'gorulen'
-          ? 'Задача (Gorulen isler)'
-          : '';
+    const relationName = taskRelationName(sourceKey);
     const startedAt = asIso(session.startedAt);
     const endedAt = asIso(session.endedAt);
     const minutes = Math.max(0, Number(session.seconds) || 0) / 60;
@@ -72,6 +88,34 @@ class TimerSessionLog {
       }),
     });
     return { id: page.id, existing: false };
+  }
+
+  async renameTask(taskId, sourceKey, title) {
+    const id = notionPageId(taskId);
+    const relationName = taskRelationName(sourceKey);
+    const nextTitle = String(title || '').trim().slice(0, 1900);
+    if (!id || !relationName || !nextTitle || !this.dataSourceId) {
+      return { updated: 0, skipped: true };
+    }
+
+    const pages = await this.queryDatabase('', this.dataSourceId, {
+      page_size: 100,
+      filter: { property: relationName, relation: { contains: id } },
+    });
+    let updated = 0;
+    for (const page of pages || []) {
+      if (!page?.id || pageTitle(page, 'Сеанс') === nextTitle) continue;
+      await this.notion('/pages/' + encodeURIComponent(page.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          properties: {
+            Сеанс: { title: [{ text: { content: nextTitle } }] },
+          },
+        }),
+      });
+      updated++;
+    }
+    return { updated, skipped: false };
   }
 
   async remove(session) {
