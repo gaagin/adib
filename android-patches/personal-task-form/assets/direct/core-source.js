@@ -4,11 +4,40 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
 const crypto = require('node:crypto');
+const {UiAssets}=require('./ui-assets');
+const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-day-plan.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-stats.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+const uiAssets=new UiAssets(__dirname,publicAssets);
+const {RealtimeHub}=require('./realtime-server');
+const {NotionRateGate}=require('./notion-rate');
+const notionRate=new NotionRateGate({fetchFn:async(url,options)=>{
+ queryMetrics.notionApiAttempts++;
+ const parsed=new URL(url),method=options.method||'GET';
+ if(parsed.pathname.endsWith('/query'))queryMetrics.queryAttempts++;
+ else if(method==='GET'&&parsed.pathname==='/v1/comments')queryMetrics.commentReadAttempts++;
+ else if(method==='GET')queryMetrics.otherReadAttempts++;
+ else queryMetrics.writeAttempts++;
+ const result=await fetch(url,options);if(result.status===429)queryMetrics.rateLimitResponses++;return result;
+}});
 
 loadDotEnv(path.join(__dirname, '.env'));
 
+const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
+const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
+const {DirectChats}=require('./direct-chats');
+const {EmployeeChatsAPI}=require('./employee-chats-api');
+const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')}),comments:{list:listEmployeeChatComments,create:createEmployeeChatComment}});
 const PORT = Number(process.env.PORT || 3000);
+const {NetworkTime}=require('./network-clock-server');
+const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
+
 const TOKEN = process.env.NOTION_TOKEN || '';
+const QUERY_FIX_BUILD='1.1.64-cost-control-v3-auto-countdown-v18-undated-history-window-timer-session-log-v4-unified-pomodoro';
+const EXTERNAL_SYNC_MS=TOKEN==='native'?60000:Math.max(300000,Number(process.env.ADIB_EXTERNAL_SYNC_MS)||300000);
+const {QueryPolicy}=require('./query-policy');
+const queryPolicy=new QueryPolicy({backgroundMs:EXTERNAL_SYNC_MS,refreshMs:TOKEN==='native'?5000:60000});
+const queryMetrics={notionQueries:0,notionWrites:0,notionApiAttempts:0,queryAttempts:0,commentReadAttempts:0,otherReadAttempts:0,writeAttempts:0,rateLimitResponses:0};
+const {ReadCache}=require('./read-cache');
+const commentReads=new ReadCache(),authorReads=new ReadCache();
 const NOTION_VERSION = process.env.NOTION_VERSION || '2025-09-03';
 const PLAN_DB = cleanId(process.env.PLAN_DATABASE_ID);
 const MAKINA_DB = cleanId(process.env.MAKINA_DATABASE_ID);
@@ -20,8 +49,11 @@ const GORULEN_DB = cleanId(process.env.GORULEN_ISLER_DATABASE_ID || '02f39358-eb
 const GORULEN_DS = cleanId(process.env.GORULEN_ISLER_DATA_SOURCE_ID || '3136a23f839c40d3b6387de4d60af7f5');
 const TASKS_DB = cleanId(process.env.TASKS_DATABASE_ID || '275e0789-d560-8063-8af3-efcbf4729097');
 const TASKS_DS = cleanId(process.env.TASKS_DATA_SOURCE_ID || '275e0789-d560-80ea-9d85-000b5d73a234');
+const TIMER_SESSIONS_DS = cleanId(process.env.TIMER_SESSIONS_DATA_SOURCE_ID || '32f630e9-0157-41e1-9a67-a7ec2285e28d');
 const PERSONAL_CONTAINERS_DB = cleanId(process.env.PERSONAL_CONTAINERS_DATABASE_ID || '73df6f961625407d89c202bc1c3b749c');
 const PERSONAL_CONTAINERS_DS = cleanId(process.env.PERSONAL_CONTAINERS_DATA_SOURCE_ID || '78daa90023f0496da65a864f8d63b0c5');
+const PERSONAL_DIRECTORY_DB = cleanId(process.env.PERSONAL_DIRECTORY_DATABASE_ID || '23df536b064f42609b5cb4b5ed7983ad');
+const PERSONAL_DIRECTORY_DS = cleanId(process.env.PERSONAL_DIRECTORY_DATA_SOURCE_ID || 'ee6a85c11e97477b99dddd204c4013fb');
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
@@ -34,6 +66,7 @@ const aiRequestTimes = [];
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
 const LINK_SYNC_TTL_MS = Math.max(60000, Number(process.env.LINK_SYNC_TTL_MS) || 15 * 60 * 1000);
 const LINK_PROPERTY_DEFAULT = 'ADIB link';
+const TASK_LINK_PROPERTY_DEFAULT = 'URL';
 const linkSyncState = { baseUrl: '', at: 0, inFlight: null };
 
 function loadDotEnv(file) {
@@ -65,9 +98,11 @@ function checkConfig() {
 
 async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   checkConfig();
+  if(endpoint.endsWith('/query'))queryMetrics.notionQueries++;
+  else if(['POST','PATCH','DELETE'].includes(options.method))queryMetrics.notionWrites++;
   const uploadOptions=TOKEN==='native'?options:prepareNotionUpload('https://api.notion.com/v1'+endpoint,options);
   const readStarted=Date.now();
-  const response = await fetch('https://api.notion.com/v1' + endpoint, {
+  const response = await notionRate.request('https://api.notion.com/v1' + endpoint, {
     ...uploadOptions,
     headers: {
       Authorization: 'Bearer ' + TOKEN,
@@ -81,7 +116,13 @@ async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
   try { body = JSON.parse(text); } catch { body = { message: text }; }
   const remoteDate=Date.parse(response.headers?.get?.('date')||'');
   if(body&&typeof body==='object'&&Number.isFinite(remoteDate))Object.defineProperty(body,'__readBarrier',{value:new Date(remoteDate-Math.max(0,Date.now()-readStarted)).toISOString()});
-  if (!response.ok) throw new Error('Notion API ' + response.status + ': ' + (body.message || text));
+  if (!response.ok) {
+    const error = new Error('Notion API ' + response.status + ': ' + (body.message || text));
+    error.notionStatus = response.status;
+    error.notionCode = body.code || '';
+    throw error;
+  }
+  if(response.ok&&['PATCH','POST','DELETE'].includes(options.method))observeWrittenPage(endpoint,body);
   return body;
 }
 
@@ -100,6 +141,7 @@ function mapComment(comment) {
     text: authored ? authored[2] : rawText,
     createdAt: comment.created_time || '',
     authorId: author.id || '',
+    discussionId: comment.discussion_id || '',
     authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'İstifadəçi Notion'),
     attachments: (comment.attachments||[]).filter(a=>a.category==='image').map(a=>({category:'image',url:a.file?.url||a.file?.file?.url||'',expiryTime:a.file?.expiry_time||'',name:a.file?.name||'Şəkil'})).filter(a=>/^https:\/\//.test(a.url))
   };
@@ -111,7 +153,8 @@ async function resolveCommentAuthor(comment) {
   if (!mapped.authorId || (comment.created_by?.type === 'bot' && /^\[([^\]]{1,120})\]\s/.test(commentText(comment)))) return mapped;
   if (comment.created_by?.name) return mapped;
   try {
-    const user = await notion('/users/' + encodeURIComponent(mapped.authorId), { method: 'GET' });
+    const cached=await authorReads.read(mapped.authorId,{ttlMs:1800000,load:()=>notion('/users/'+encodeURIComponent(mapped.authorId),{method:'GET'})});
+    const user=cached.value;
     mapped.authorName = user.name || mapped.authorName;
   } catch (error) {
     console.warn('Comment author lookup failed:', mapped.authorId, error.message);
@@ -119,12 +162,35 @@ async function resolveCommentAuthor(comment) {
   return mapped;
 }
 
-async function listTaskComments(body) {
-  const pageId = cleanId(String(body.id || '').trim());
-  if (!pageId) throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
-  const result = await notion('/comments?block_id=' + encodeURIComponent(pageId), { method: 'GET' });
-  const comments = await Promise.all((result.results || []).map(resolveCommentAuthor));
-  return { ok: true, id: pageId, comments };
+async function cachedTaskComments(pageId,foreground=false){
+ return commentReads.read(accountKey(pageId),{ttlMs:foreground?30000:300000,load:async()=>{
+  const items=[];let cursor=null;const seen=new Set();
+  do{const result=await notion('/comments?block_id='+encodeURIComponent(pageId)+(cursor?'&start_cursor='+encodeURIComponent(cursor):''),{method:'GET'});
+   items.push(...(result.results||[]));cursor=result.has_more?result.next_cursor:null;
+   if(result.has_more&&!cursor)throw Error('Missing comments pagination cursor');
+   if(cursor&&seen.has(cursor))throw Error('Repeated comments cursor');if(cursor)seen.add(cursor);
+  }while(cursor);
+  return (await Promise.all(items.map(resolveCommentAuthor))).sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
+ }});
+}
+async function listTaskComments(body){
+ const pageId=cleanId(String(body.id||'').trim());if(!pageId)throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
+ const result=await cachedTaskComments(pageId,true);return {ok:true,id:pageId,comments:result.value,...(result.stale?{stale:true,error:result.error}: {})};
+}
+
+async function listEmployeeChatComments(pageId,discussionId){
+ const id=cleanId(String(pageId||'')),thread=String(discussionId||'');if(!id||!thread)return[];
+ const result=await cachedTaskComments(id,true);return result.value.filter(comment=>comment.discussionId===thread);
+}
+async function createEmployeeChatComment({pageId,discussionId,user,text,attachments=[]}){
+ const id=cleanId(String(pageId||'')),thread=String(discussionId||''),value=String(text||'').trim(),notionAttachments=await validatedCommentAttachments(attachments);
+ if(!id||(!value&&!notionAttachments.length)||value.length>1850)throw Object.assign(Error('Personal söhbəti üçün səhifə, mətn və ya şəkil tələb olunur; mətn 1850 simvoldan qısa olmalıdır'),{statusCode:400});
+ const authorName=String(user?.name||'Əməkdaş').replace(/[\[\]]/g,'').slice(0,120)||'Əməkdaş',storedText='['+authorName+'] '+(value||'📷 Şəkil');
+ const payload={rich_text:[{type:'text',text:{content:storedText}}],...(notionAttachments.length?{attachments:notionAttachments}:{})};if(thread)payload.discussion_id=thread;else payload.parent={page_id:id};
+ const raw=await notion('/comments',{method:'POST',body:JSON.stringify(payload)});let mapped=await resolveCommentAuthor(raw),nextThread=String(raw.discussion_id||thread||'');
+ if(!nextThread){const cached=await cachedTaskComments(id,true);nextThread=cached.value.find(comment=>comment.id===raw.id)?.discussionId||'';}
+ if(!nextThread)throw Object.assign(Error('Notion şərh mövzusunun identifikatorini qaytarmadı'),{statusCode:502});
+ mapped.discussionId=nextThread;commentReads.append(accountKey(id),mapped);return {discussionId:nextThread,comment:mapped};
 }
 
 async function requestedCommentAuthor(body) {
@@ -145,7 +211,7 @@ async function addTaskComment(body) {
   const text = String(body.text || '').trim().slice(0, 1850);
   const attachments=await validatedCommentAttachments(body.attachments);
   if (!pageId || (!text&&!attachments.length)) throw new Error('Lazımdır ID tapşırıqlar və mətn və ya şəkil');
-  const authorName = await requestedCommentAuthor(body);
+  const authorName = body.__account?.name || await requestedCommentAuthor(body);
   const storedText = '[' + authorName.replace(/[\\[\\]]/g, '') + '] ' + (text||'Şəkil');
   const comment = await notion('/comments', {
     method: 'POST',
@@ -154,15 +220,18 @@ async function addTaskComment(body) {
       rich_text: [{ type: 'text', text: { content: storedText } }],...(attachments.length?{attachments}:{})
     })
   });
-  return { ok: true, comment: await resolveCommentAuthor(comment), savedAt: new Date().toISOString() };
+  const mapped=await resolveCommentAuthor(comment);commentReads.append(accountKey(pageId),mapped);
+  return {ok:true,comment:mapped,savedAt:new Date().toISOString()};
 }
 
 function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Etibarsızdır ID '),{statusCode:400});return id}
 async function ensureUploadedImage(value){const id=imageUploadId(value),file=await notion('/file_uploads/'+id,{method:'GET'});if(file.status!=='uploaded'||!['image/jpeg','image/png','image/gif','image/webp'].includes(file.content_type))throw Object.assign(new Error('Şəkil hələ yüklənməyib və ya format dəstəklənmir'),{statusCode:400});return id}
 async function validatedCommentAttachments(value){if(value===undefined)return[];if(!Array.isArray(value)||value.length>3)throw Object.assign(new Error('Şərhə 3-ə qədər şəkil əlavə edə bilərsiniz'),{statusCode:400});const result=[];for(const a of value){const id=await ensureUploadedImage(a?.file_upload_id);if(!result.some(x=>x.file_upload_id===id))result.push({type:'file_upload',file_upload_id:id});}return result}
-async function uploadTaskImageFile(body){const image=validateImage(body.image);const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion yükləməni təsdiq etmədi. Şəkil əlavə edilməyib.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
+async function uploadTaskImageFile(body){const image=validateImage(body.image);if(body.id&&image.bytes.length>200*1024)throw Object.assign(new Error('Tapşırıq şəkli göndərilməzdən əvvəl 200 KB-a qədər sıxılmalıdır'),{statusCode:400});const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion yükləməni təsdiq etmədi. Şəkil əlavə edilməyib.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
+const taskPhotos=require('./task-photos').create({notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}]});
 function mappedTaskImage(block){const image=block.image||{},url=image.file?.url||image.external?.url||'';return {id:block.id,url:/^https:\/\//.test(url)?url:'',expiryTime:image.file?.expiry_time||'',caption:(image.caption||[]).map(x=>x.plain_text||x.text?.content||'').join('')}}
 async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
+async function deleteTaskImage(body){const id=cleanId(String(body.id||'')),blockId=cleanId(String(body.blockId||''));if(!id||!blockId)throw Object.assign(new Error('Tapşırıq və şəkil ID-si tələb olunur'),{statusCode:400});const image=(await listPageBlocks(id)).find(block=>accountKey(block.id)===accountKey(blockId)&&block.type==='image');if(!image)throw Object.assign(new Error('Şəkil bu tapşırıqda tapılmadı'),{statusCode:404});await notion('/blocks/'+encodeURIComponent(image.id),{method:'DELETE'});return {ok:true,id,blockId:image.id,deleted:true};}
 async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Əvvəlcə tapşırığı yadda saxlayın');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Qoşma uğur qazana bilər. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Qoşma təsdiqi yoxdur. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
 
 async function listChatThreads(body) {
@@ -176,50 +245,49 @@ async function listChatThreads(body) {
       machineName: String(item?.machineName || '').trim().slice(0, 160)
     } : null];
   }).filter(([id, item]) => id && item))].map(([, item]) => item).slice(0, 120);
-  const threads = [];
+  const threads = [],errors=[];
   // Keep Notion API pressure low; two concurrent comment requests at a time.
   for (let i = 0; i < tasks.length; i += 2) {
     const batch = await Promise.all(tasks.slice(i, i + 2).map(async task => {
       try {
-        const result = await notion('/comments?block_id=' + encodeURIComponent(task.id), { method: 'GET' });
-        const comments = (await Promise.all((result.results || []).map(resolveCommentAuthor))).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        const result=await cachedTaskComments(task.id);const comments=result.value;if(result.stale)errors.push({taskId:task.id,error:result.error});
         return comments.length ? { taskId: task.id, title: task.title, source: task.source, machineName: task.machineName, comments } : null;
       } catch (error) {
-        console.warn('Chat thread lookup failed:', task.id, error.message);
+        errors.push({taskId:task.id,error:error.message});console.warn('Chat thread lookup failed:',task.id,error.message);
         return null;
       }
     }));
     threads.push(...batch.filter(Boolean));
   }
   threads.sort((a, b) => String(b.comments.at(-1)?.createdAt || '').localeCompare(String(a.comments.at(-1)?.createdAt || '')));
-  return { ok: true, threads };
+  return {ok:true,threads,...(errors.length?{partial:true,errors}: {})};
 }
 
 async function listCommentNotifications(body) {
   const rawIds = Array.isArray(body.ids) ? body.ids : String(body.ids || '').split(',');
   const ids = [...new Set(rawIds.map(value => cleanId(String(value || '').trim())).filter(Boolean))].slice(0, 120);
-  const comments = [];
+  const comments=[],errors=[];
   for (const taskId of ids) {
     try {
-      const result = await notion('/comments?block_id=' + encodeURIComponent(taskId), { method: 'GET' });
-      for (const item of result.results || []) comments.push({ ...(await resolveCommentAuthor(item)), taskId });
+      const result=await cachedTaskComments(taskId);if(result.stale)errors.push({taskId,error:result.error});for(const item of result.value)comments.push({...item,taskId});
     } catch (error) {
-      console.warn('Comment notification lookup failed:', taskId, error.message);
+      errors.push({taskId,error:error.message});console.warn('Comment notification lookup failed:',taskId,error.message);
     }
   }
-  return { ok: true, comments };
+  return {ok:true,comments,...(errors.length?{partial:true,errors}: {})};
 }
 
 // Schema-only reads: never scan task pages or alter Notion data.
 const taskOptionCache = new Map(), taskOptionFlights = new Map();
+const taskStatusOptions=require('./task-status-options').create({notion:(...args)=>notion(...args),config:taskConfig});
 async function taskSourceOptions(key, force=false) {
   const specs = {personal:[TASKS_DS,TASKS_DB,{tags:'Tag',assignees:'Tapsirildi'}],todo:[TODO_DS,TODO_DB,{tapsirildi:'Tapsirildi'}],gorulen:[GORULEN_DS,GORULEN_DB,{tapsirildi:'Tapsirildi'}]};
   const spec=specs[key];if(!spec)throw Object.assign(new Error('Naməlum variant mənbəyi'),{statusCode:400});
   const cached=taskOptionCache.get(key);if(!force&&cached&&Date.now()-cached.at<300000)return cached.value;
   if(taskOptionFlights.has(key))return taskOptionFlights.get(key);
-  const job=(async()=>{let schema;try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
+  const job=(async()=>{let schema;if(key!=='personal')schema=await taskStatusOptions.schema(key,force);else try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
     const value={};for(const [field,name] of Object.entries(spec[2])){const prop=schema.properties?.[name];if(!prop||!['multi_select','select'].includes(prop.type))throw new Error('Sahə '+name+' yoxdur və ya seçim siyahısı deyil');value[field]={type:prop.type,options:[...new Set((prop[prop.type]?.options||[]).map(o=>o.name).filter(x=>typeof x==='string'&&x.trim()))]};}
-    taskOptionCache.set(key,{at:Date.now(),value});return value;})();
+    if(key!=='personal')Object.assign(value,taskStatusOptions.fields(schema,key));taskOptionCache.set(key,{at:Date.now(),value});return value;})();
   taskOptionFlights.set(key,job);try{return await job;}finally{taskOptionFlights.delete(key);}
 }
 async function taskFieldOptions(source='',force=false){
@@ -270,6 +338,8 @@ function title(page, name) { return (property(page, name)?.title || []).map(x =>
 function richText(page, name) { const value = property(page, name); return (value?.rich_text || value?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
 function number(page, name) { return property(page, name)?.number ?? null; }
 function select(page, name) { const p = property(page, name); return p?.select?.name || p?.status?.name || ''; }
+let personalDirectoryCache={at:0,rows:null,flight:null};
+async function personalDirectory(force=false){if(!force&&personalDirectoryCache.rows&&Date.now()-personalDirectoryCache.at<60000)return personalDirectoryCache.rows;if(personalDirectoryCache.flight)return personalDirectoryCache.flight;personalDirectoryCache.flight=(async()=>{const pages=await queryDatabase(PERSONAL_DIRECTORY_DB,PERSONAL_DIRECTORY_DS),rows=pages.filter(p=>!p.archived&&!p.in_trash).map(p=>({id:cleanId(p.id),name:title(p,'Name'),department:select(p,'Bolme'),url:p.url||''})).filter(p=>p.id&&p.name).sort((a,b)=>a.name.localeCompare(b.name,'az'));personalDirectoryCache={at:Date.now(),rows,flight:null};return rows;})().catch(error=>{personalDirectoryCache.flight=null;throw error});return personalDirectoryCache.flight;}
 function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
 function relationIds(page, name) { return (property(page, name)?.relation || []).map(x => x.id); }
 function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
@@ -299,9 +369,13 @@ function serviceLink(baseUrl, element, id, extra = {}) {
   return `${base}/ela-nov-paketleme-dynamic.html#${params.toString()}`;
 }
 function linkPropertyName(sourceKey) {
-  if (sourceKey === 'gorulen') return process.env.GORULEN_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
-  if (sourceKey === 'todo') return process.env.TODO_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+  if (sourceKey === 'gorulen') return process.env.GORULEN_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
+  if (sourceKey === 'todo') return process.env.TODO_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
   return process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
+}
+function taskAppLink(baseUrl, id, machineId = '', planId = '') {
+  const extra = machineId ? { machine: machineId } : planId ? { plan: planId } : {};
+  return serviceLink(baseUrl, 'task', id, extra);
 }
 
 function mapPlans(pages, baseUrl = '') {
@@ -387,6 +461,16 @@ function taskConfig(sourceKey) {
   };
 }
 
+const taskEstimateModule=require('./task-estimate');
+const taskEstimates=taskEstimateModule.create({
+  notion:(...args)=>notion(...args),
+  sources:()=>({
+    personal:{dataSourceId:TASKS_DS,databaseId:TASKS_DB},
+    todo:{dataSourceId:TODO_DS,databaseId:TODO_DB},
+    gorulen:{dataSourceId:GORULEN_DS,databaseId:GORULEN_DB}
+  })
+});
+
 const taskHistory=require('./task-history');
 const completionHistory=new taskHistory.CompletionHistory(process.env.COMPLETION_HISTORY_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):path.join(__dirname,'data'),'completion-history.json'));
 function enrichCompletion(task,page){return completionHistory.enrich(task,page,taskManagement.state.tasks[task.id]||{});}
@@ -423,8 +507,12 @@ function combineFilters(...filters) {
 function editedSinceFilter(since) {
   const date=Date.parse(since);return Number.isFinite(date)?{timestamp:'last_edited_time',last_edited_time:{on_or_after:new Date(Math.max(0,date-120000)).toISOString()}}:null;
 }
+function equipmentTaskWindowFilter(dateName){
+ const cutoff=new Date(Date.now()-taskHistory.WINDOW).toISOString(),recentEdit={timestamp:'last_edited_time',last_edited_time:{on_or_after:cutoff}};
+ return dateName?{or:[{property:dateName,date:{on_or_after:cutoff}},recentEdit]}:recentEdit;
+}
 function changedCursor(pages,previous=''){let max=Date.parse(previous)||0;for(const p of pages)max=Math.max(max,Date.parse(p.last_edited_time)||0);return max?new Date(max).toISOString():previous;}
-function collectionNeedsFull(cursor,force){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000;}
+function collectionNeedsFull(cursor,force,windowVersion=0){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000||windowVersion>0&&cursor.windowVersion!==windowVersion;}
 function syncError(part,error){return {part,error:String(error?.message||error||'Cavab yoxdur Notion').slice(0,700)};}
 
 
@@ -433,7 +521,8 @@ async function queryTaskPages(machineIds = [], since = '', restrictToMachines = 
     try {
       const filter = combineFilters(
         restrictToMachines ? relationFilter(source.relationName, machineIds) : null,
-        editedSinceFilter(since)
+        editedSinceFilter(since),
+        equipmentTaskWindowFilter(source.dateName)
       );
       return { source, pages: await queryDatabase(source.databaseId, source.dataSourceId, filter ? { filter } : {}) };
     } catch (error) {
@@ -458,8 +547,8 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted 
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Tapşırıq';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
       const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
-      task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!recentTask(task))continue;
+      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', createdAt:page.created_time||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', estimateMinutes:taskEstimates.read(page), pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
+      task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!taskHistory.visibleEquipment(task))continue;
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
         result.get(machineId).push(task);
@@ -497,12 +586,14 @@ function buildSnapshotFromRawCache(baseUrl = '') {
   const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl).map(plan => ({ ...plan, tasks: tasks.get(`plan:${plan.id}`) || [] }));
   const mappedEquipment = mapEquipment(machinePages, tasks, baseUrl);
   attachTaskCounts(mappedPlans, mappedEquipment);
-  return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat() };
+  return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat().filter(task=>taskHistory.visibleEquipment(task)) };
 }
 
+const realtimeTombstones=new Map();
 function mergePages(target, pages) {
   for (const page of pages) {
-    if (page.archived) {
+    const deletedUntil=realtimeTombstones.get(page.id)||0;if(deletedUntil>Date.now()&&!page.archived&&!page.in_trash)continue;if(deletedUntil&&deletedUntil<=Date.now())realtimeTombstones.delete(page.id);
+    if (page.archived||page.in_trash) {
       target.delete(page.id);
       continue;
     }
@@ -529,18 +620,22 @@ function progressiveSnapshot(scope){
  const state=snapshotProgress[scope];
  const pomodoroTasks=scope==='personal'?[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask):null;
  const data=scope==='personal'?{tasks:pomodoroTasks.filter(recentTask),containers:[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer),pomodoroTasks,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB}:buildSnapshotFromRawCache();
+ if(scope==='personal')applyPersonalContainerDefaults(data.pomodoroTasks,data.containers);
  return {...data,cache:{...cacheHealth},sync:state?{...state,partial:state.pending.length>0||state.errors.length>0}:{revision:0,running:false,successful:[],errors:[],pending:[],partial:true}};
 }
-function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId}))];}
+function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId,dateName:source.dateName,windowVersion:1}))];}
 function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',db:TASKS_DB,ds:TASKS_DS},{key:'containers',label:'Qovluqlar',db:PERSONAL_CONTAINERS_DB,ds:PERSONAL_CONTAINERS_DS}];}
 function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
  const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
  const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
+ const readStartedAt=new Date().toISOString();
+ const windowVersion=spec.windowVersion||0;
  let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
+ if(scan&&scan.windowVersion!==windowVersion)scan=null;
  const resumed=!!scan;
- const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||(light?false:collectionNeedsFull(cursor,false)));
+ const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||windowVersion>0&&cursor.windowVersion!==windowVersion||!light&&collectionNeedsFull(cursor,false,windowVersion));
  if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
+ if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',windowVersion,...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
  if(resumed)progress.resumedRecords+=scan.loaded||0;
  if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
  const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
@@ -550,7 +645,8 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
   else{cursors[spec.key]=state;mergePages(target,pages);saveRawSnapshotCache();}
  };
  if(!resumed){try{commitCheckpoint(scan,[],isFull);}catch(error){completeSnapshotPart(progress,spec,error);return Promise.reject(syncError(spec.label,error));}}
- const query={...(isFull?{}:{filter:editedSinceFilter(scan.filterSince)}),sorts:[{timestamp:'last_edited_time',direction:'descending'}]};if(!query.filter)delete query.filter;
+ const filter=combineFilters(isFull?null:editedSinceFilter(scan.filterSince),windowVersion?equipmentTaskWindowFilter(spec.dateName):null);
+ const query={...(filter?{filter}:{}),sorts:[{timestamp:'last_edited_time',direction:'descending'}]};
  const read=scan.done?Promise.resolve([]):queryDatabase(spec.db,spec.ds,query,(page,info)=>{
   if(!valid())return;
   const next={...scan,nextCursor:info.nextCursor,done:!info.hasMore,loaded:scan.loaded+page.length,maxEdited:changedCursor(page,scan.maxEdited),readBarrier:scan.readBarrier||info.readBarrier||''};
@@ -564,7 +660,7 @@ function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid
  },background?'history':'interactive',scan);
  return read.then(()=>{
   if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,since:scan.readBarrier||scan.maxEdited||current.since||'',fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
+   const current=cursors[spec.key]||{};const finished={...current,...(windowVersion?{windowVersion}:{}),since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
    if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
    else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
   }
@@ -586,7 +682,7 @@ async function syncEquipmentCollections(full,startedAt,baseUrl='',retry=false,li
 function reconcileSnapshot(scope){
  if(backgroundJobs.has(scope))return backgroundJobs.get(scope);
  const personal=scope==='personal',cursors=personal?personalRaw.cursors:(rawCache.cursors=rawCache.cursors||{});
- const specs=(personal?personalSnapshotSpecs():equipmentSnapshotSpecs()).filter(spec=>{const c=cursors[spec.key];return c?.fullAt&&!c.error&&collectionNeedsFull(c,false);});
+ const specs=(personal?personalSnapshotSpecs():equipmentSnapshotSpecs()).filter(spec=>{const c=cursors[spec.key];return c?.fullAt&&!c.error&&collectionNeedsFull(c,false,spec.windowVersion||0);});
  if(!specs.length)return Promise.resolve(null);
  const generation=personalTasksGeneration,valid=()=>!personal||generation===personalTasksGeneration;
  const progress=beginSnapshotProgress(scope,specs,true,true);
@@ -598,7 +694,8 @@ function reconcileSnapshot(scope){
 async function fullSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(true,startedAt,baseUrl,retry,light);}
 async function incrementalSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(false,startedAt,baseUrl,retry,light);}
 
-async function snapshot(full = false, baseUrl = '', fresh=false,retry=false,light=false) {
+function snapshot(full=false,baseUrl='',fresh=false,retry=false,light=false){return queryPolicy.run('equipment',{refresh:full||fresh||retry,cached:()=>snapshotCache?(snapshotCacheBaseUrl===baseUrl?snapshotCache:{...buildSnapshotFromRawCache(baseUrl),sync:snapshotCache.sync}):null,load:()=>snapshotUnbounded(full,baseUrl,fresh,retry,light)});}
+async function snapshotUnbounded(full = false, baseUrl = '', fresh=false,retry=false,light=false) {
   if (snapshotCache && !full && !fresh && snapshotCacheBaseUrl === baseUrl && Date.now() - snapshotCacheAt < SNAPSHOT_CACHE_MS) return snapshotCache;
   if (snapshotInFlight) return snapshotInFlight;
   const startedAt = new Date().toISOString();
@@ -654,7 +751,9 @@ async function syncServiceLinks(baseUrl, force = false) {
       const pages = await queryDatabase(source.databaseId, source.dataSourceId);
       for (const page of pages) {
         const machineId = relationIds(page, source.relationName)[0] || '';
-        targets.push({ page, propertyName: source.linkProperty || LINK_PROPERTY_DEFAULT, link: serviceLink(normalized, 'task', page.id, { machine: machineId }) });
+        const planId = relationIds(page, source.planRelationName)[0] || '';
+        if (!machineId && !planId) continue;
+        targets.push({ page, propertyName: source.linkProperty || TASK_LINK_PROPERTY_DEFAULT, link: taskAppLink(normalized, page.id, machineId, planId) });
       }
     }
     let updated = 0;
@@ -686,20 +785,27 @@ const SECURITY_HEADERS = {
 };
 
 function json(response, status, body, extraHeaders = {}) {
+  if(status>=400&&typeof body?.error==='string'&&/^Notion API \d+:/i.test(body.error)){body={...body,technicalDetails:body.error,error:body.error.startsWith('Notion API 400:')?'Notion sahə xətası: '+body.error.slice('Notion API 400:'.length).trim():'Notion əməliyyatı alınmadı. HTTP '+(body.error.match(/Notion API (\d+)/)?.[1]||status)+'. Yenidən cəhd edin.'};}
+
+  if(response.__accountRequest&&status<300)accounts.user(response.__accountRequest);
+  if(response.__account&&status<300&&response.__account.disabled)throw accessError('Giriş qeyri-aktivdir',401);
+  if(response.__account&&status<300&&response.__accountScope)body=projectAccount(response.__account,response.__accountScope,body);
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': CORS_ORIGIN,
-    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
+    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization',
     'Cache-Control': 'no-store',
     ...SECURITY_HEADERS,
     ...extraHeaders
   });
   response.end(JSON.stringify(body));
+  if(status>=200&&status<300&&body?.ok!==false&&response.__realtimeScopes?.length)realtime.invalidate(response.__realtimeScopes);
 }
 
-function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store') {
-  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS });
-  response.end(fs.readFileSync(filename));
+function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store', request = null) {
+  const encoded=contentType.startsWith('text/html')?uiAssets.encodeHtml(filename,request?.headers||{}):{body:fs.readFileSync(filename),headers:{}};
+  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS, ...encoded.headers });
+  response.end(encoded.body);
 }
 
 function requestError(message, statusCode) {
@@ -708,7 +814,31 @@ function requestError(message, statusCode) {
   return error;
 }
 
-async function readBody(request){return request.__body||{}}
+function readBody(request) {
+  if(request.__accountBody!==undefined)return Promise.resolve(request.__accountBody);
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let bytes = 0;
+    let settled = false;
+    request.on('data', chunk => {
+      if (settled) return;
+      bytes += Buffer.byteLength(chunk);
+      if (bytes > (String(request.url||'').split('?')[0]==='/api/image-upload'?8*1024*1024:100000)) {
+        settled = true;
+        reject(requestError('Sorğunun ölçüsü icazə verilən limiti keçir', 413));
+        request.resume();
+        return;
+      }
+      body += chunk;
+    });
+    request.on('end', () => {
+      if (settled) return;
+      try { resolve(JSON.parse(body || '{}')); }
+      catch { reject(requestError('Etibarsızdır JSON sorğuda', 400)); }
+    });
+    request.on('error', error => { if (!settled) reject(error); });
+  });
+}
 
 function enforceAiRateLimit() {
   const now = Date.now();
@@ -765,18 +895,9 @@ async function saveLayout(body) {
     body: JSON.stringify({ properties })
   });
   updateLayoutCaches(id, values);
+  realtime.invalidate(['equipment']);
   console.log('Layout saved:', id, values);
   return { ok: true, id, values, savedAt: new Date().toISOString() };
-}
-
-function personalCalendarDate(body,previous={}) {
- const start=body.date===undefined?previous.date||'':body.date?notionDateStart(body.date):'';
- const invalid=message=>{throw Object.assign(new Error(message),{code:'INVALID_CALENDAR_RANGE',statusCode:400});};
- if(!start){if(body.dateEnd)invalid('Bitirmək üçün başlanğıc lazımdır');return null;}
- let end=body.dateEnd===undefined?null:body.dateEnd?notionDateStart(body.dateEnd):null;
- if(body.dateEnd===undefined&&start.includes('T')&&previous.date&&previous.dateEnd){const duration=Date.parse(previous.dateEnd)-Date.parse(previous.date);if(duration>0&&duration<=7*86400000&&Number.isFinite(Date.parse(start)))end=new Date(Date.parse(start)+duration).toISOString();}
- if(end&&(!start.includes('T')||!end.includes('T')||!Number.isFinite(Date.parse(end))||!Number.isFinite(Date.parse(start))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>7*86400000))invalid('Təqvim intervalı: başladıqdan sonra bitir, 7 gündən çox olmayaraq');
- return {start,end};
 }
 
 function notionDateStart(value) {
@@ -785,13 +906,26 @@ function notionDateStart(value) {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) ? text + ':00' : text;
 }
 
+
+// A calendar range lives in the existing Notion Tarix date property; no separate timer or estimate.
+function personalCalendarDate(body,previous={}) {
+ const invalid=message=>{throw Object.assign(new Error(message),{statusCode:400,code:'INVALID_CALENDAR_RANGE'});};
+ if(body.date===undefined){if(body.dateEnd!==undefined)invalid('Sonu ilə birlikdə başlanğıcı da göstərin');return undefined;}
+ const start=notionDateStart(body.date);
+ if(!start){if(body.dateEnd)invalid('Bitirmək üçün başlanğıc lazımdır');return null;}
+ let end=body.dateEnd===undefined?null:body.dateEnd?notionDateStart(body.dateEnd):null;
+ if(body.dateEnd===undefined&&start.includes('T')&&previous.date&&previous.dateEnd){const duration=Date.parse(previous.dateEnd)-Date.parse(previous.date);if(duration>0&&duration<=7*86400000&&Number.isFinite(Date.parse(start)))end=new Date(Date.parse(start)+duration).toISOString();}
+ if(end){if(!start.includes('T')||!end.includes('T')||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>7*86400000)invalid('Təqvim intervalı: başladıqdan sonra bitir, 7 gündən çox olmayaraq');}
+ return {start,end};
+}
+
 function buildTaskProperties(body, config, includeMachine = false) {
   const properties = {};
   const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
   if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Tapşırıq' } }] };
   if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
   if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
-  if (body.date !== undefined) properties[config.date] = { date: body.date ? { start: notionDateStart(body.date) } : null };
+  if (body.date !== undefined) properties[config.date] = { date: personalCalendarDate(body) };
   if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
   if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
   if (body.gtd !== undefined && config.gtdProperty) properties[config.gtdProperty] = body.gtd ? { status: { name: String(body.gtd).trim() } } : { status: null };
@@ -835,22 +969,28 @@ async function createEquipment(body){
 }
 
 function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Vaxt təxmini: 1-dən 43200 dəqiqəyə qədər tam ədəd və ya boş dəyər'),{statusCode:400,code:'INVALID_ESTIMATE'});}
-async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
-function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
+async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined){const sourceKey=body.sourceKey||'personal';await taskEstimates.save(sourceKey,id,body.estimateMinutes);taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});}else if(body.parentId!==undefined||body.machineId!==undefined||body.planId!==undefined){const saved=taskManagement.getEstimate(id);if(saved!==null){const sourceKey=body.sourceKey||'personal',page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});if(taskEstimates.read(page)===null)await taskEstimates.save(sourceKey,id,saved);}}if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
+function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:value.estimateMinutes??taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
 
-async function saveTask(body) {
+async function saveTask(body, baseUrl = '') {
   validateTaskEstimate(body);
   const id = String(body.id || '').trim();
   const sourceKey = String(body.sourceKey || 'todo');
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
   const config = taskConfig(sourceKey);
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties: buildTaskProperties(body, config, Boolean(body.machineId)) }) });
-  await persistTaskEstimate(body,id);
+  const properties = await taskStatusOptions.properties(body,sourceKey,buildTaskProperties(body, config, Boolean(body.machineId)));
+  const appLink = taskAppLink(baseUrl, id, body.machineId, body.planId);
+  if (appLink) properties[config.linkProperty || TASK_LINK_PROPERTY_DEFAULT] = { url: appLink };
+  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  const sessionTitleSync = body.title !== undefined
+    ? await syncTaskSessionTitle(id, sourceKey, String(body.title || '').trim())
+    : undefined;
+  await persistTaskEstimate({...body,sourceKey},id);
   if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
   if (body.machineId) taskCache.delete(String(body.machineId));
   snapshotCache = null;
   console.log('Task saved:', id, sourceKey);
-  return { ok: true, id, sourceKey,completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id, sourceKey,...(sessionTitleSync?{sessionTitleSync}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 async function createTask(body, baseUrl = '') {
@@ -863,18 +1003,36 @@ async function createTask(body, baseUrl = '') {
   const titleValue = String(body.title || '').trim();
   if ((!machineId && !planId) || !titleValue) throw new Error('Tapşırığın adını və avadanlıq və ya planı göstərin');
   const config = taskConfig(sourceKey);
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)) }) });
-  await persistTaskEstimate(body,page.id,true);
+  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)),{creating:true}) }) });
+  const appLink = taskAppLink(baseUrl, page.id, machineId, planId);
+  if (appLink) { try { await patchServiceLink(page, config.linkProperty || TASK_LINK_PROPERTY_DEFAULT, appLink); } catch (error) { console.warn('Task app link update failed:', page.id, error.message); } }
+  await persistTaskEstimate({...body,sourceKey},page.id,true);
   if (machineId) taskCache.delete(machineId);
   snapshotCache = null;
   return { ok: true, id: page.id, estimateMinutes:taskManagement.getEstimate(page.id), url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, machineId ? { machine: machineId } : { plan: planId }), sourceKey, savedAt: new Date().toISOString() };
+}
+
+// Deletion is idempotent, but only after Notion confirms this page is archived.
+// Never unarchive a page, retry another write, or treat permission errors as success.
+async function archiveNotionPage(id) {
+  const endpoint = '/pages/' + encodeURIComponent(id);
+  try {
+    return await notion(endpoint, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  } catch (error) {
+    if (error.notionStatus !== 400 || !/can't edit block that is archived/i.test(error.message || '')) throw error;
+    let page;
+    try { page = await notion(endpoint, { method: 'GET' }); } catch { throw error; }
+    if (!page || page.object !== 'page' || page.id?.replace(/-/g,'') !== id.replace(/-/g,'') || !(page.archived === true || page.in_trash === true)) throw error;
+    observeWrittenPage(endpoint, page);
+    return page;
+  }
 }
 
 async function archiveElement(body) {
   const id = String(body.id || '').trim();
   const kind = body.kind === 'plan' ? 'plan' : 'equipment';
   if (!id) throw new Error('Müəyyən edilməyib ID elementi');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   if (kind === 'plan') rawCache.plans.delete(id); else rawCache.machines.delete(id);
   snapshotCache = null;
   return { ok: true, id, kind, deleted: true, savedAt: new Date().toISOString() };
@@ -883,7 +1041,7 @@ async function archiveElement(body) {
 async function deleteTask(body) {
   const id = String(body.id || '').trim();
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   if (body.machineId) taskCache.delete(String(body.machineId));
   for (const pages of rawCache.tasks.values()) pages.delete(id);
   taskManagement.update({type:'archive',id});saveRawSnapshotCache();snapshotCache = null;
@@ -953,6 +1111,7 @@ function mapPersonalTask(page) {
     pomodoroEndedAt: dateStart(page, 'Конец отчета'),
     pomodoroMode: select(page, 'Pomodoro режим'),
     pomodoroDuration: number(page, 'Pomodoro текущая длительность') ?? pomodoroModeDuration(select(page, 'Pomodoro режим')) ,
+    estimateMinutes: taskEstimates.read(page),
     updatedAt: page.last_edited_time || ''
   },page);
 }
@@ -977,9 +1136,48 @@ function personalNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function personalSnapshot(force=false,fresh=false,retry=false,light=false){
+
+// Only independent personal tasks require a container. Subtasks may remain containerless.
+function inboxContainerId(containers) {
+ const matches=containers.filter(c=>String(c.name||'').trim().toLowerCase()==='inbox'&&c.id);
+ if(matches.length!==1)throw Object.assign(new Error(matches.length?'Bir neçə tapıldı INBOX. Bir konteyner göstərin INBOX.':'Qovluq INBOX mövcud deyil. Məlumatlarınızı yeniləyin və inteqrasiya girişinizi yoxlayın. Tapşırıq yaradılmayıb.'),{code:'INBOX_UNAVAILABLE',statusCode:409});
+ return matches[0].id;
+}
+async function personalInboxId(){
+ const cached=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
+ if(cached.some(c=>String(c.name||'').trim().toLowerCase()==='inbox'))return inboxContainerId(cached);
+ const pages=await queryDatabase(PERSONAL_CONTAINERS_DB,PERSONAL_CONTAINERS_DS);
+ const live=pages.filter(p=>!p.archived&&!p.in_trash);for(const page of live)personalRaw.containers.set(page.id,page);
+ return inboxContainerId(live.map(mapPersonalContainer));
+}
+async function resolvePersonalTaskContainer(body){
+ if(String(body.containerId||'').trim())return cleanId(String(body.containerId).trim());
+ if(String(body.parentId||'').trim())return '';
+ return personalInboxId();
+}
+const personalContainerRepairs=new Set();let personalContainerRepairQueue=Promise.resolve();
+function applyPersonalContainerDefaults(tasks,containers){
+ let inbox;try{inbox=inboxContainerId(containers)}catch{return tasks}
+ for(const task of tasks){if(task.containerId||task.parentId||taskManagement.state.tasks[task.id]?.parentId||!recentTask(task))continue;task.containerId=inbox;task.containerAssignmentPending=true;schedulePersonalContainerRepair(task.id);}
+ return tasks;
+}
+function schedulePersonalContainerRepair(id){
+ if(personalContainerRepairs.has(id))return;personalContainerRepairs.add(id);
+ personalContainerRepairQueue=personalContainerRepairQueue.then(async()=>{
+  // Re-read immediately before writing: never move a newly assigned task or a new subtask.
+  const page=await notion('/pages/'+encodeURIComponent(id));
+  if(page.archived||page.in_trash||taskManagement.state.tasks[id]?.parentId)return;
+  if(relationIds(page,'Personal Container').length||relationIds(page,'Parent item').length){personalRaw.tasks.set(id,page);personalTasksCache=null;return;}
+  const containerId=await personalInboxId();
+  const patched=await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties:{'Personal Container':{relation:[{id:containerId}]}}})});
+  personalRaw.tasks.set(id,patched);personalTasksCache=null;personalTasksCacheAt=0;saveRawSnapshotCache();
+ }).catch(()=>{/* Keep pending presentation in INBOX; retry after the next refresh. */}).finally(()=>personalContainerRepairs.delete(id));
+}
+
+function personalSnapshot(force=false,fresh=false,retry=false,light=false){return queryPolicy.run('personal',{refresh:force||fresh||retry,cached:()=>personalTasksCache,load:()=>personalSnapshotUnbounded(force,fresh,retry,light)});}
+async function personalSnapshotUnbounded(force=false,fresh=false,retry=false,light=false){
  if(!force&&!fresh&&personalTasksCache&&Date.now()-personalTasksCacheAt<5000)return personalTasksCache;
- if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshot(force,fresh,retry,light);}
+ if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshotUnbounded(force,fresh,retry,light);}
  const generation=personalTasksGeneration;personalTasksInFlightGeneration=generation;
  personalTasksInFlight=(async()=>{
   const specs=personalSnapshotSpecs(),failed=specs.filter(x=>personalRaw.cursors[x.key]?.error),selected=retry&&failed.length?failed:specs;
@@ -990,11 +1188,12 @@ async function personalSnapshot(force=false,fresh=false,retry=false,light=false)
   const errors=results.filter(x=>x.status==='rejected').map(x=>x.reason),successful=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
   if(!successful.length&&errors.length)throw Object.assign(new Error(errors.map(x=>x.part+': '+x.error).join('; ')),{statusCode:503,code:'SNAPSHOT_READ_FAILED'});
   const pomodoroTasks=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),tasks=pomodoroTasks.filter(recentTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
+  applyPersonalContainerDefaults(pomodoroTasks,containers);
   const result={tasks,containers,pomodoroTasks,fetchedAt:new Date().toISOString(),database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB,sync:{mode:force?'full':'incremental',successful,errors,partial:errors.length>0}};personalTasksCache=result;personalTasksCacheAt=Date.now();saveRawSnapshotCache();return result;
  })().then(result=>result||personalSnapshotAfterMutation(force,fresh,retry,light)).finally(()=>{personalTasksInFlight=null;});
  return personalTasksInFlight;
 }
-async function personalSnapshotAfterMutation(force,fresh,retry,light){personalTasksInFlight=null;return personalSnapshot(force,true,retry,light);}
+async function personalSnapshotAfterMutation(force,fresh,retry,light){personalTasksInFlight=null;return personalSnapshotUnbounded(force,true,retry,light);}
 
 function personalContainerProperties(body, includeName = false) {
   const properties = {
@@ -1032,11 +1231,11 @@ async function savePersonalLayout(body) {
       'Personal Height': { number: personalNumber(body.height, 105) },
       'Personal Order': { number: personalNumber(body.order, 0) }
     };
-    if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+    if (body.containerId !== undefined) { const parentId=relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
   }
   await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
   invalidatePersonalTasks();
-  return { ok: true, kind, id, savedAt: new Date().toISOString() };
+  return { ok: true, kind, id, ...(kind==='task'&&properties['Personal Container']?{containerId:properties['Personal Container'].relation[0]?.id||''}:{}), savedAt: new Date().toISOString() };
 }
 
 async function deletePersonalContainer(id) {
@@ -1191,9 +1390,10 @@ async function guardedAutosaveCreate(kind,body,create){
  if(!/^[a-zA-Z0-9-]{16,100}$/.test(op))throw Error('Yaradılma açarı etibarsızdır');
  const key=kind+'-'+op,file=path.join(__dirname,'data','autosave-'+key+'.json');
  if(autosaveCreates.has(key))return autosaveCreates.get(key);
- const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
+ const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior&&!prior.rejected){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify({pending:true,at:Date.now()}));
- const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
+ if(prior?.rejected){/* Explicit validation rejection: no page was created. */}else if(prior){const e=Error('Yaradılma cavabı məlum deyil. Siyahını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
+ try{const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;}catch(error){if(error.notionStatus===400&&error.notionCode==='validation_error'||['TASK_STATUS_INVALID','TASK_SCHEMA_INVALID'].includes(error.code)){fs.writeFileSync(file,JSON.stringify({rejected:true,at:Date.now()}));error.code='TASK_CREATE_REJECTED';error.statusCode=400;}throw error;}})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
 }
 async function validatePersonalTaskContext(body){
  if(body.machineId===undefined&&body.planId===undefined)return;
@@ -1222,14 +1422,15 @@ async function createPersonalTask(body) {
   if (body.priority) properties.Priority = { select: { name: String(body.priority).trim() } };
   if (body.prioritet) properties.Prioritet = { status: { name: String(body.prioritet).trim() } };
   if (body.category) properties.Kateqoriya = { select: { name: String(body.category).trim() } };
-  if(body.date!==undefined||body.dateEnd!==undefined)properties.Tarix={date:personalCalendarDate(body)};
+  if(body.date!==undefined||body.dateEnd!==undefined) properties.Tarix={date:personalCalendarDate(body)};
   if (Array.isArray(body.tags) && body.tags.length) properties.Tag = { multi_select: body.tags.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
   if (Array.isArray(body.assignees) && body.assignees.length) properties.Tapsirildi = { multi_select: body.assignees.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
   if (body.parentId) properties['Parent item'] = { relation: [{ id: cleanId(String(body.parentId)) }] };
   if (body.containerId) properties['Personal Container'] = { relation: [{ id: cleanId(String(body.containerId)) }] };
+  const destination=await resolvePersonalTaskContainer(body);properties['Personal Container']={relation:destination?[{id:destination}]:[]};
   const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
-  await persistTaskEstimate(body,page.id,true);
+  await persistTaskEstimate({...body,sourceKey:'personal'},page.id,true);
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(page.id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(page.id, body.pageContent);
   invalidatePersonalTasks();
@@ -1239,7 +1440,7 @@ async function createPersonalTask(body) {
 async function deletePersonalTask(idValue) {
   const id = cleanId(String(idValue || '').trim());
   if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
+  await archiveNotionPage(id);
   personalRaw.tasks.delete(id);taskManagement.update({type:'archive',id});saveRawSnapshotCache();invalidatePersonalTasks();
   return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
 }
@@ -1255,15 +1456,6 @@ async function savePersonalTask(body){
  return savePersonalTaskUnlocked(body);
 }
 
-function autosaveFieldEqual(key,a,b){
- const normalize=value=>Array.isArray(value)?JSON.stringify([...value].sort()):String(value??'');
- if(normalize(a)===normalize(b))return true;
- if(key!=='date')return false;
- const iso=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
- if(!iso.test(String(a))||!iso.test(String(b)))return false;
- const x=Date.parse(a),y=Date.parse(b);return Number.isFinite(x)&&Number.isFinite(y)&&x===y;
-}
-
 async function savePersonalTaskUnlocked(body) {
   validateTaskEstimate(body);
   await validatePersonalTaskContext(body);
@@ -1273,7 +1465,8 @@ async function savePersonalTaskUnlocked(body) {
     const current=mapPersonalTask(await notion('/pages/'+encodeURIComponent(id)));
     for(const [key,expected]of Object.entries(body.autosaveBase)){
       if(['pageBlocks','pageContent','estimateMinutes'].includes(key)||current[key]===undefined)continue;
-      if(!autosaveFieldEqual(key,current[key],expected)&&!autosaveFieldEqual(key,current[key],body[key])){const e=Error('Sahəsi “'+key+'» başqa cihazda dəyişdirildi. Tapşırığı yeniləyin və dəyişiklikləri yoxlayın.');e.code='AUTOSAVE_CONFLICT';e.statusCode=409;throw e}
+      const normalize=value=>{if(['date','dateEnd'].includes(key)&&typeof value==='string'&&value.includes('T')&&Number.isFinite(Date.parse(value)))return 'instant:'+Date.parse(value);return Array.isArray(value)?JSON.stringify([...value].sort()):String(value??'');};
+      if(normalize(current[key])!==normalize(expected)&&normalize(current[key])!==normalize(body[key])){const e=Error('Sahəsi “'+key+'» başqa cihazda dəyişdirildi. Tapşırığı yeniləyin və dəyişiklikləri yoxlayın.');e.code='AUTOSAVE_CONFLICT';e.statusCode=409;throw e}
     }
   }
   const properties = {};
@@ -1283,30 +1476,48 @@ async function savePersonalTaskUnlocked(body) {
   if (body.priority !== undefined) properties.Priority = body.priority ? { select: { name: String(body.priority).trim() } } : { select: null };
   if (body.prioritet !== undefined) properties.Prioritet = body.prioritet ? { status: { name: String(body.prioritet).trim() } } : { status: null };
   if (body.category !== undefined) properties.Kateqoriya = body.category ? { select: { name: String(body.category).trim() } } : { select: null };
-  if(body.date!==undefined||body.dateEnd!==undefined){const previous=body.dateEnd===undefined&&String(body.date||'').includes('T')?mapPersonalTask(await notion('/pages/'+encodeURIComponent(id))):{};properties.Tarix={date:personalCalendarDate(body,previous)};}
+  if(body.date!==undefined||body.dateEnd!==undefined){const previous=body.dateEnd===undefined&&body.date?mapPersonalTask(await notion('/pages/'+encodeURIComponent(id))):{};properties.Tarix={date:personalCalendarDate(body,previous)};}
   if (body.tags !== undefined) properties.Tag = { multi_select: (Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
   if (body.assignees !== undefined) properties.Tapsirildi = { multi_select: (Array.isArray(body.assignees) ? body.assignees : String(body.assignees || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
   if (body.parentId !== undefined) {
     const parentId = cleanId(String(body.parentId || '').trim());
     properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
   }
-  if (body.containerId !== undefined) properties['Personal Container'] = { relation: body.containerId ? [{ id: cleanId(String(body.containerId)) }] : [] };
+  if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
   if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined && body.machineId===undefined && body.planId===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
   if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
+  const sessionTitleSync = body.title !== undefined
+    ? await syncTaskSessionTitle(id, 'personal', String(body.title || '').trim())
+    : undefined;
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
-  await persistTaskEstimate(body,id);
+  await persistTaskEstimate({...body,sourceKey:'personal'},id);
   if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
   invalidatePersonalTasks();
-  return { ok: true, id,...taskManagement.getContext(id),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
+  return { ok: true, id,...(sessionTitleSync?{sessionTitleSync}:{}),...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
 }
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
+const {PomodoroSessions}=require('./pomodoro-sessions');
+const {TimerSessionLog}=require('./timer-session-log');
+const timerSessionLog=new TimerSessionLog({notion,queryDatabase,dataSourceId:TIMER_SESSIONS_DS});
+const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();},saveSession:session=>timerSessionLog.record(session),authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
+const legacyPomodoroCutoff=Date.now()-7*24*60*60*1000,knownPomodoroSessionIds=new Set(sharedPomodoro.sessions.map(session=>session.id));
+let legacyPomodoroSessionsAdded=0;
+for(const timer of sharedPomodoro.timers.values()){
+ const startedAt=Date.parse(timer.startedAt||''),endedAt=Date.parse(timer.completedAt||'');
+ if(timer.status!=='completed'||timer.mode==='break'||!timer.sessionId||knownPomodoroSessionIds.has(timer.sessionId)||!Number.isFinite(startedAt)||!Number.isFinite(endedAt)||endedAt<legacyPomodoroCutoff)continue;
+ const plannedMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||25)),seconds=Math.max(0,Math.min(plannedMinutes*60,(endedAt-startedAt)/1000));
+ const session={id:timer.sessionId,taskId:timer.id,title:timer.title||'Pomodoro',sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:timer.actorId||'unidentified',worker:timer.worker||'İstifadəçi',status:'saved',startedAt,endedAt,seconds,plannedMinutes,fullPomodoro:timer.completionReason!=='early'&&seconds>=plannedMinutes*60,completionReason:timer.completionReason||'elapsed',startOperation:timer.startOperation||'',notionLogEligible:true,notionSyncPending:true,legacyBackfill:true};
+ sharedPomodoro.commit(null,session,null);knownPomodoroSessionIds.add(timer.sessionId);legacyPomodoroSessionsAdded++;
+}
+setInterval(()=>void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session retry deferred:',e.message)),60000).unref();
+if(legacyPomodoroSessionsAdded)void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session backfill deferred:',e.message));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
 async function sharedPomodoroSnapshot(){
-  if(Date.now()-pomodoroRefreshAt>30000){
-    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
+  if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
+    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
   return sharedPomodoro.snapshot();
@@ -1314,8 +1525,13 @@ async function sharedPomodoroSnapshot(){
 const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {
   const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  const previous=personalPomodoroLocks.get(id)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(id,current);await previous;
-  try{return await savePersonalPomodoroUnlocked(body)}finally{release();if(personalPomodoroLocks.get(id)===current)personalPomodoroLocks.delete(id)}
+  const action=String(body.action||'').trim();
+  const request={...body,id,browserSessions:true};
+  // Old Android clients do not send an operation ID. Give those requests an
+  // idempotency key too, and use the same session logger for every client.
+  if(action==='start'&&!request.operationId)request.operationId=crypto.randomUUID();
+  const lockId='all-timers';const previous=personalPomodoroLocks.get(lockId)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(lockId,current);await previous;
+  try{if(['start','open'].includes(action))await sharedPomodoroSnapshot();return await browserPomodoroSessions.handle({...request,__account:body.__account});}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
 }
 async function savePersonalPomodoroUnlocked(body){
  const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
@@ -1325,17 +1541,28 @@ async function savePersonalPomodoroUnlocked(body){
  const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
  if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
  if(action==='hide'&&Object.prototype.hasOwnProperty.call(body,'expectedVisibilityId')&&body.expectedVisibilityId!==(timer.windowVisibilityId||''))return answer(timer,{duplicate:true,stale:true});
+ if(action==='open'||action==='start'){
+  await sharedPomodoroSnapshot();
+  const others=[...sharedPomodoro.timers.values()].filter(t=>t.running&&t.id!==id);
+  if(others.length){
+   const confirmationToken=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');
+   if(body.__account&&body.__account.role!=='admin')for(const other of others)await accountTask(body.__account,other.id);
+   if(body.confirmationToken!==confirmationToken){const error=requestError('Pomodoro artıq işləyir. Onu dayandırıb yenisini açmaq?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
+   for(const other of others){if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});sharedPomodoro.put({...other,discovered:false,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-Date.now())/1000)),pausedBy:id});}
+   if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal','equipment']);
+  }
+ }
  if(action==='hide'){timer=sharedPomodoro.put({...timer,windowHidden:true,windowVisibilityId:'hide:'+now+':'+timer.revision});return answer(timer)}
- if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,openedAt:now,windowHidden:false,windowVisibilityId:'open:'+now+':'+timer.revision,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
- if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt){if(!existing||!existing.running)timer=sharedPomodoro.put(timerFromTask(task,now));return answer(timer,{duplicate:true})}
- if((action==='finish'||action==='break-finish')&&!task.pomodoroRunning&&timer.status!=='paused')return answer(timer,{duplicate:true});
+ if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,discovered:false,openedAt:now,windowHidden:false,windowVisibilityId:'open:'+now+':'+timer.revision,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
+ if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt&&(!existing||existing.running)){if(!existing||!existing.running)timer=timerFromTask(task,now);timer=sharedPomodoro.put({...timer,discovered:false,windowHidden:false,openedAt:now,windowVisibilityId:'start:'+now+':'+timer.revision});return answer(timer,{duplicate:true})}
+ if((action==='finish'||action==='break-finish')&&!timer.running&&timer.status!=='paused')return answer(timer,{duplicate:true});
  if(action==='pause'&&!timer.running)return answer(timer,{duplicate:true});
  const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,Math.round(timer.status==='paused'&&timer.mode===mode?timer.plannedDuration||timer.duration:Number(body.plannedDuration||body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
  if(action==='start'){
   const requested=Number(body.remainingSeconds),remaining=Number.isFinite(requested)&&requested>0?Math.min(duration*60,Math.ceil(requested)):timer.status==='paused'&&timer.mode===mode?timer.remainingSeconds:duration*60;
   const effectiveStart=new Date(now-(duration*60-remaining)*1000).toISOString();
   properties['Отчет запущен']={checkbox:true};properties['Начало отчета']={date:{start:effectiveStart}};properties['Конец отчета']={date:null};properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};properties['Pomodoro текущая длительность']={number:duration};
-  timer={...timer,mode,duration,plannedDuration:duration,running:true,status:'running',windowHidden:false,windowVisibilityId:'start:'+now+':'+timer.revision,startedAt:effectiveStart,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:id+':'+effectiveStart,completedAt:null,completionReason:null,creditedMinutes:null};
+  timer={...timer,mode,duration,plannedDuration:duration,running:true,status:'running',windowHidden:false,windowVisibilityId:'start:'+now+':'+timer.revision,startedAt:effectiveStart,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:timer.status==='paused'&&timer.mode===mode&&timer.sessionId?timer.sessionId:id+':'+effectiveStart,completedAt:null,completionReason:null,creditedMinutes:null};
  }else if(action==='pause'){
   const remaining=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Math.min(duration*60,Number(body.remainingSeconds)||timer.remainingSeconds||duration*60));
   properties['Отчет запущен']={checkbox:false};timer={...timer,running:false,status:'paused',endsAt:0,remainingSeconds:remaining};
@@ -1346,7 +1573,13 @@ async function savePersonalPomodoroUnlocked(body){
  }else{
   properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,completedAt:null,completionReason:'reset',creditedMinutes:null};
  }
- if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();timer=sharedPomodoro.put(timer);return answer(timer);
+ const startedAtMs=Date.parse(timer.startedAt),endedAtMs=Date.parse(iso),plannedMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||duration)),actualSeconds=Number.isFinite(startedAtMs)?Math.max(0,Math.min(plannedMinutes*60,(endedAtMs-startedAtMs)/1000)):0,finishedEarly=body.early===true;
+ const completedSession=action==='finish'&&!global&&mode!=='break'?{id:timer.sessionId||id+':'+(timer.startedAt||iso),taskId:id,title:task.title||timer.title||'Pomodoro',sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:body.__account?.id||'unidentified',worker:body.__account?.name||timer.worker||'İstifadəçi',status:'saved',startedAt:Number.isFinite(startedAtMs)?startedAtMs:endedAtMs-actualSeconds*1000,endedAt:endedAtMs,seconds:actualSeconds,plannedMinutes,fullPomodoro:!finishedEarly,completionReason:finishedEarly?'early':'elapsed',startOperation:body.operationId||'',notionLogEligible:true,notionSyncPending:true}:null;
+ if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});invalidatePersonalTasks();
+ const savedTimer={...timer,discovered:false};
+ if(completedSession){timer=sharedPomodoro.commit(savedTimer,completedSession,null);await browserPomodoroSessions.flushSessionLog(completedSession);timer=sharedPomodoro.get(id);}
+ else timer=sharedPomodoro.put(savedTimer);
+ return answer(timer);
 }
 
 async function aiChat(body) {
@@ -1394,13 +1627,160 @@ async function notionUsers(force = false) {
   return userCache.value;
 }
 
-const handlerAdapter = async (request, response) => {
+
+function observeWrittenPage(endpoint,page){
+ if(!page?.id||page.object!=='page'||!page.properties)return;
+ const parent=page.parent||{},parentId=parent.data_source_id||parent.database_id||'';
+ if(page.archived||page.in_trash)realtimeTombstones.set(page.id,Date.now()+10*60*1000);else realtimeTombstones.delete(page.id);
+ let targets=[];
+ if(personalRaw.tasks.has(page.id)||[TASKS_DS,TASKS_DB].includes(parentId))targets.push(personalRaw.tasks);
+ if(personalRaw.containers.has(page.id)||[PERSONAL_CONTAINERS_DS,PERSONAL_CONTAINERS_DB].includes(parentId))targets.push(personalRaw.containers);
+ if(rawCache.plans.has(page.id)||[PLAN_DS,PLAN_DB].filter(Boolean).includes(parentId))targets.push(rawCache.plans);
+ if(rawCache.machines.has(page.id)||[MAKINA_DS,MAKINA_DB].filter(Boolean).includes(parentId))targets.push(rawCache.machines);
+ for(const source of taskSources())if(rawCache.tasks.get(source.key)?.has(page.id)||[source.dataSourceId,source.databaseId].filter(Boolean).includes(parentId)){if(!rawCache.tasks.has(source.key))rawCache.tasks.set(source.key,new Map());targets.push(rawCache.tasks.get(source.key));}
+ for(const target of targets)mergePages(target,[page]);
+ if(targets.length){snapshotCache=null;personalTasksCache=null;taskCache.clear();saveRawSnapshotCache();}
+}
+function mutationScopes(method,p){
+ if(!['POST','PATCH','DELETE'].includes(method))return [];
+ if(p==='/api/task-management')return ['management','personal','equipment'];
+ if(p==='/api/personal-pomodoro')return ['personal','equipment','pomodoro'];
+ if(['/api/personal-task','/api/personal-container','/api/personal-layout','/api/personal-task-blocks'].includes(p))return ['personal'];
+ if(['/api/task','/api/plan','/api/equipment','/api/layout'].includes(p))return ['equipment'];
+ return [];
+}
+function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
+function managementSnapshotWithTaskEstimates(){const data=taskManagement.snapshot();for(const page of personalRaw.tasks.values()){if(page.archived||page.in_trash||!Object.prototype.hasOwnProperty.call(page.properties||{},taskEstimateModule.FIELD))continue;const value=taskEstimates.read(page);if(value===null){if(data.tasks[page.id]){data.tasks[page.id]={...data.tasks[page.id]};delete data.tasks[page.id].estimateMinutes;}}else data.tasks[page.id]={...data.tasks[page.id],estimateMinutes:value};}return data;}
+const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:EXTERNAL_SYNC_MS,
+ load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,false)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),false)):{ok:true,...managementSnapshotWithTaskEstimates()},
+ local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...managementSnapshotWithTaskEstimates()}
+});
+
+
+function accountTasks(){const data=buildSnapshotFromRawCache(),machines=new Map(data.equipment.map(e=>[accountKey(e.id),e.planId]));return {personal:realtimePersonal().pomodoroTasks||[],equipment:(data.pomodoroTasks||[]).map(t=>({...t,planId:t.planId||machines.get(accountKey(t.machineId))||''}))};}
+function allowedAccountIds(u){const t=accountTasks();return new Set([...t.personal.filter(t=>accounts.task(u,t,'personal')),...t.equipment.filter(t=>accounts.task(u,t,'equipment'))].map(t=>accountKey(t.id)));}
+function projectAccount(u,scope,d){
+ if(u.role==='admin')return d;
+ if(scope==='options'){const tasks=accountTasks(),result={};for(const k of ['personal','todo','gorulen']){if(!d[k])continue;const list=k==='personal'?tasks.personal.filter(t=>accounts.task(u,t,'personal')):tasks.equipment.filter(t=>t.sourceKey===k&&accounts.task(u,t,'equipment'));result[k]={};for(const field of Object.keys(d[k])){const values=[...new Set(list.flatMap(t=>t[field]||[]))];result[k][field]={type:d[k][field].type,options:values};}}return result;}
+ if(scope==='users')return {users:(d.users||[]).filter(x=>[u.rules.assignee,u.name].includes(x.id)||[u.rules.assignee,u.name].includes(x.name)).map(({id,name})=>({id,name}))};
+ if(scope==='realtime'){return {...d,kind:'full',data:projectAccount(u,d.scope,d.data),baseRevision:undefined};}
+ if(scope==='personal'||scope==='equipment')return accounts.filter(u,scope,d);
+ const ids=allowedAccountIds(u);
+ if(scope==='pomodoro'){const result={...d,sessions:(d.sessions||[]).filter(s=>ids.has(accountKey(s.taskId))),timers:(d.timers||[]).filter(t=>t.id!=='__global__'&&ids.has(accountKey(t.id)))};if(d.timer&&!ids.has(accountKey(d.timer.id)))delete result.timer;return result;}
+ if(scope==='management'){const v=structuredClone(d);v.tasks=Object.fromEntries(Object.entries(v.tasks||{}).filter(([id])=>ids.has(accountKey(id))));for(const t of Object.values(v.tasks))if(t.parentId&&!ids.has(accountKey(t.parentId)))t.parentId='';for(const day of Object.values(v.days||{})){day.ids=(day.ids||[]).filter(id=>ids.has(accountKey(id)));if(!ids.has(accountKey(day.mainId)))day.mainId='';}return v;}
+ return d;
+}
+async function accountTask(u,id,kind){
+ let found;const find=()=>{const tasks=accountTasks();for(const k of kind?[kind]:['personal','equipment']){const t=tasks[k].find(t=>accountKey(t.id)===accountKey(id));if(t){found={task:t,kind:k};return;}}};find();
+ if(!found){if(!kind||kind==='personal')await personalSnapshot(false);if(!found&&(!kind||kind==='equipment'))await snapshot(false);find();}
+ if(!found||!accounts.task(u,found.task,found.kind))throw accessError('Tapşırıq mövcud deyil');return found;
+}
+async function accountAuthorize(req,res,url,u,b){
+ res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
+ const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
+ const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
+ if(scopes[p])res.__accountScope=scopes[p];
+ if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
+ if(p==='/api/events'){const requested=(url.searchParams.get('scopes')||'personal,equipment,management,pomodoro').split(',');const allowed=requested.filter(s=>s!=='equipment'||accounts.section(u,'equipment'));url.searchParams.set('scopes',allowed.join(','));accounts.track(req,res,u);return;}
+ if(p==='/api/realtime/state'){const scope=url.searchParams.get('scope')||'personal';if(scope==='equipment'&&!accounts.section(u,'equipment'))deny();res.__accountScope='realtime';url.searchParams.delete('revision');url.searchParams.delete('epoch');return;}
+ if(p==='/api/personal-snapshot')return;
+ if(p==='/api/plan-snapshot'){if(!accounts.section(u,'equipment'))deny();return;}
+ if(p==='/api/calendar-capabilities'){if(!accounts.section(u,'calendar'))deny();return;}
+ if(p==='/api/task-options'){if(!['personal','calendar','day','matrix','equipment'].some(s=>accounts.section(u,s)))deny();res.__accountScope='options';return;}
+ if(p==='/api/users'){res.__accountScope='users';return;}
+ if(p==='/api/pomodoro-state')return;
+ if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
+ if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Həddindən artıq tapşırıq',400);for(const id of ids)await accountTask(u,id);return;}
+ if(p==='/api/image-upload'){
+  if(b.peerId){
+   const peer=accounts.state.users.find(v=>v.id===String(b.peerId)&&!v.disabled&&v.id!==u.id&&accounts.section(v,'chat'));
+   if(!accounts.section(u,'chat')||!accounts.action(u,'comment')||!peer||!(u.personalPageId||peer.personalPageId))deny();
+  }else{need('edit');if(b.id)await accountTask(u,b.id);}
+  return;
+ }
+ if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
+ if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
+ if(p==='/api/task-photo-schema')deny();
+ if(p==='/api/work-state'){if(!accounts.section(u,'equipment')&&!accounts.section(u,'calendar'))deny();return;}
+ if(p==='/api/work-schema')deny();
+ if(p==='/api/work-timer'){need('timer');const id=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;if(!id)deny();req.__workTarget=await workAccountTask(u,id);return;}
+ const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
+ if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
+ if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
+ if(p==='/api/task-image'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
+ if(p==='/api/personal-task-blocks'){need('edit');await accountTask(u,b.id);return;}
+ if(p==='/api/personal-pomodoro'){need('timer');await accountTask(u,b.id);return;}
+ if(['/api/personal-task','/api/task'].includes(p)){
+ const kind=p==='/api/personal-task'?'personal':'equipment';
+ if(method==='POST'){need('create');if(kind==='personal'){if(u.rules.containers!=='*'&&!u.rules.containers.includes(accountKey(b.containerId)))deny();if(u.rules.assignedOnly&&!(b.assignees||[]).includes(u.rules.assignee))deny();}else{if(!accounts.section(u,'equipment')||u.rules.plans!=='*'&&!u.rules.plans.includes(accountKey(b.planId)))deny();if(u.rules.assignedOnly&&![b.assigneeId,b.assigneeName,...(b.tapsirildi||[])].includes(u.rules.assignee))deny();if(b.machineId){const machine=buildSnapshotFromRawCache().equipment.find(e=>accountKey(e.id)===accountKey(b.machineId));if(!machine||accountKey(machine.planId)!==accountKey(b.planId))deny();}}if(b.parentId)await accountTask(u,b.parentId,kind);return;}
+ const found=await accountTask(u,method==='DELETE'?url.searchParams.get('id'):b.id,kind),t=found.task;
+ if(method==='DELETE'){need('delete');if((accountTasks()[kind]||[]).some(x=>accountKey(x.parentId)===accountKey(t.id)))deny();return;}
+ if(method!=='PATCH')deny();
+ if(!accounts.action(u,'edit')){need('status');const safe=['id','status','completed','process','sourceKey','autosaveBase','autosaveOperationId','overrideWip'];for(const k of Object.keys(b))if(!safe.includes(k)&&JSON.stringify(b[k])!==JSON.stringify(t[k]))deny();}
+ if(kind==='equipment'){if(b.sourceKey&&b.sourceKey!==t.sourceKey)deny();if(b.machineId&&!(t.machineIds||[t.machineId]).some(id=>accountKey(id)===accountKey(b.machineId)))deny();if(b.planId&&accountKey(b.planId)!==accountKey(t.planId))deny();}
+ const changed={...t,...b};if(!accounts.task(u,changed,kind))deny();if(b.parentId)await accountTask(u,b.parentId,kind);return;
+ }
+ deny(); // New endpoints are denied until explicitly reviewed.
+}
+
+const {WorkTimerStore}=require('./work-timer');
+const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,saveSession:session=>timerSessionLog.record(session),deleteSession:session=>timerSessionLog.remove(session),sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
+async function syncTaskSessionTitle(taskId,sourceKey,title){
+ const result={workTimer:0,pomodoro:0,notion:0};
+ try{result.workTimer=workTimer.renameTask(taskId,title)}catch(error){console.warn('Work timer session title update failed:',taskId,error.message)}
+ try{result.pomodoro=sharedPomodoro.renameTask(taskId,title);if(result.pomodoro)realtime.invalidate(['pomodoro','personal'])}catch(error){console.warn('Pomodoro session title update failed:',taskId,error.message)}
+ try{const updated=await timerSessionLog.renameTask(taskId,sourceKey,title);result.notion=updated.updated||0}catch(error){result.notionError=String(error.message||error).slice(0,300);console.warn('Notion session title update failed:',taskId,error.message)}
+ return result;
+}
+function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
+async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
+async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}
+function workTasks(actor){return accountTasks().equipment.filter(t=>actor.role==='admin'||accounts.task(actor,t,'equipment'));}
+const workFlush=setInterval(()=>void workTimer.flush().catch(e=>console.warn('Work timer sync:',e.message)),30000);workFlush.unref();
+
+const server = http.createServer(async (request, response) => {
   try {
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', ...SECURITY_HEADERS });
+      response.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', ...SECURITY_HEADERS });
       return response.end();
     }
     const url = new URL(request.url, 'http://localhost');
+    await accounts.ready;
+    if(employeeChats.routes(url.pathname))return json(response,200,await employeeChats.handle(request,url,request.method==='GET'?{}:await readBody(request)));
+    if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
+      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE'],'/api/admin/personal-directory':['GET']};
+      if(!verbs[url.pathname]?.includes(request.method))throw accessError('Metod icazə verilmir',405);
+      if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Yanlış sorğu mənbəyi');}
+      const body=request.method==='GET'?{}:await readBody(request);
+      if(url.pathname==='/api/admin/personal-directory'){const admin=accounts.user(request);accounts.requireAdmin(admin);return json(response,200,{ok:true,employees:await personalDirectory()});}
+      if((url.pathname==='/api/admin/invites'&&request.method==='POST'||url.pathname==='/api/admin/users'&&request.method==='PATCH')&&body.personalPageId){const id=cleanId(String(body.personalPageId));if(!id||!(await personalDirectory()).some(person=>person.id===id))throw accessError('İşçi Personal bazasında tapılmadı',400);const mapped=accounts.state.users.find(item=>item.id!==body.id&&!item.disabled&&cleanId(item.personalPageId)===id),invited=accounts.state.invites.find(item=>!item.used&&item.expires>accounts.now()&&cleanId(item.personalPageId)===id);if(mapped||invited)throw accessError('Bu Personal profili artıq ADIB istifadəçisinə və ya dəvətə bağlanıb',409);body.personalPageId=id;}
+      const result=await accounts.route(request,url.pathname,body);
+      const secure=process.env.ADIB_COOKIE_SECURE!=='0';
+      const cookie=result.token?'adib_session='+result.token+'; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000'+(secure?'; Secure':''):url.pathname==='/api/auth/logout'?'adib_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'+(secure?'; Secure':''):null;
+      return json(response,200,result,cookie?{'Set-Cookie':cookie}:{});
+    }
+    if(accounts.enabled&&url.pathname.startsWith('/api/')&&!['/api/health','/api/time'].includes(url.pathname)){
+      const u=accounts.user(request);
+      if(!['GET','HEAD'].includes(request.method)&&request.headers.origin&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&o.protocol!=='adib:')throw accessError('Yanlış sorğu mənbəyi');}
+      const b=['GET','HEAD'].includes(request.method)?{}:await readBody(request);request.__accountBody=b;Object.defineProperty(b,'__account',{value:u,enumerable:false});await accountAuthorize(request,response,url,u,b);accounts.user(request);
+    }
+    if(url.pathname==='/account.html')return file(response,path.join(__dirname,'account.html'),'text/html; charset=utf-8','no-store',request);
+    if(accounts.enabled&&(url.pathname==='/'||url.pathname==='/ela-nov-paketleme-dynamic.html')){try{accounts.user(request)}catch{return file(response,path.join(__dirname,'account.html'),'text/html; charset=utf-8','no-store',request);}}
+    response.__realtimeScopes=mutationScopes(request.method,url.pathname);
+    if(request.method==='GET'&&url.pathname==='/api/events')return realtime.connect(request,response,(url.searchParams.get('scopes')||'personal,equipment,management').split(','))||json(response,400,{error:'Unknown scopes'});
+    if(request.method==='GET'&&url.pathname==='/api/realtime/state')return json(response,200,await realtime.read(url.searchParams.get('scope')||'personal',url.searchParams.get('revision'),url.searchParams.get('epoch')));
+    if(request.method==='GET'&&url.pathname==='/api/realtime/status')return json(response,200,{enabled:true,transport:'sse',externalPollMs:realtime.pollMs});
+    if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
+
+    // Content-addressed public UI code; private HTML/API responses remain no-store.
+
+    if(['GET','HEAD'].includes(request.method)&&publicAssets.has(url.pathname.slice(1))){
+      if(uiAssets.serve(request,response,url,SECURITY_HEADERS))return;
+      const types={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
+      return file(response,path.join(__dirname,url.pathname.slice(1)),types[path.extname(url.pathname)]||'application/octet-stream','no-store');
+    }
+    if(request.method==='GET'&&url.pathname==='/version.json')return json(response,200,{version:'1.1.64',calendarVersion:'1.1.64',dateRange:true,queryFixBuild:QUERY_FIX_BUILD});
+
     if (request.method === 'POST' && url.pathname === '/api/ai/chat') {
       const body = await readBody(request);
       try { enforceAiRateLimit(); return json(response, 200, await aiChat(body)); }
@@ -1417,9 +1797,15 @@ const handlerAdapter = async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
+    if(request.method==='GET'&&url.pathname==='/api/work-state'){await workClock();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)void snapshot(false).catch(e=>console.warn('Work background snapshot:',e.message));let tasks=workTasks(actor);if(actor.role!=='admin')for(const session of workTimer.data.sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'))if(!tasks.some(t=>accountKey(t.id)===accountKey(session.taskId)))try{tasks.push((await workAccountTask(actor,session.taskId)).task);}catch(e){if(e.statusCode!==403)throw e;}const ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>actor.role==='admin'||ids.has(accountKey(id))),tasks,tasksLoading:!rawCache.lastSyncAt,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
+    if(request.method==='POST'&&url.pathname==='/api/work-schema')return json(response,200,await workTimer.setup(workActor(request)));
+    if(request.method==='POST'&&url.pathname==='/api/work-timer'){await workClock();const b=await readBody(request),actor=workActor(request);let task,prepared;if(b.action==='start'||b.action==='continue'){const target=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;const found=request.__workTarget||await workAccountTask(actor,target);task=found.task;prepared=found.prepared;}const result=await workTimer.action(b,actor,task,prepared);if(b.action==='save'||b.action==='continue'||b.action==='cancel'||b.action==='delete')void workTimer.flush().catch(()=>{});return json(response,200,{...result,serverNow:networkTime.snapshot().now,revision:workTimer.data.revision});}
+    if(request.method==='GET'&&url.pathname==='/api/task-photos')return json(response,200,await taskPhotos.load(url.searchParams.get('id'),{force:url.searchParams.get('refresh')==='1'}));
+    if(request.method==='POST'&&url.pathname==='/api/task-photo-schema')return json(response,200,await taskPhotos.schema(await readBody(request)));
+    if(request.method==='POST'&&url.pathname==='/api/task-photo')return json(response,200,await taskPhotos.change(await readBody(request),ensureUploadedImage));
     if(request.method==='POST'&&url.pathname==='/api/image-upload')return json(response,201,await uploadTaskImageFile(await readBody(request)));
     if(request.method==='GET'&&url.pathname==='/api/task-images')return json(response,200,await listTaskImages(url.searchParams.get('id')));
-    if(request.method==='POST'&&url.pathname==='/api/task-image')return json(response,201,await attachTaskImage(await readBody(request)));
+    if(request.method==='POST'&&url.pathname==='/api/task-image'){const body=await readBody(request);if(body.remove)return json(response,200,await deleteTaskImage(body));return json(response,201,await attachTaskImage(body));}
     if (request.method === 'POST' && url.pathname === '/api/task-comments') {
       const body = await readBody(request);
       return json(response, 201, await addTaskComment(body));
@@ -1451,11 +1837,24 @@ const handlerAdapter = async (request, response) => {
     if (request.method === 'DELETE' && url.pathname === '/api/personal-container') {
       return json(response, 200, await deletePersonalContainer(url.searchParams.get('id')));
     }
+    if(request.method==='GET'&&url.pathname==='/api/calendar-capabilities')return json(response,200,{ok:true,dateRange:true,defaultMinutes:30,stepMinutes:15,version:'1.1.64'});
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
-      return json(response, 200, withTaskEstimates(await personalSnapshot(url.searchParams.get('force') === '1',url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')));
+      const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
-    if (request.method === 'GET' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.snapshot()});
-    if (request.method === 'POST' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.update(await readBody(request))});
+    if (request.method === 'GET' && url.pathname === '/api/task-management') {
+      try{await personalSnapshot(false);}catch(error){console.warn('Personal estimate sync is temporarily unavailable:',error.message);}
+      return json(response,200,{ok:true,...managementSnapshotWithTaskEstimates()});
+    }
+    if (request.method === 'POST' && url.pathname === '/api/task-management') {
+      const command=await readBody(request);
+      if(command.type==='estimate'){
+        validateTaskEstimate({estimateMinutes:command.minutes});
+        await taskEstimates.save('personal',command.id,command.minutes);
+      }
+      const updated=taskManagement.update(command);
+      if(command.type==='estimate'){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();}
+      return json(response,200,{ok:true,...updated});
+    }
     if (request.method === 'GET' && url.pathname === '/api/personal-task-content') {
       return json(response, 200, await getPersonalTaskContent(url.searchParams.get('id')));
     }
@@ -1480,11 +1879,12 @@ const handlerAdapter = async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/pomodoro-state') return json(response,200,await sharedPomodoroSnapshot());
     if (request.method === 'POST' && url.pathname === '/api/personal-pomodoro') {
       const body = await readBody(request);
+      if(['start','open'].includes(body.action)&&accountTasks().equipment.some(t=>accountKey(t.id)===accountKey(body.id)))throw Object.assign(new Error('Bu tapşırıqda İş taymerindən istifadə edin; tətbiqi yeniləyin'),{statusCode:409,code:'WORK_TIMER_REQUIRED'});
       return json(response, 200, await savePersonalPomodoro(body));
     }
     if (request.method === 'PATCH' && url.pathname === '/api/task') {
       const body = await readBody(request);
-      return json(response, 200, await saveTask(body));
+      return json(response, 200, await saveTask(body, appBaseUrl(request)));
     }
     if (request.method === 'POST' && url.pathname === '/api/task') {
       const body = await readBody(request);
@@ -1504,21 +1904,20 @@ const handlerAdapter = async (request, response) => {
     if (request.method === 'POST' && url.pathname === '/api/sync-links') {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
-    if (url.pathname === '/api/health') return json(response, 200, { ok: true, time: new Date().toISOString() });
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const result = withTaskEstimates(await snapshot(full, baseUrl,url.searchParams.get('refresh')==='1',url.searchParams.get('retry')==='1')); result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision).digest('hex')+'"'; syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats},commentCache:{...commentReads.stats},authorCache:{...authorReads.stats}});
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result);const layoutRevision=crypto.createHash('sha1').update(JSON.stringify([...(result.plans||[]),...(result.equipment||[])].map(item=>[item.id,item.x,item.y,item.width,item.height,item.parentId,item.planId]))).digest('hex');result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision+':'+layoutRevision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS!=='0')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
     if (url.pathname === '/icons/icon-512.png') return file(response, path.join(__dirname, 'icons/icon-512.png'), 'image/png', 'public, max-age=31536000, immutable');
-    if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'));
+    if (url.pathname === '/' || url.pathname === '/ela-nov-paketleme-dynamic.html') return file(response, path.join(__dirname, 'ela-nov-paketleme-dynamic.html'),'text/html; charset=utf-8','no-store',request);
     return json(response, 404, { error: 'Not found' });
   } catch (error) {
     if (error.statusCode && error.statusCode < 500) console.warn('Request rejected:', error.message);
     else console.error(error);
-    return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
+    return json(response, error.statusCode || 500, { error: error.message, ...(error.code?{code:error.code}:{}),...(error.confirmationToken?{confirmationToken:error.confirmationToken}:{}), ...(error.createdTaskId?{createdTaskId:error.createdTaskId}:{}), ...(error.limit?{limit:error.limit,activeCount:error.activeCount}:{}) });
   }
-};
-
-
-syncServiceLinks=async()=>({ok:true,direct:true,linksUnchanged:true});
-return {notion,mapPersonalTask,progressiveSnapshot,progressiveState:scope=>snapshotProgress[scope],backgroundState:scope=>backgroundProgress[scope],progressiveRevision:()=>snapshotProgressRevision,reconcileSnapshot,startProgressive:(scope,force,retry)=>scope==='personal'?personalSnapshot(force,true,retry,true):snapshot(force,'',true,retry,true),decorate:data=>withTaskEstimates(data),rollup:data=>require('./pomodoro-rollup').attach(data),management:()=>taskManagement.snapshot(),setManagement:state=>{taskManagement.state=structuredClone(state);fs.writeFileSync('management.json',JSON.stringify(state));},invalidateTasks:()=>{invalidatePersonalTasks();snapshotCache=null;taskCache.clear();},call:async(method,url,body)=>{let status=200,data={},headers={};await handlerAdapter({method,url,__body:body,headers:{host:'adib.local'},socket:{encrypted:true}},{writeHead:(s,h)=>{status=s;headers=h||{}},setHeader:(k,v)=>headers[k]=v,end:text=>{if(text)data=JSON.parse(String(text));}});return {status,body:data,headers};}};
+});
+server.on?.('close',()=>realtime.close());
+setInterval(()=>void browserPomodoroSessions.finishExpired().catch(e=>console.warn('Pomodoro expiry check deferred:',e.message)),5000).unref();
+server.listen(PORT, () => console.log('ADIB Online 1.1.64: http://localhost:'+server.address().port));

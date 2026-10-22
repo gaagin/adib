@@ -461,6 +461,16 @@ function taskConfig(sourceKey) {
   };
 }
 
+const taskEstimateModule=require('./task-estimate');
+const taskEstimates=taskEstimateModule.create({
+  notion:(...args)=>notion(...args),
+  sources:()=>({
+    personal:{dataSourceId:TASKS_DS,databaseId:TASKS_DB},
+    todo:{dataSourceId:TODO_DS,databaseId:TODO_DB},
+    gorulen:{dataSourceId:GORULEN_DS,databaseId:GORULEN_DB}
+  })
+});
+
 const taskHistory=require('./task-history');
 const completionHistory=new taskHistory.CompletionHistory(process.env.COMPLETION_HISTORY_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):path.join(__dirname,'data'),'completion-history.json'));
 function enrichCompletion(task,page){return completionHistory.enrich(task,page,taskManagement.state.tasks[task.id]||{});}
@@ -537,7 +547,7 @@ function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted 
       const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Tapşırıq';
       const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
       const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', createdAt:page.created_time||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
+      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', createdAt:page.created_time||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', estimateMinutes:taskEstimates.read(page), pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
       task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!taskHistory.visibleEquipment(task))continue;
       for (const machineId of linkedMachines) {
         if (!result.has(machineId)) result.set(machineId, []);
@@ -959,8 +969,8 @@ async function createEquipment(body){
 }
 
 function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Vaxt təxmini: 1-dən 43200 dəqiqəyə qədər tam ədəd və ya boş dəyər'),{statusCode:400,code:'INVALID_ESTIMATE'});}
-async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined)taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
-function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
+async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined){const sourceKey=body.sourceKey||'personal';await taskEstimates.save(sourceKey,id,body.estimateMinutes);taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});}else if(body.parentId!==undefined||body.machineId!==undefined||body.planId!==undefined){const saved=taskManagement.getEstimate(id);if(saved!==null){const sourceKey=body.sourceKey||'personal',page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});if(taskEstimates.read(page)===null)await taskEstimates.save(sourceKey,id,saved);}}if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
+function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:value.estimateMinutes??taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
 
 async function saveTask(body, baseUrl = '') {
   validateTaskEstimate(body);
@@ -975,7 +985,7 @@ async function saveTask(body, baseUrl = '') {
   const sessionTitleSync = body.title !== undefined
     ? await syncTaskSessionTitle(id, sourceKey, String(body.title || '').trim())
     : undefined;
-  await persistTaskEstimate(body,id);
+  await persistTaskEstimate({...body,sourceKey},id);
   if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
   if (body.machineId) taskCache.delete(String(body.machineId));
   snapshotCache = null;
@@ -996,7 +1006,7 @@ async function createTask(body, baseUrl = '') {
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)),{creating:true}) }) });
   const appLink = taskAppLink(baseUrl, page.id, machineId, planId);
   if (appLink) { try { await patchServiceLink(page, config.linkProperty || TASK_LINK_PROPERTY_DEFAULT, appLink); } catch (error) { console.warn('Task app link update failed:', page.id, error.message); } }
-  await persistTaskEstimate(body,page.id,true);
+  await persistTaskEstimate({...body,sourceKey},page.id,true);
   if (machineId) taskCache.delete(machineId);
   snapshotCache = null;
   return { ok: true, id: page.id, estimateMinutes:taskManagement.getEstimate(page.id), url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, machineId ? { machine: machineId } : { plan: planId }), sourceKey, savedAt: new Date().toISOString() };
@@ -1101,6 +1111,7 @@ function mapPersonalTask(page) {
     pomodoroEndedAt: dateStart(page, 'Конец отчета'),
     pomodoroMode: select(page, 'Pomodoro режим'),
     pomodoroDuration: number(page, 'Pomodoro текущая длительность') ?? pomodoroModeDuration(select(page, 'Pomodoro режим')) ,
+    estimateMinutes: taskEstimates.read(page),
     updatedAt: page.last_edited_time || ''
   },page);
 }
@@ -1419,7 +1430,7 @@ async function createPersonalTask(body) {
   const destination=await resolvePersonalTaskContainer(body);properties['Personal Container']={relation:destination?[{id:destination}]:[]};
   const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
   const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
-  await persistTaskEstimate(body,page.id,true);
+  await persistTaskEstimate({...body,sourceKey:'personal'},page.id,true);
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(page.id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(page.id, body.pageContent);
   invalidatePersonalTasks();
@@ -1480,7 +1491,7 @@ async function savePersonalTaskUnlocked(body) {
     : undefined;
   if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
   else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
-  await persistTaskEstimate(body,id);
+  await persistTaskEstimate({...body,sourceKey:'personal'},id);
   if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
   invalidatePersonalTasks();
   return { ok: true, id,...(sessionTitleSync?{sessionTitleSync}:{}),...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
@@ -1639,9 +1650,10 @@ function mutationScopes(method,p){
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
+function managementSnapshotWithTaskEstimates(){const data=taskManagement.snapshot();for(const page of personalRaw.tasks.values()){if(page.archived||page.in_trash||!Object.prototype.hasOwnProperty.call(page.properties||{},taskEstimateModule.FIELD))continue;const value=taskEstimates.read(page);if(value===null){if(data.tasks[page.id]){data.tasks[page.id]={...data.tasks[page.id]};delete data.tasks[page.id].estimateMinutes;}}else data.tasks[page.id]={...data.tasks[page.id],estimateMinutes:value};}return data;}
 const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:EXTERNAL_SYNC_MS,
- load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,false)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),false)):{ok:true,...taskManagement.snapshot()},
- local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...taskManagement.snapshot()}
+ load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,false)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),false)):{ok:true,...managementSnapshotWithTaskEstimates()},
+ local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...managementSnapshotWithTaskEstimates()}
 });
 
 
@@ -1829,8 +1841,20 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/personal-snapshot') {
       const explicit=url.searchParams.get('force')==='1'||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';if(!explicit&&realtime.state('personal').loaded)return json(response,200,realtimePersonal());const data=withTaskEstimates(await personalSnapshot(url.searchParams.get('force')==='1',explicit,url.searchParams.get('retry')==='1'));if(!data.sync?.partial)realtime.publish('personal',data);return json(response,200,data);
     }
-    if (request.method === 'GET' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.snapshot()});
-    if (request.method === 'POST' && url.pathname === '/api/task-management') return json(response,200,{ok:true,...taskManagement.update(await readBody(request))});
+    if (request.method === 'GET' && url.pathname === '/api/task-management') {
+      try{await personalSnapshot(false);}catch(error){console.warn('Personal estimate sync is temporarily unavailable:',error.message);}
+      return json(response,200,{ok:true,...managementSnapshotWithTaskEstimates()});
+    }
+    if (request.method === 'POST' && url.pathname === '/api/task-management') {
+      const command=await readBody(request);
+      if(command.type==='estimate'){
+        validateTaskEstimate({estimateMinutes:command.minutes});
+        await taskEstimates.save('personal',command.id,command.minutes);
+      }
+      const updated=taskManagement.update(command);
+      if(command.type==='estimate'){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();}
+      return json(response,200,{ok:true,...updated});
+    }
     if (request.method === 'GET' && url.pathname === '/api/personal-task-content') {
       return json(response, 200, await getPersonalTaskContent(url.searchParams.get('id')));
     }
