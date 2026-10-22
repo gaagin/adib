@@ -17,7 +17,7 @@
 .calendar-hour-ruler{height:1920px;position:sticky;left:0;background:var(--surface);z-index:5;border-right:1px solid var(--line)}
 .calendar-hour-label{position:absolute;right:10px;font-size:12px;line-height:16px;color:var(--muted);transform:translateY(-8px)}.calendar-hour-label:first-child{transform:none}
 .calendar-time-day{position:relative;height:1920px;border-right:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0px,transparent 39px,var(--soft) 39px,var(--soft) 40px,transparent 40px,transparent 79px,var(--line) 79px,var(--line) 80px);min-width:0}
-.calendar-time-event{position:absolute;background:var(--blue-soft);border:1px solid var(--blue);border-left:3px solid var(--blue);border-radius:6px;padding:5px 24px 3px 7px;min-width:0;overflow:hidden;cursor:grab;touch-action:none;user-select:none;color:var(--text);z-index:2;box-sizing:border-box}
+.calendar-time-event{position:absolute;background:var(--blue-soft);border:1px solid var(--blue);border-left:3px solid var(--blue);border-radius:6px;padding:5px 24px 3px 7px;min-width:0;overflow:hidden;cursor:grab;touch-action:pan-x pan-y;user-select:none;color:var(--text);z-index:2;box-sizing:border-box}
 .calendar-event-title{display:block;font-size:13px;line-height:16px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-weight:600}
 .calendar-event-time{display:block;font-size:11px;line-height:14px;color:var(--muted);white-space:nowrap}
 .calendar-time-event.calendar-short{padding-top:1px;padding-bottom:0}.calendar-short .calendar-event-time{display:none}
@@ -44,7 +44,8 @@
 
 /* Keep hourly gestures inside the calendar, including Electron's draggable chrome. */
 .adib-calendar,.adib-calendar *{-webkit-app-region:no-drag}
-.calendar-time-event,.calendar-time-event .calendar-event-title,.calendar-time-event .calendar-event-time{-webkit-user-drag:none;user-select:none;touch-action:none}
+.calendar-time-event,.calendar-time-event .calendar-event-title,.calendar-time-event .calendar-event-time{-webkit-user-drag:none;user-select:none;touch-action:pan-x pan-y}
+.calendar-touch-drag-handle{display:none}
 .calendar-resize{pointer-events:auto}
 /* Marker is transparent to hit testing; it does not cover events or resize handles. */
 .calendar-now-line{position:absolute;left:0;right:0;height:2px;background:#d94b42;z-index:7;pointer-events:none;transform:translateY(-1px)}
@@ -122,6 +123,7 @@ html.dark .calendar-session.session-pending{background:#352e20!important;color:#
 #adibCalendar .calendar-event-time{font-size:12px!important;line-height:16px!important}
 #adibCalendar .calendar-now-line{height:2px!important;background:#ef5858!important}
 @media(max-width:700px){#adibCalendar .adib-calendar-bar{padding:6px 10px!important}#adibCalendar .adib-calendar-bar h2{font-size:20px!important}#adibCalendar .calendar-time-layout.calendar-one-day{grid-template-columns:56px minmax(0,1fr)!important}#adibCalendar .calendar-hour-label{font-size:11px!important}#adibCalendar .calendar-time-event{border-radius:7px!important}#adibCalendar .calendar-event-title{font-size:14px!important}}
+@media(pointer:coarse){#adibCalendar .calendar-time-event{padding-left:23px!important;touch-action:pan-x pan-y!important}#adibCalendar .calendar-time-event .calendar-event-title,#adibCalendar .calendar-time-event .calendar-event-time{touch-action:pan-x pan-y!important}.calendar-touch-drag-handle{position:absolute;top:0;bottom:0;left:1px;z-index:5;display:flex;align-items:center;justify-content:center;width:17px;color:var(--muted);font-size:11px;letter-spacing:-3px;touch-action:none;cursor:grab}}
 
 /* Undated tasks: compact right drawer instead of the mobile bottom tray. */
 html body #adibCalendar.adib-undated-drawer-ready .adib-calendar-body{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;position:static!important}

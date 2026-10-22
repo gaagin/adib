@@ -57,6 +57,15 @@ test('three-day mode uses the same native horizontal scroller as day and week', 
   assert.match(css, /touch-action:pan-x pan-y/);
 });
 
+test('touch scrolls over task cards while task dragging uses its own grip', () => {
+  assert.match(css, /\.calendar-time-event\{[^}]*touch-action:pan-x pan-y/);
+  assert.match(css, /\.calendar-time-event,\.calendar-time-event \.calendar-event-title,\.calendar-time-event \.calendar-event-time\{[^}]*touch-action:pan-x pan-y/);
+  assert.match(css, /\.calendar-touch-drag-handle\{display:none\}/);
+  assert.match(css, /@media\(pointer:coarse\)[\s\S]*?\.calendar-touch-drag-handle\{[^}]*touch-action:none/);
+  assert.match(line('function timedEvent('), /move\.dataset\.calendarDrag='move'/);
+  assert.match(line('function beginGesture('), /e\.pointerType==='touch'&&!resizeTarget&&!touchDrag\)return/);
+});
+
 test('horizontal position survives calendar rerenders and touch swipes are not intercepted', () => {
   assert.match(line('function render('), /previousScrollLeft=grid\.scrollLeft/);
   assert.match(line('function render('), /grid\.scrollLeft=targetScrollLeft/);

@@ -21,6 +21,6 @@ test('day-plan add button is a fixed panel footer outside the scrolling timeline
 });
 
 test('calendar assets use refreshed cache keys for the day-plan layout', () => {
-  assert.match(html, /calendar-view\.css\?v=day-plan-business-hours-09-18-v2/);
-  assert.match(html, /calendar-view\.js\?v=1\.1\.68-live-day-plan-v2/);
+  assert.match(html, /calendar-view\.css\?v=calendar-touch-scroll-v1/);
+  assert.match(html, /calendar-view\.js\?v=1\.1\.68-touch-scroll-v1/);
 });
