@@ -26,7 +26,7 @@
  html body .adib-photo-zoom-controls{display:flex;align-items:center;gap:4px;flex:none}
  html body .adib-photo-viewer header .adib-photo-zoom-level{width:56px;min-width:56px;height:36px;font:600 12px system-ui}
  html body .adib-photo-viewport{position:relative;display:grid;place-items:center;width:100%;height:min(72dvh,760px);min-height:180px;overflow:hidden;border-radius:8px;background:#101827;touch-action:none;overscroll-behavior:contain}
- html body .adib-photo-viewport>img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;margin:auto;border-radius:4px;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none;cursor:grab}
+ html body .adib-photo-viewport>img{box-sizing:border-box;display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;margin:0!important;border-radius:4px;transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none;cursor:grab}
  html body .adib-photo-viewport>img[hidden]{display:none!important}
  html body .adib-photo-viewer>p{font:12px/1.4 system-ui;color:var(--muted,#74829b);margin:8px 0 0}
  @media(max-width:620px){html body dialog.adib-photo-viewer{padding:10px}.adib-photo-viewport{height:70dvh;min-height:140px}}
@@ -44,7 +44,7 @@
   img.alt=name||'Foto';img.referrerPolicy='no-referrer';img.decoding='async';img.draggable=false;img.onerror=()=>{img.hidden=true;status.textContent='Foto açılmadı. Foto bağlantılarını yeniləyin.';};
   let scale=1,offsetX=0,offsetY=0;const pointers=new Map();let drag=null,pinch=null;
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-  const apply=()=>{const rect=viewport.getBoundingClientRect(),width=img.offsetWidth||img.naturalWidth,height=img.offsetHeight||img.naturalHeight,maxX=Math.max(0,(width*scale-rect.width)/2),maxY=Math.max(0,(height*scale-rect.height)/2);offsetX=clamp(offsetX,-maxX,maxX);offsetY=clamp(offsetY,-maxY,maxY);img.style.transform='translate3d('+offsetX+'px,'+offsetY+'px,0) scale('+scale+')';zoomLevel.textContent=Math.round(scale*100)+'%';zoomOut.disabled=scale<=1.001;zoomIn.disabled=scale>=5;}
+  const apply=()=>{const rect=viewport.getBoundingClientRect(),naturalWidth=img.naturalWidth||rect.width,naturalHeight=img.naturalHeight||rect.height,fit=Math.min(rect.width/naturalWidth,rect.height/naturalHeight),width=naturalWidth*fit,height=naturalHeight*fit,maxX=Math.max(0,(width*scale-rect.width)/2),maxY=Math.max(0,(height*scale-rect.height)/2);offsetX=clamp(offsetX,-maxX,maxX);offsetY=clamp(offsetY,-maxY,maxY);img.style.transform='translate3d('+offsetX+'px,'+offsetY+'px,0) scale('+scale+')';zoomLevel.textContent=Math.round(scale*100)+'%';zoomOut.disabled=scale<=1.001;zoomIn.disabled=scale>=5;}
   const setZoom=value=>{scale=clamp(value,1,5);if(scale===1){offsetX=0;offsetY=0}apply()};
   zoomOut.onclick=()=>setZoom(scale/1.25);zoomIn.onclick=()=>setZoom(scale*1.25);zoomLevel.onclick=()=>setZoom(1);zoomLevel.setAttribute('role','button');zoomLevel.tabIndex=0;zoomLevel.setAttribute('aria-label','Miqyası sıfırla');
   controls.append(zoomOut,zoomLevel,zoomIn);header.append(title,controls,close);viewport.append(img);dialog.append(header,viewport,status);
