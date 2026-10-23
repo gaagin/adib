@@ -5,6 +5,7 @@ from PIL import Image
 import io,os
 B=Path(__file__).parent
 buf=io.BytesIO();Image.new('RGB',(200,150),'#5c75ea').save(buf,format='PNG');png=buf.getvalue()
+portrait_buf=io.BytesIO();Image.new('RGB',(200,500),'#e1a05c').save(portrait_buf,format='PNG');portrait_png=portrait_buf.getvalue()
 with sync_playwright() as pw:
  b=pw.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/local/bin/chromium'),args=['--no-sandbox'])
  for width in [320,390,1440]:
@@ -14,7 +15,7 @@ with sync_playwright() as pw:
    if u.hostname=='photos.test':
     requests.append(u.path)
     if u.path=='/broken':r.fulfill(status=404,headers={'Access-Control-Allow-Origin':'*'},body='Not found');return
-    r.fulfill(content_type='image/png',headers={} if u.path=='/no-cors' else {'Access-Control-Allow-Origin':'*'},body=png);return
+    r.fulfill(content_type='image/png',headers={} if u.path=='/no-cors' else {'Access-Control-Allow-Origin':'*'},body=portrait_png if u.path=='/portrait' else png);return
    if u.path=='/images.js':r.fulfill(content_type='text/javascript; charset=utf-8',body=(B/'images.js').read_bytes());return
    r.fulfill(content_type='text/html',body='''<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:Arial;margin:12px"><section id="comments"></section><section id="task"></section><section id="fields"></section><section id="failed"></section><script>window.ADIBAccount={user:{id:'test',revision:1},action:()=>true};window.ADIBAz={label:v=>v};</script><script src="/images.js"></script></body></html>''')
   c.route('https://adib.test/**',route);c.route('https://photos.test/**',route);p.goto('https://adib.test/')
@@ -31,6 +32,13 @@ with sync_playwright() as pw:
   trigger=p.locator('#fields [data-adib-show-photo]').first;trigger.click();viewer=p.locator('dialog.adib-photo-viewer');viewer.wait_for(state='visible')
   assert viewer.locator('img').get_attribute('src')=='https://photos.test/before'
   p.keyboard.press('Escape');viewer.wait_for(state='detached');assert p.locator('#fields').is_visible()
+  # Portrait originals are fitted to the desktop viewer's available rectangle rather than cropped.
+  p.evaluate("()=>document.querySelector('#comments').innerHTML=ADIBImages.imageMarkup([{url:'https://photos.test/portrait',name:'Portrait'}])")
+  p.locator('#comments [data-adib-show-photo]').click();viewer=p.locator('dialog.adib-photo-viewer');photo=viewer.locator('img');photo.wait_for();p.wait_for_function("(img)=>img.complete&&img.naturalWidth>0&&img.style.width.endsWith('px')",arg=photo.element_handle())
+  image_box=photo.bounding_box();viewport_box=viewer.locator('.adib-photo-viewport').bounding_box()
+  assert image_box['width']<=viewport_box['width']+1 and image_box['height']<=viewport_box['height']+1,(image_box,viewport_box)
+  assert image_box['height']>image_box['width'],image_box
+  p.keyboard.press('Escape');viewer.wait_for(state='detached')
   # Redrawing identical comments reuses the bounded, account-scoped memory thumbnail.
   count=requests.count('/comment')
   p.evaluate("()=>document.querySelector('#comments').innerHTML=ADIBImages.imageMarkup([{url:'https://photos.test/comment',name:'Cached'}])")

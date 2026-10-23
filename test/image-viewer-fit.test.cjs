@@ -15,8 +15,10 @@ test('full-size image is contained within the viewer instead of cropped by globa
     /\.adib-photo-viewport>img\{[^}]*width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important/,
   );
   assert.match(viewer, /fit=Math\.min\(rect\.width\/naturalWidth,rect\.height\/naturalHeight\)/);
+  assert.match(viewer, /img\.style\.setProperty\('width',width\+'px','important'\)/);
+  assert.match(viewer, /img\.style\.setProperty\('height',height\+'px','important'\)/);
 });
 
 test('page uses a refreshed image-viewer asset key', () => {
-  assert.match(html, /images\.js\?v=1\.1\.68-photo-fit-v1/);
+  assert.match(html, /images\.js\?v=1\.1\.68-photo-fit-desktop-v2/);
 });
