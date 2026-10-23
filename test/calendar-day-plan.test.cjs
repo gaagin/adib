@@ -36,6 +36,7 @@ test('Pomodoro focus raises the displayed estimate live and excludes cancelled t
   );
   assert.equal(over.estimateMinutes, 62);
   assert.equal(over.pomodoroProgress.autoAdjusted, true);
+  assert.equal(over.pomodoroProgress.remainingMinutes, 0);
   const running = DayPlan.withPomodoroProgress(
     { id: 'a', estimateMinutes: 60 },
     [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'running', seconds: 3661 }],
@@ -49,6 +50,36 @@ test('Pomodoro focus raises the displayed estimate live and excludes cancelled t
   );
   assert.equal(cancelled.estimateMinutes, 60);
   assert.equal(cancelled.pomodoroProgress.minutes, 0);
+});
+
+test('Pomodoro focus shrinks scheduled task blocks and frees the elapsed estimate time', () => {
+  const day = '2026-10-15';
+  const task = DayPlan.withPomodoroProgress(
+    { id: 'a', date: day, estimateMinutes: 71 },
+    [
+      { taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 20 * 60 },
+      { taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 20 * 60 },
+    ],
+    true,
+  );
+  const result = DayPlan.build([task], day, { dayKey: key });
+  assert.equal(result.blocks[0].minutes, 31);
+  assert.equal(result.totalMinutes, 31);
+  assert.equal(result.freeMinutes, 509);
+});
+
+test('a task with all estimated minutes spent remains reachable without consuming plan time', () => {
+  const day = '2026-10-15';
+  const task = DayPlan.withPomodoroProgress(
+    { id: 'a', date: day, title: 'SAP', estimateMinutes: 71 },
+    [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 71 * 60 }],
+    true,
+  );
+  const result = DayPlan.build([task], day, { dayKey: key });
+  assert.equal(result.totalMinutes, 0);
+  assert.equal(result.freeMinutes, 540);
+  assert.equal(result.blocks.length, 0);
+  assert.equal(result.focusComplete[0].task.title, 'SAP');
 });
 
 test('day plan uses estimated minutes and reports remaining capacity', () => {

@@ -92,10 +92,9 @@
     const progress = pomodoroProgress(task, sessions, loaded);
     const estimate = Number(task?.estimateMinutes);
     const validEstimate = Number.isInteger(estimate) && estimate > 0;
-    const adjustedEstimate =
-      validEstimate && progress.minutes > estimate
-        ? Math.ceil(progress.minutes)
-        : task?.estimateMinutes;
+    const autoAdjusted = validEstimate && progress.minutes > estimate;
+    const adjustedEstimate = autoAdjusted ? Math.ceil(progress.minutes) : task?.estimateMinutes;
+    const usedMinutes = autoAdjusted ? adjustedEstimate : Math.floor(progress.minutes);
 
     return {
       ...task,
@@ -103,7 +102,10 @@
       pomodoroProgress: {
         ...progress,
         estimateMinutes: validEstimate ? adjustedEstimate : null,
-        autoAdjusted: validEstimate && adjustedEstimate > estimate,
+        remainingMinutes: validEstimate
+          ? Math.max(0, adjustedEstimate - usedMinutes)
+          : null,
+        autoAdjusted,
       },
     };
   }
@@ -129,14 +131,24 @@
 
     const known = [];
     const unknown = [];
+    const focusComplete = [];
     matching.forEach((task, index) => {
-      const minutes =
+      const estimateMinutes =
         Number.isInteger(task.estimateMinutes) && task.estimateMinutes > 0
           ? task.estimateMinutes
           : null;
-      const row = { task, minutes, index };
-      if (minutes === null) unknown.push(row);
-      else known.push(row);
+      if (estimateMinutes === null) {
+        unknown.push({ task, minutes: null, index });
+        return;
+      }
+      const remainingMinutes = Number.isInteger(task.pomodoroProgress?.remainingMinutes)
+        ? task.pomodoroProgress.remainingMinutes
+        : estimateMinutes;
+      if (remainingMinutes <= 0) {
+        focusComplete.push({ task, estimateMinutes, minutes: 0 });
+        return;
+      }
+      known.push({ task, minutes: remainingMinutes, index });
     });
 
     known.sort((a, b) => {
@@ -188,6 +200,7 @@
       overflow,
       firstOverflow,
       unknown: unknown.map(({ task }) => task),
+      focusComplete,
       taskCount: matching.length,
     };
   }

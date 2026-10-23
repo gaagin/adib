@@ -299,12 +299,11 @@ body.adib-day-plan-visible{overflow:hidden!important}
 @media(max-width:700px){.calendar-day-plan-picker{padding:11px}.calendar-day-plan-picker-list{max-height:32dvh}.calendar-day-plan-picker-row{grid-template-columns:20px minmax(0,1fr) 82px;gap:6px;padding:5px}.calendar-day-plan-picker-title{font-size:12px}.calendar-day-plan-picker-duration input{width:56px}.calendar-day-plan-picker-actions{gap:7px}.calendar-day-plan-select,.calendar-day-plan-picker-back,.calendar-day-plan-picker-apply{font-size:12px;padding:9px 7px}}
 
 .calendar-day-plan-picker-hint{margin:-4px 0 10px;color:var(--muted,#72809a);font-size:12px;line-height:1.45}
-.calendar-day-plan-task.has-pomodoro-progress{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:3px}
-.calendar-day-plan-task-head{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px}
-.calendar-day-plan-task-progress-detail{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:6px;color:var(--muted,#64748b);font-size:10px;line-height:1.2;white-space:nowrap}
-.calendar-day-plan-task-progress-main{overflow:hidden;text-overflow:ellipsis}
-.calendar-day-plan-task-progress-remaining{flex:0 0 auto;font-weight:700}
-.calendar-day-plan-task-progress{display:block;height:4px;overflow:hidden;border-radius:999px;background:rgba(40,55,80,.12)}
-.calendar-day-plan-task-progress>span{display:block;height:100%;border-radius:inherit;background:var(--blue,#4d6cf5);transition:width .25s ease}
-.calendar-day-plan-task-progress.is-overrun>span{background:#e6535b}
-.calendar-day-plan-task.is-compact .calendar-day-plan-task-progress-detail,.calendar-day-plan-task.is-compact .calendar-day-plan-task-progress{display:none}
+.calendar-day-plan-task.has-pomodoro-progress{display:flex;align-items:center}
+.calendar-day-plan-task-head{display:flex;width:100%;min-width:0;align-items:center;justify-content:space-between;gap:7px}
+.calendar-day-plan-task-pomodoro-count{flex:0 0 auto;color:var(--muted,#64748b);font-size:10px;font-weight:700;white-space:nowrap}
+.calendar-day-plan-task.is-compact .calendar-day-plan-task-pomodoro-count{font-size:9px}
+.calendar-day-plan-focus-complete{margin:0 0 14px;padding:11px 13px;border:1px solid var(--line,#dce2ee);border-radius:13px;background:var(--soft,#f3f6fb)}
+.calendar-day-plan-focus-complete h3{margin:0 0 4px;font-size:13px}
+.calendar-day-plan-focus-complete p{margin:0 0 7px;color:var(--muted,#72809a);font-size:11px;line-height:1.4}
+.calendar-day-plan-focus-complete-item{display:block;width:100%;margin-top:5px;padding:7px 9px;border:1px solid var(--line,#dce2ee);border-radius:9px;background:var(--surface,#fff);color:var(--text,#172335);text-align:left;font-size:12px;cursor:pointer}
