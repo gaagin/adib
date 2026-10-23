@@ -75,3 +75,13 @@ test('horizontal position survives calendar rerenders and touch swipes are not i
   assert.ok(bindStart >= 0 && bindEnd > bindStart, 'bindScale source should be present');
   assert.doesNotMatch(bind, /let swipe=null/);
 });
+
+test('background sync waits for scroll idle and preserves each month cell scroll position', () => {
+  assert.match(line('function scheduleCalendarDataRefresh('), /lastCalendarScrollAt/);
+  assert.match(line('function scheduleCalendarDataRefresh('), /if\(gesture\)/);
+  assert.match(line('function queueCalendarDataRefresh('), /scheduleCalendarDataRefresh\(\)/);
+  assert.match(line('function render('), /cellScroll=new Map/);
+  assert.match(line('function render('), /cell\.scrollTop=saved\.top/);
+  assert.match(line('function render('), /cell\.scrollLeft=saved\.left/);
+  assert.match(js, /host\.addEventListener\('scroll',event=>\{if\(grid\?\.contains\(event\.target\)\)/);
+});
