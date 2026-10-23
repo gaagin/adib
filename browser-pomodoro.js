@@ -28,7 +28,7 @@ class Controller{
  abort(attempt){if(!attempt||this.attempt!==attempt)return;attempt.cancelled=true;this.starting=false;
   if(state(attempt.id)?.running){this.draw();return;}if(attempt.fresh)this.close();else{if(attempt.previousId)this.id=attempt.previousId;if(this.win&&!this.win.closed&&attempt.previousCompact===false){this.compact=false;this.renderMode();this.resize();}this.draw();}
  }
- mount(){const win=this.win,doc=win.document;doc.title='Pomodoro';doc.documentElement.lang='az';doc.body.replaceChildren();const style=doc.createElement('style');style.id='pomodoro-style';style.textContent=this.compact?STYLE:LARGE_STYLE;doc.head.append(style);this.renderMode();
+ mount(){const win=this.win,doc=win.document;doc.title='Pomodoro';doc.documentElement.lang='az';doc.body.replaceChildren();const style=doc.createElement('style');style.id='pomodoro-style';style.textContent=this.compact?STYLE:LARGE_STYLE;doc.head.append(style);this.renderMode();this.resize();
   win.addEventListener('pagehide',()=>this.cleanup(win),{once:true});this.timer=win.setInterval(()=>{if(win.closed){this.cleanup(win);return;}root.ADIBBrowserPomodoro?.tick();this.draw();},1000);this.draw();
  }
  renderMode(){const doc=this.win.document;doc.body.innerHTML=this.compact?MARKUP:LARGE_MARKUP;doc.getElementById('pomodoro-style').textContent=this.compact?STYLE:LARGE_STYLE;const clock=doc.getElementById('clock');clock.onclick=()=>this.standard();clock.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();this.standard();}};if(!this.compact){doc.getElementById('toggle').onclick=()=>this.action();doc.getElementById('cancel').onclick=()=>this.action('cancel');doc.getElementById('history').onclick=()=>{root.focus();root.ADIBBrowserPomodoro?.history(this.id);};}this.draw();}
