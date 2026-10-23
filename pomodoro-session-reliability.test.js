@@ -2,9 +2,9 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {SharedPomodoroStore}=require('./pomodoro-shared');
 const {PomodoroSessions}=require('./pomodoro-sessions');
-function make({patchTask=async()=>{},saveSession=async()=>({id:'notion-session'})}={}){
+function make({patchTask=async()=>{},saveSession=async()=>({id:'notion-session'}),loadTask=async id=>({id,title:'Test'})}={}){
  let now=Date.now();const store=new SharedPomodoroStore();let saves=0;
- const sessions=new PomodoroSessions({store,loadTask:async id=>({id,title:'Test'}),patchTask,saveSession:async session=>{saves++;return saveSession(session)},now:()=>now});
+ const sessions=new PomodoroSessions({store,loadTask,patchTask,saveSession:async session=>{saves++;return saveSession(session)},now:()=>now});
  const seed=(id='task')=>store.put({id,title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(now-120000).toISOString(),endsAt:now-60000,sessionId:'session-'+id,pomodoroCount:0,pomodoroMinutes:0});
  return {store,sessions,seed,now:()=>now,advance:ms=>{now+=ms},saves:()=>saves};
 }
@@ -29,6 +29,14 @@ test('natural completion tolerates the countdown rounding window and records a f
  const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
  assert.equal(timer.status,'completed');assert.equal(timer.completionReason,'elapsed');assert.equal(timer.pomodoroCount,1);
  assert.equal(record?.fullPomodoro,true);assert.equal(record?.completionReason,'elapsed');assert.ok(record?.notionPageId);assert.equal(e.saves(),1);
+});
+test('finished Pomodoro raises an existing estimate to the rounded total focus time',async()=>{
+ let patched;
+ const e=make({loadTask:async id=>({id,title:'Test',estimateMinutes:20}),patchTask:async(id,properties)=>{patched=properties}});
+ e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-60000).toISOString(),endsAt:e.now(),sessionId:'session-task',pomodoroCount:1,pomodoroMinutes:20});
+ await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task',natural:true});
+ assert.equal(patched['Təxmini müddət, dəq'].number,21);
+ assert.equal(e.store.get('task').pomodoroMinutes,21);
 });
 test('manual early finish is still recorded as an early session',async()=>{
  const e=make();

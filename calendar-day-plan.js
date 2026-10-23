@@ -48,6 +48,66 @@
     };
   }
 
+  function pomodoroProgress(task, sessions = [], loaded = false) {
+    const id = String(task?.id || "");
+    const rows = loaded
+      ? sessions.filter((session) =>
+          String(session?.taskId || "") === id &&
+          session.kind === "pomodoro" &&
+          session.mode !== "break" &&
+          session.status !== "cancelled" &&
+          session.completionReason !== "cancelled" &&
+          !session.excludeFromTotals,
+        )
+      : [];
+    const seconds = (session) => {
+      const value = Number(session?.seconds);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    };
+    const completedSeconds = rows
+      .filter((session) => session.status !== "running")
+      .reduce((total, session) => total + seconds(session), 0);
+    const runningSeconds = rows
+      .filter((session) => session.status === "running")
+      .reduce((total, session) => total + seconds(session), 0);
+    const storedMinutes = Number(task?.pomodoroMinutes);
+    const completedMinutes = Math.max(
+      Number.isFinite(storedMinutes) && storedMinutes > 0 ? storedMinutes : 0,
+      completedSeconds / 60,
+    );
+    const runningMinutes = runningSeconds / 60;
+    const fallbackCount = Number(task?.pomodoroCount);
+
+    return {
+      sessionCount: loaded
+        ? Math.max(rows.length, Number.isFinite(fallbackCount) ? Math.max(0, fallbackCount) : 0)
+        : Number.isFinite(fallbackCount) ? Math.max(0, fallbackCount) : 0,
+      completedMinutes,
+      runningMinutes,
+      minutes: completedMinutes + runningMinutes,
+    };
+  }
+
+  function withPomodoroProgress(task, sessions = [], loaded = false) {
+    const progress = pomodoroProgress(task, sessions, loaded);
+    const estimate = Number(task?.estimateMinutes);
+    const validEstimate = Number.isInteger(estimate) && estimate > 0;
+    const adjustedEstimate =
+      validEstimate && progress.minutes > estimate
+        ? Math.ceil(progress.minutes)
+        : task?.estimateMinutes;
+
+    return {
+      ...task,
+      ...(validEstimate ? { estimateMinutes: adjustedEstimate } : {}),
+      pomodoroProgress: {
+        ...progress,
+        estimateMinutes: validEstimate ? adjustedEstimate : null,
+        autoAdjusted: validEstimate && adjustedEstimate > estimate,
+      },
+    };
+  }
+
   function build(tasks, day, options = {}) {
     const dayKey = options.dayKey || (() => "");
     const isVisible = options.isVisible || (() => true);
@@ -158,6 +218,8 @@
     END_MINUTE,
     CAPACITY_MINUTES,
     workWindow,
+    pomodoroProgress,
+    withPomodoroProgress,
     build,
     selectableTasks,
   };

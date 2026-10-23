@@ -4,6 +4,53 @@ const DayPlan = require('../calendar-day-plan.js');
 
 const key = (task) => String(task.date || '').slice(0, 10);
 
+test('Pomodoro progress totals completed and live work sessions, excluding cancelled and break rows', () => {
+  const progress = DayPlan.pomodoroProgress(
+    { id: 'a', pomodoroMinutes: 20, pomodoroCount: 2 },
+    [
+      { taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 900 },
+      { taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'running', seconds: 300 },
+      { taskId: 'a', kind: 'pomodoro', mode: 'break', status: 'saved', seconds: 300 },
+      { taskId: 'a', kind: 'pomodoro', status: 'cancelled', completionReason: 'cancelled', seconds: 1200 },
+      { taskId: 'other', kind: 'pomodoro', status: 'saved', seconds: 600 },
+    ],
+    true,
+  );
+  assert.equal(progress.sessionCount, 2);
+  assert.equal(progress.completedMinutes, 20);
+  assert.equal(progress.runningMinutes, 5);
+  assert.equal(progress.minutes, 25);
+});
+
+test('Pomodoro focus raises the displayed estimate live and excludes cancelled time', () => {
+  const below = DayPlan.withPomodoroProgress(
+    { id: 'a', estimateMinutes: 60 },
+    [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 3500 }],
+    true,
+  );
+  assert.equal(below.estimateMinutes, 60);
+  const over = DayPlan.withPomodoroProgress(
+    { id: 'a', estimateMinutes: 60 },
+    [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'saved', seconds: 3661 }],
+    true,
+  );
+  assert.equal(over.estimateMinutes, 62);
+  assert.equal(over.pomodoroProgress.autoAdjusted, true);
+  const running = DayPlan.withPomodoroProgress(
+    { id: 'a', estimateMinutes: 60 },
+    [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'running', seconds: 3661 }],
+    true,
+  );
+  assert.equal(running.estimateMinutes, 62);
+  const cancelled = DayPlan.withPomodoroProgress(
+    { id: 'a', estimateMinutes: 60 },
+    [{ taskId: 'a', kind: 'pomodoro', mode: 'work', status: 'cancelled', completionReason: 'cancelled', seconds: 7200 }],
+    true,
+  );
+  assert.equal(cancelled.estimateMinutes, 60);
+  assert.equal(cancelled.pomodoroProgress.minutes, 0);
+});
+
 test('day plan uses estimated minutes and reports remaining capacity', () => {
   const result = DayPlan.build([
     { id: 'a', date: '2026-10-15', estimateMinutes: 90 },

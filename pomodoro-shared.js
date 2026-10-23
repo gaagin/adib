@@ -12,6 +12,6 @@ class SharedPomodoroStore{
 function timerFromTask(task,now=Date.now()){
  const mode=String(task.pomodoroMode||'').toLowerCase().includes('перерыв')?'break':'work',raw=Number(task.pomodoroDuration),fallback=mode==='break'&&String(task.pomodoroMode).includes('15')?15:mode==='break'?5:25;
  const duration=canonicalDuration(Number.isInteger(raw)&&raw>0?raw:fallback,mode),clockMinutes=raw>0?raw:duration,started=Date.parse(task.pomodoroStartedAt),running=Boolean(task.pomodoroRunning&&Number.isFinite(started)),endsAt=running?started+clockMinutes*60000:0;
- return{id:task.id,title:task.title||'Pomodoro',mode,duration,plannedDuration:duration,running,status:running?'running':'stopped',startedAt:running?task.pomodoroStartedAt:'',endsAt,remainingSeconds:running?Math.max(0,Math.ceil((endsAt-now)/1000)):duration*60,sessionId:running?task.id+':'+task.pomodoroStartedAt:'',openedAt:0,pomodoroCount:Number(task.pomodoroCount)||0,pomodoroMinutes:Number(task.pomodoroMinutes)||0};
+ return{id:task.id,title:task.title||'Pomodoro',mode,duration,plannedDuration:duration,running,status:running?'running':'stopped',startedAt:running?task.pomodoroStartedAt:'',endsAt,remainingSeconds:running?Math.max(0,Math.ceil((endsAt-now)/1000)):duration*60,sessionId:running?task.id+':'+task.pomodoroStartedAt:'',openedAt:0,pomodoroCount:Number(task.pomodoroCount)||0,pomodoroMinutes:Number(task.pomodoroMinutes)||0,estimateMinutes:Number(task.estimateMinutes)||0};
 }
 module.exports={SharedPomodoroStore,timerFromTask,canonicalDuration};

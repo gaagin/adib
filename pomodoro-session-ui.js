@@ -1,5 +1,5 @@
 (function(root){'use strict';let state={sessions:[],revision:-1,revisionBasis:''};
-function accept(data){if(!Array.isArray(data.sessions))return;const changed=data.revisionBasis!==state.revisionBasis||data.revision!==state.revision;state={sessions:data.sessions,revision:data.revision,revisionBasis:data.revisionBasis};if(changed||root.ADIBCalendar?.visible&&data.sessions.some(s=>s.status==='running'))root.dispatchEvent?.(new Event('adib-pomodoro-sessions'));}
+function accept(data){if(!Array.isArray(data.sessions))return;const changed=data.revisionBasis!==state.revisionBasis||data.revision!==state.revision;state={sessions:data.sessions,revision:data.revision,revisionBasis:data.revisionBasis};if(changed||root.ADIBCalendar?.visible&&data.sessions.some(s=>s.status==='running'))root.dispatchEvent?.(new CustomEvent('adib-pomodoro-sessions',{detail:{revisionChanged:changed}}));}
 function visible(s){return !!s&&s.status!=='cancelled'&&s.completionReason!=='cancelled'}
 function all(){return [...(root.ADIBWork?.state.sessions||[]).map(s=>({...s,kind:'work'})),...state.sessions].filter(visible).sort((a,b)=>a.startedAt-b.startedAt)}
 function rows(id){return all().filter(s=>!id||String(s.taskId)===String(id))}
