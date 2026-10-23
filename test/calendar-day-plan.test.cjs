@@ -114,3 +114,21 @@ test('when the work window is over, unfinished tasks are overflow and not drawn'
   assert.equal(result.overflowMinutes, 60);
   assert.equal(result.overflow[0].task.id, 'late');
 });
+
+test('task picker lists unfinished visible parent tasks and excludes completed, child, session and already-estimated tasks for that day', () => {
+  const tasks = [
+    { id: 'a', title: 'Later', date: '2026-10-16' },
+    { id: 'b', title: 'Today, no estimate', date: '2026-10-15' },
+    { id: 'c', title: 'Already planned', date: '2026-10-15', estimateMinutes: 30 },
+    { id: 'd', title: 'Done', date: '2026-10-16', completed: true },
+    { id: 'e', title: 'Child', date: '2026-10-16', parentId: 'p' },
+    { id: 'f', title: 'Session', date: '2026-10-16', workSession: {} },
+    { id: 'g', title: 'Hidden', date: '2026-10-16' },
+  ];
+  const result = DayPlan.selectableTasks(tasks, '2026-10-15', {
+    dayKey: key,
+    isDone: (task) => task.completed === true,
+    isVisible: (task) => task.id !== 'g',
+  });
+  assert.deepEqual(result.map((task) => task.id), ['a', 'b']);
+});

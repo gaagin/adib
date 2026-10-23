@@ -132,6 +132,25 @@
     };
   }
 
+  function selectableTasks(tasks, day, options = {}) {
+    const dayKey = options.dayKey || (() => "");
+    const isVisible = options.isVisible || (() => true);
+    const isDone = options.isDone || (() => false);
+    return (tasks || [])
+      .filter((task) => {
+        if (!task || task.workSession || task.parentId || task.creationPending) return false;
+        if (!isVisible(task) || isDone(task)) return false;
+        const alreadyPlannedForDay = dayKey(task) === day;
+        const hasEstimate = Number.isInteger(task.estimateMinutes) && task.estimateMinutes > 0;
+        return !(alreadyPlannedForDay && hasEstimate);
+      })
+      .sort((a, b) =>
+        String(a.title || "").localeCompare(String(b.title || ""), undefined, {
+          sensitivity: "base",
+        }),
+      );
+  }
+
   return {
     START_HOUR,
     END_HOUR,
@@ -140,5 +159,6 @@
     CAPACITY_MINUTES,
     workWindow,
     build,
+    selectableTasks,
   };
 });

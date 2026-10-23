@@ -277,3 +277,25 @@ body.adib-day-plan-visible{overflow:hidden!important}
 /* Month cells show the remaining time in the 09:00–18:00 work window. */
 .calendar-day-date-group{display:flex;align-items:center;gap:3px;min-width:0}
 #adibCalendar .adib-calendar-cell header .calendar-day-capacity-badge{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:23px;height:20px;padding:0 4px;border:1px solid var(--line,#dce2ee);border-radius:6px;background:var(--soft,#f3f6fb);color:var(--muted,#63718b);font-size:9px;font-weight:700;line-height:1;white-space:nowrap}
+
+/* Pick existing unfinished personal tasks and set their day-plan estimates in place. */
+.calendar-day-plan-picker{margin:0 0 16px;padding:14px;border:1px solid var(--line,#dce2ee);border-radius:14px;background:var(--soft,#f3f6fb)}
+.calendar-day-plan-picker h3{margin:0 0 10px;font-size:15px}
+.calendar-day-plan-picker-search{box-sizing:border-box;width:100%;min-height:40px;margin:0 0 10px;padding:9px 11px;border:1px solid var(--line,#dce2ee);border-radius:10px;background:var(--surface,#fff);color:var(--text,#172335);font:inherit}
+.calendar-day-plan-picker-list{display:grid;gap:7px;max-height:260px;overflow:auto;overscroll-behavior:contain;padding-right:2px}
+.calendar-day-plan-picker-row{display:grid;grid-template-columns:20px minmax(0,1fr) 88px;align-items:center;gap:8px;min-height:42px;padding:6px 8px;border:1px solid var(--line,#dce2ee);border-radius:10px;background:var(--surface,#fff)}
+.calendar-day-plan-picker-row[hidden]{display:none}
+.calendar-day-plan-picker-row>input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue,#4d6cf5)}
+.calendar-day-plan-picker-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.calendar-day-plan-picker-duration{display:flex;align-items:center;gap:5px;color:var(--muted,#72809a);font-size:11px}
+.calendar-day-plan-picker-duration input{box-sizing:border-box;width:62px;min-height:32px;padding:5px;border:1px solid var(--line,#dce2ee);border-radius:8px;background:var(--soft,#f3f6fb);color:var(--text,#172335);font:inherit;text-align:center}
+.calendar-day-plan-picker-empty,.calendar-day-plan-picker-status{margin:8px 0 0;color:var(--muted,#72809a);font-size:12px;line-height:1.45}
+.calendar-day-plan-picker-status.is-overflow{color:#ba3339;font-weight:700}
+.calendar-day-plan-picker-actions{display:flex;width:100%;gap:10px}
+.calendar-day-plan-select,.calendar-day-plan-picker-back,.calendar-day-plan-picker-apply{flex:1 1 0;min-width:0;min-height:46px;padding:10px 12px;border:1px solid var(--line,#dce2ee);border-radius:12px;background:var(--soft,#f3f6fb);color:var(--text,#172335);font-weight:700;cursor:pointer}
+.calendar-day-plan-add{width:auto;flex:1.2 1 0}
+.calendar-day-plan-picker-apply{border-color:var(--blue,#4d6cf5);background:var(--blue,#4d6cf5);color:#fff}
+.calendar-day-plan-picker-apply:disabled{opacity:.48;cursor:not-allowed}
+@media(max-width:700px){.calendar-day-plan-picker{padding:11px}.calendar-day-plan-picker-list{max-height:32dvh}.calendar-day-plan-picker-row{grid-template-columns:20px minmax(0,1fr) 82px;gap:6px;padding:5px}.calendar-day-plan-picker-title{font-size:12px}.calendar-day-plan-picker-duration input{width:56px}.calendar-day-plan-picker-actions{gap:7px}.calendar-day-plan-select,.calendar-day-plan-picker-back,.calendar-day-plan-picker-apply{font-size:12px;padding:9px 7px}}
+
+.calendar-day-plan-picker-hint{margin:-4px 0 10px;color:var(--muted,#72809a);font-size:12px;line-height:1.45}
