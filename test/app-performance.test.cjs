@@ -4,12 +4,13 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 
-function accountEnv(fetchImpl){
+function accountEnv(fetchImpl,{cachedOwner=false}={}){
   let authTimer, authDelay, revalidate;
   const document={readyState:'loading',documentElement:{style:{visibility:''}},addEventListener(){}};
-  const window={document,location:{href:'https://adib.example/',replace(){}},fetch:fetchImpl,ADIBLoading:{screen:()=>({done(){},fail(){}})},addEventListener(){}};
+  const storage={getItem:()=>cachedOwner?'user:1':null,clear(){},setItem(){}};
+  const window={document,localStorage:storage,location:{href:'https://adib.example/',replace(){}},fetch:fetchImpl,ADIBLoading:{screen:()=>({done(){},fail(){}})},addEventListener(){}};
   class MutationObserver{observe(){}}
-  const context=vm.createContext({window,document,location:window.location,localStorage:{getItem:()=> 'user:1',clear(){},setItem(){}},URL,AbortController,MutationObserver,console,
+  const context=vm.createContext({window,document,location:window.location,localStorage:storage,URL,AbortController,MutationObserver,console,
     setTimeout(fn,ms){authTimer=fn;authDelay=ms;return 1;},clearTimeout(){},setInterval(fn){revalidate=fn;return 2;}});
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../account-client.js'),'utf8'),context);
   return {window,document,runAuthTimeout(){authTimer?.();},get authDelay(){return authDelay;},get revalidate(){return revalidate;}};
@@ -38,6 +39,14 @@ test('initial sign-in check has a timeout so startup cannot spin forever',async(
   env.runAuthTimeout();
   await assert.rejects(env.window.ADIBAccount.ready,/timed out/);
   assert.equal(signal.aborted,true);
+});
+
+test('a returning user can read the cached workspace while a cold server reconnects',async()=>{
+  const env=accountEnv(async()=>{throw Error('temporary network failure')},{cachedOwner:true});
+  assert.equal(env.document.documentElement.style.visibility,'');
+  assert.equal(await env.window.ADIBAccount.ready,null);
+  assert.equal(env.window.ADIBAccount.cachedOffline,true);
+  assert.equal(env.window.ADIBAccount.action('create'),false);
 });
 
 test('home list no longer serializes and redraws all tasks every second',()=>{

@@ -4,7 +4,8 @@
   if(!enabled)return false;
   try{const url=new URL(href);return !url.hash&&!url.searchParams.has('id')&&!url.searchParams.has('element')&&!url.searchParams.has('mode')&&url.searchParams.get('action')!=='quick-add-task'}catch{return false}
  }
- if(typeof module==='object'&&module.exports){module.exports={shouldOpenMyTasks};return;}
+ function shouldUseCachedWorkspace(owner){return !!String(owner||'').trim()}
+ if(typeof module==='object'&&module.exports){module.exports={shouldOpenMyTasks,shouldUseCachedWorkspace};return;}
  // Native desktop windows retain desktop property geometry even when resized narrowly.
  root.document.documentElement.classList.toggle('adib-desktop-app',!!root.ADIBDesktop);
  function finish(){root.document.documentElement.classList.remove('adib-starting');root.document.getElementById('adibBootStatus')?.remove();}
@@ -12,9 +13,15 @@
  async function openStartupView(){
   if(!shouldOpenMyTasks(root.location.href)){finish();return;}
   try{
-   if(root.ADIBAccount)await root.ADIBAccount.ready;
    // The shell opens synchronously from the saved snapshot. Its refresh is background work.
    if(!root.ADIBHome?.open||!root.ADIBHomeBridge)throw Error('Workspace assets are unavailable');
+   // A previously authenticated device can render its local snapshot immediately.
+   // API calls remain gated by ADIBAccount.ready until the server verifies the session.
+   if(root.ADIBAccount&&shouldUseCachedWorkspace(root.ADIBAccount.cachedOwner)){
+    Promise.resolve(root.ADIBHome.open()).then(finish,failed);
+    return;
+   }
+   if(root.ADIBAccount)await root.ADIBAccount.ready;
    Promise.resolve(root.ADIBHome.open()).then(finish,failed);
   }catch(error){failed(error);}
  }
