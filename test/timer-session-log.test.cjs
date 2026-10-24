@@ -65,6 +65,44 @@ test('timer session log reuses existing page after a retry', async () => {
   assert.equal(creates, 0);
 });
 
+test('Pomodoro journal can rebuild its session list from Notion', async () => {
+  const log = new TimerSessionLog({
+    dataSourceId: 'session-ds',
+    queryDatabase: async (...args) => {
+      assert.equal(args[1], 'session-ds');
+      assert.equal(args[2].filter.property, 'Тип таймера');
+      assert.equal(args[2].filter.select.equals, 'Pomodoro');
+      return [{
+        id: 'notion-row',
+        properties: {
+          Сеанс: { title: [{ plain_text: 'Prepare report' }] },
+          Начало: { date: { start: '2026-10-24T08:00:00.000Z' } },
+          Завершение: { date: { start: '2026-10-24T08:25:00.000Z' } },
+          'Длительность, мин': { number: 25 },
+          'Тип таймера': { select: { name: 'Pomodoro' } },
+          Режим: { select: { name: 'Работа' } },
+          'База задачи': { select: { name: 'Мои задачи' } },
+          'Задача (Мои задачи)': { relation: [{ id: 'task-page' }] },
+          Исполнитель: { rich_text: [{ plain_text: 'Ilqar' }] },
+          'ID сеанса': { rich_text: [{ plain_text: 'pomo-1' }] },
+          'Полный Pomodoro': { checkbox: true },
+          'Причина завершения': { rich_text: [{ plain_text: 'elapsed' }] },
+        },
+      }];
+    },
+    notion: async () => ({}),
+  });
+  const [session] = await log.listPomodoro();
+  assert.equal(session.id, 'pomo-1');
+  assert.equal(session.notionPageId, 'notion-row');
+  assert.equal(session.taskId, 'task-page');
+  assert.equal(session.title, 'Prepare report');
+  assert.equal(session.kind, 'pomodoro');
+  assert.equal(session.seconds, 1500);
+  assert.equal(session.fullPomodoro, true);
+  assert.equal(session.status, 'saved');
+});
+
 test('timer session log archives the Notion row for a deleted session', async () => {
   const calls = [];
   const log = new TimerSessionLog({
@@ -170,7 +208,7 @@ test('saved work timer sessions are logged once and remain persisted', async () 
   }
 });
 
-test('finished Pomodoro work session is logged after the task update', async () => {
+test('finished Pomodoro work session is journaled in Notion before task properties are updated', async () => {
   const start = Date.parse('2026-10-18T08:00:00.000Z');
   const store = new SharedPomodoroStore();
   const taskId = '12345678123412341234123456789abc';
@@ -190,7 +228,7 @@ test('finished Pomodoro work session is logged after the task update', async () 
     now: () => start + 25 * 60_000,
   });
   await manager.finish(timer);
-  assert.deepEqual(order, ['task', 'log']);
+  assert.deepEqual(order, ['log', 'task']);
   assert.equal(store.sessions[0].notionPageId, 'notion-pomo');
   assert.equal(store.sessions[0].notionLogEligible, true);
 });

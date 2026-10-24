@@ -1498,11 +1498,24 @@ async function savePersonalTaskUnlocked(body) {
 }
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
-const sharedPomodoro=new SharedPomodoroStore(process.env.POMODORO_STATE_FILE||path.join(__dirname,'data','pomodoro-state.json'));
+const pomodoroStateDirectory=process.env.RAILWAY_PROJECT_ID?'/data':path.join(__dirname,'data');
+const legacyPomodoroStateFile=path.join(__dirname,'data','pomodoro-state.json');
+const persistentPomodoroStateFile=process.env.POMODORO_STATE_FILE||path.join(pomodoroStateDirectory,'pomodoro-state.json');
+if(!process.env.POMODORO_STATE_FILE&&process.env.RAILWAY_PROJECT_ID&&!fs.existsSync(persistentPomodoroStateFile)&&fs.existsSync(legacyPomodoroStateFile)){
+ fs.mkdirSync(path.dirname(persistentPomodoroStateFile),{recursive:true});
+ fs.copyFileSync(legacyPomodoroStateFile,persistentPomodoroStateFile);
+}
+const sharedPomodoro=new SharedPomodoroStore(persistentPomodoroStateFile);
 const {PomodoroSessions}=require('./pomodoro-sessions');
 const {TimerSessionLog}=require('./timer-session-log');
 const timerSessionLog=new TimerSessionLog({notion,queryDatabase,dataSourceId:TIMER_SESSIONS_DS});
-const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});if(taskEstimateModule.validMinutes(properties[taskEstimateModule.FIELD]?.number)){taskManagement.update({type:'estimate',id,minutes:properties[taskEstimateModule.FIELD].number});snapshotCache=null;taskCache.clear();}invalidatePersonalTasks();},saveSession:session=>timerSessionLog.record(session),authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
+let notionPomodoroSessionsCache=[],notionPomodoroSessionsAt=0,notionPomodoroSessionsPromise=null;
+async function loadNotionPomodoroSessions(){
+ if(Date.now()-notionPomodoroSessionsAt<60000)return notionPomodoroSessionsCache;
+ if(!notionPomodoroSessionsPromise)notionPomodoroSessionsPromise=timerSessionLog.listPomodoro().then(rows=>{notionPomodoroSessionsCache=rows;notionPomodoroSessionsAt=Date.now();return rows;}).catch(error=>{console.warn('Pomodoro journal read deferred:',error.message);notionPomodoroSessionsAt=Date.now();return notionPomodoroSessionsCache;}).finally(()=>{notionPomodoroSessionsPromise=null});
+ return notionPomodoroSessionsPromise;
+}
+const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});if(taskEstimateModule.validMinutes(properties[taskEstimateModule.FIELD]?.number)){taskManagement.update({type:'estimate',id,minutes:properties[taskEstimateModule.FIELD].number});snapshotCache=null;taskCache.clear();}invalidatePersonalTasks();},saveSession:async session=>{const result=await timerSessionLog.record(session);notionPomodoroSessionsAt=0;return result;},authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
 const legacyPomodoroCutoff=Date.now()-7*24*60*60*1000,knownPomodoroSessionIds=new Set(sharedPomodoro.sessions.map(session=>session.id));
 let legacyPomodoroSessionsAdded=0;
 for(const timer of sharedPomodoro.timers.values()){
@@ -1520,7 +1533,11 @@ async function sharedPomodoroSnapshot(){
     if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
     await pomodoroRefreshPromise;
   }
-  return sharedPomodoro.snapshot();
+  const snapshot=sharedPomodoro.snapshot();
+  const durableSessions=await loadNotionPomodoroSessions();
+  const sessionsById=new Map((snapshot.sessions||[]).map(session=>[String(session.id),session]));
+  for(const session of durableSessions)sessionsById.set(String(session.id),{...sessionsById.get(String(session.id)),...session});
+  return {...snapshot,sessions:[...sessionsById.values()]};
 }
 const personalPomodoroLocks = new Map();
 async function savePersonalPomodoro(body) {

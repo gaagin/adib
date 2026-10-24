@@ -35,6 +35,16 @@ function pageTitle(page, propertyName) {
     .join('');
 }
 
+function pageRichText(page, propertyName) {
+  return (page?.properties?.[propertyName]?.rich_text || [])
+    .map(item => item.plain_text || item.text?.content || '')
+    .join('');
+}
+
+function pageSelect(page, propertyName) {
+  return page?.properties?.[propertyName]?.select?.name || '';
+}
+
 class TimerSessionLog {
   constructor({ notion, queryDatabase, dataSourceId }) {
     Object.assign(this, { notion, queryDatabase, dataSourceId });
@@ -88,6 +98,56 @@ class TimerSessionLog {
       }),
     });
     return { id: page.id, existing: false };
+  }
+
+  async listPomodoro() {
+    if (!this.dataSourceId) return [];
+    const pages = await this.queryDatabase('', this.dataSourceId, {
+      page_size: 100,
+      filter: { property: 'Тип таймера', select: { equals: 'Pomodoro' } },
+      sorts: [{ property: 'Начало', direction: 'descending' }],
+    });
+    const relationBySource = {
+      personal: 'Задача (Мои задачи)',
+      todo: 'Задача (ToDo)',
+      gorulen: 'Задача (Gorulen isler)',
+    };
+    const sourceByName = {
+      'Мои задачи': 'personal',
+      ToDo: 'todo',
+      'Gorulen isler': 'gorulen',
+    };
+    return (pages || []).map(page => {
+      const properties = page?.properties || {};
+      const sourceKey = sourceByName[pageSelect(page, 'База задачи')] || 'personal';
+      const relationName = relationBySource[sourceKey];
+      const startedAt = Date.parse(properties.Начало?.date?.start || '');
+      const endedAt = Date.parse(properties.Завершение?.date?.start || '');
+      const minutes = Number(properties['Длительность, мин']?.number);
+      const id = pageRichText(page, 'ID сеанса') || page.id;
+      const taskId = properties[relationName]?.relation?.[0]?.id || '';
+      if (!id || !Number.isFinite(startedAt) || !Number.isFinite(endedAt) || endedAt < startedAt) return null;
+      const completionReason = pageRichText(page, 'Причина завершения');
+      if (completionReason === 'cancelled') return null;
+      return {
+        id,
+        notionPageId: page.id,
+        taskId,
+        title: pageTitle(page, 'Сеанс') || 'Pomodoro',
+        sourceKey,
+        kind: 'pomodoro',
+        mode: pageSelect(page, 'Режим') === 'Перерыв' ? 'break' : 'work',
+        worker: pageRichText(page, 'Исполнитель'),
+        status: 'saved',
+        startedAt,
+        endedAt,
+        seconds: Number.isFinite(minutes) ? Math.max(0, Math.round(minutes * 60)) : 0,
+        fullPomodoro: properties['Полный Pomodoro']?.checkbox === true,
+        completionReason,
+        notionLogEligible: true,
+        notionSyncPending: false,
+      };
+    }).filter(Boolean);
   }
 
   async renameTask(taskId, sourceKey, title) {

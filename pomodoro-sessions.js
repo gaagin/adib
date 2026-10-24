@@ -29,7 +29,20 @@ class PomodoroSessions{
   const properties={'Начало отчета':{date:{start:timer.startedAt}},'Pomodoro текущая длительность':{number:planned},'Pomodoro режим':{select:{name:timer.mode==='break'?'Короткий перерыв — 5 мин':'Работа — 25 мин'}},'Отчет запущен':{checkbox:false},'Конец отчета':{date:{start:new Date(end).toISOString()}}};if(work){properties['Pomodoro количество']={number:count};properties['Pomodoro всего минут']={number:minutes};if(!cancelled&&timer.id!==GLOBAL&&credited>0){try{const current=await this.loadTask(timer.id),estimate=Number(current?.estimateMinutes),adjusted=Math.ceil(minutes);if(Number.isInteger(estimate)&&estimate>0&&validMinutes(adjusted)&&adjusted>estimate)properties[TASK_ESTIMATE_FIELD]={number:adjusted}}catch(error){/* Do not block saving a completed Pomodoro if reading its estimate fails. */}}}
   const session=work?{id:timer.sessionId,taskId:timer.id,title:timer.title,sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:timer.actorId||'',worker:timer.worker||'',status:timer.id===GLOBAL?'saved':'sync-pending',startedAt:start,endedAt:end,seconds,plannedMinutes:planned,fullPomodoro:full,completionReason:cancelled?'cancelled':full?'elapsed':'early',startOperation:timer.startOperation||'',notionLogEligible:!cancelled&&timer.id!==GLOBAL,notionSyncPending:!cancelled&&timer.id!==GLOBAL}:null;
   const next={...timer,running:false,status:'completed',endsAt:0,remainingSeconds:0,completedAt:new Date(end).toISOString(),completionReason:cancelled?'cancelled':full?'elapsed':'early',creditedMinutes:credited,pomodoroMinutes:work?minutes:timer.pomodoroMinutes,pomodoroCount:work?count:timer.pomodoroCount,syncPending:timer.id!==GLOBAL,browserSessions:true,nextMode:cancelled?'work':work&&full?'break':'work'};
-  const job=timer.id===GLOBAL?null:{taskId:timer.id,sessionId:session?.id||'',properties,retryAt:0,attempts:0};this.store.commit(next,session,job);this.changed();if(job)await this.flushJob(job);else if(session)await this.flushSessionLog(session);return this.store.get(timer.id);
+  const job=timer.id===GLOBAL?null:{taskId:timer.id,sessionId:session?.id||'',properties,retryAt:0,attempts:0};
+  let durableSession=session;
+  // Notion is the durable journal. Create the session row before the task
+  // property PATCH so a task-sync failure cannot hold up the session record.
+  if(session?.notionLogEligible){
+   try{
+    const result=await this.saveSession(session);
+    durableSession={...session,status:'saved',notionPageId:result?.id||'recorded',notionSyncPending:false,notionSyncError:'',notionRetryAt:0,notionSyncFailures:0};
+   }catch(e){
+    const attempts=(session.notionSyncFailures||0)+1;
+    durableSession={...session,status:'sync-pending',notionSyncPending:true,notionSyncError:String(e.message||e).slice(0,300),notionSyncFailures:attempts,notionRetryAt:this.now()+Math.min(1800000,60000*2**Math.min(5,attempts-1))};
+   }
+  }
+  this.store.commit(next,durableSession,job);this.changed();if(job)await this.flushJob(job);else if(durableSession)await this.flushSessionLog(durableSession);return this.store.get(timer.id);
  }
  async run(body){const id=String(body.id),original=String(body.action),action=['pause','reset'].includes(original)?'finish':original;let timer=this.store.get(id);const now=this.now();if(!['open','hide','start','finish','break-finish','cancel'].includes(action))throw fail('Yanlış Pomodoro əməliyyatı',400);
   if(action==='cancel'&&!timer)throw fail('İşləyən Pomodoro tapılmadı',404);
