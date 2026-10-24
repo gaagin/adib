@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <queries><intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent></queries>
-    <application android:name=".AdibApplication" android:allowBackup="false" android:icon="@drawable/ic_adib" android:label="ADIB" android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
+    <application android:name=".AdibApplication" android:allowBackup="false" android:hardwareAccelerated="true" android:icon="@drawable/ic_adib" android:label="ADIB" android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
         <provider android:name=".CameraPhotoProvider" android:authorities="${applicationId}.camera" android:exported="false" android:grantUriPermissions="true" />
         <activity android:name=".AccountLoginActivity" android:exported="false" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".PomodoroFocusActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize" android:exported="false" android:theme="@style/PomodoroBlackScreenTheme" android:taskAffinity="${applicationId}.focus" android:excludeFromRecents="true" android:launchMode="singleTop" />
