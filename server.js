@@ -384,6 +384,7 @@ function mapPlans(pages, baseUrl = '') {
     name: title(page, 'Plan') || 'Adsız',
     parentId: relationIds(page, 'Parent Plan')[0] || null,
     type: select(page, 'Tip'),
+    color: select(page, 'Color'),
     x: number(page, 'X') || 0,
     y: number(page, 'Y') || 0,
     width: number(page, 'Eni') || 2400,
@@ -402,6 +403,7 @@ function mapEquipment(pages, tasks, baseUrl = '') {
     planId: relationIds(page, 'Plan')[0] || null,
     type: select(page, 'Tip'),
     status: select(page, 'Status'),
+    color: select(page, 'Color'),
     x: number(page, 'X') || 0,
     y: number(page, 'Y') || 0,
     width: number(page, 'Eni') || 100,
@@ -851,6 +853,60 @@ function enforceAiRateLimit() {
   aiRequestTimes.push(now);
 }
 
+const LAYOUT_COLORS = [
+  { name: 'Mavi', color: 'blue', hex: '#dcecf8' },
+  { name: 'Yaşıl', color: 'green', hex: '#e8f1ec' },
+  { name: 'Sarı', color: 'yellow', hex: '#fff1d6' },
+  { name: 'Narıncı', color: 'orange', hex: '#fde6cf' },
+  { name: 'Qırmızı', color: 'red', hex: '#fce9e7' },
+  { name: 'Bənövşəyi', color: 'purple', hex: '#efe7ff' },
+  { name: 'Boz', color: 'gray', hex: '#e2e8f0' }
+];
+const layoutColorSchemaFlights = new Map();
+const layoutColorSchemaReady = new Set();
+
+async function ensureLayoutColorSchema(kind) {
+  if (layoutColorSchemaReady.has(kind)) return;
+  if (layoutColorSchemaFlights.has(kind)) return layoutColorSchemaFlights.get(kind);
+  const config = kind === 'plan'
+    ? { database: PLAN_DB, dataSource: PLAN_DS }
+    : { database: MAKINA_DB, dataSource: MAKINA_DS };
+  const flight = (async () => {
+    let endpoint = config.dataSource ? '/data_sources/' + encodeURIComponent(config.dataSource) : '';
+    let version = NOTION_VERSION;
+    let schema;
+    try {
+      if (!endpoint) throw new Error('Data source is not configured');
+      schema = await notion(endpoint, { method: 'GET' });
+    } catch (error) {
+      if (!config.database || (endpoint && !/Notion API (400|404):/.test(error.message || ''))) throw error;
+      endpoint = '/databases/' + encodeURIComponent(config.database);
+      version = '2022-06-28';
+      schema = await notion(endpoint, { method: 'GET' }, version);
+    }
+    const existing = schema.properties?.Color;
+    if (existing && existing.type !== 'select') {
+      throw new Error('Notion sahəsi Color seçim siyahısı deyil; mövcud sahəni dəyişmədim.');
+    }
+    const existingOptions = (existing?.select?.options || []).map(option => ({
+      name: option.name,
+      ...(option.color ? { color: option.color } : {})
+    }));
+    const names = new Set(existingOptions.map(option => option.name));
+    const missing = LAYOUT_COLORS.filter(option => !names.has(option.name));
+    if (!existing || missing.length) {
+      const options = [...existingOptions, ...missing.map(({ name, color }) => ({ name, color }))];
+      await notion(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify({ properties: { Color: { select: { options } } } })
+      }, version);
+    }
+    layoutColorSchemaReady.add(kind);
+  })().finally(() => layoutColorSchemaFlights.delete(kind));
+  layoutColorSchemaFlights.set(kind, flight);
+  return flight;
+}
+
 function updateLayoutCaches(id, values) {
   const page = rawCache.plans.get(id) || rawCache.machines.get(id);
   if (page) {
@@ -860,6 +916,7 @@ function updateLayoutCaches(id, values) {
     }
     if (Object.prototype.hasOwnProperty.call(values, 'parentId')) page.properties['Parent Plan'] = { type: 'relation', relation: values.parentId ? [{ id: values.parentId }] : [] };
     if (Object.prototype.hasOwnProperty.call(values, 'planId')) page.properties.Plan = { type: 'relation', relation: values.planId ? [{ id: values.planId }] : [] };
+    if (Object.prototype.hasOwnProperty.call(values, 'color')) page.properties.Color = { type: 'select', select: values.color ? { name: values.color } : null };
     page.last_edited_time = new Date().toISOString();
   }
   if (snapshotCache) {
@@ -868,6 +925,27 @@ function updateLayoutCaches(id, values) {
     }
     snapshotCache.fetchedAt = new Date().toISOString();
   }
+}
+
+async function saveLayoutColor(body) {
+  const id = cleanId(String(body.id || '').trim());
+  const color = String(body.color || '').trim();
+  if (!id) throw Object.assign(new Error('Element ID-si tələb olunur'), { statusCode: 400 });
+  if (color && !LAYOUT_COLORS.some(option => option.name === color)) {
+    throw Object.assign(new Error('Rəng siyahıdan seçilməlidir'), { statusCode: 400 });
+  }
+  const kind = rawCache.plans.has(id) ? 'plan' : rawCache.machines.has(id) ? 'equipment' : '';
+  if (!kind) throw Object.assign(new Error('Plan və ya avadanlıq tapılmadı'), { statusCode: 404 });
+  await ensureLayoutColorSchema(kind === 'plan' ? 'plan' : 'equipment');
+  await notion('/pages/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    body: JSON.stringify({ properties: { Color: color ? { select: { name: color } } : { select: null } } })
+  });
+  const values = { color };
+  updateLayoutCaches(id, values);
+  realtime.invalidate(['equipment']);
+  console.log('Layout color saved:', id, color || '(automatic)');
+  return { ok: true, id, color, savedAt: new Date().toISOString() };
 }
 
 async function saveLayout(body) {
@@ -1663,7 +1741,7 @@ function mutationScopes(method,p){
  if(p==='/api/task-management')return ['management','personal','equipment'];
  if(p==='/api/personal-pomodoro')return ['personal','equipment','pomodoro'];
  if(['/api/personal-task','/api/personal-container','/api/personal-layout','/api/personal-task-blocks'].includes(p))return ['personal'];
- if(['/api/task','/api/plan','/api/equipment','/api/layout'].includes(p))return ['equipment'];
+ if(['/api/task','/api/plan','/api/equipment','/api/layout','/api/layout-color'].includes(p))return ['equipment'];
  return [];
 }
 function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
@@ -1811,6 +1889,10 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       return json(response, 200, await saveLayout(body));
     }
+    if (request.method === 'PATCH' && url.pathname === '/api/layout-color') {
+      const body = await readBody(request);
+      return json(response, 200, await saveLayoutColor(body));
+    }
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
@@ -1922,7 +2004,7 @@ const server = http.createServer(async (request, response) => {
       return json(response, 200, await syncServiceLinks(appBaseUrl(request), true));
     }
     if (url.pathname === '/api/health') return json(response, 200, {ok:true,time:new Date().toISOString(),queryFixBuild:QUERY_FIX_BUILD,externalSyncMs:EXTERNAL_SYNC_MS,queryMetrics:{...queryMetrics,...queryPolicy.stats},commentCache:{...commentReads.stats},authorCache:{...authorReads.stats}});
-    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result);const layoutRevision=crypto.createHash('sha1').update(JSON.stringify([...(result.plans||[]),...(result.equipment||[])].map(item=>[item.id,item.x,item.y,item.width,item.height,item.parentId,item.planId]))).digest('hex');result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision+':'+layoutRevision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS!=='0')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
+    if (url.pathname === '/api/plan-snapshot') { const full = url.searchParams.get('full') === '1' || url.searchParams.get('force') === '1'; const baseUrl = appBaseUrl(request); const explicit=full||url.searchParams.get('refresh')==='1'||url.searchParams.get('retry')==='1';const result=withTaskEstimates(!explicit&&realtime.state('equipment').loaded?buildSnapshotFromRawCache(baseUrl):await snapshot(full,baseUrl,explicit,url.searchParams.get('retry')==='1'));if(!result.sync?.partial)realtime.publish('equipment',result);const layoutRevision=crypto.createHash('sha1').update(JSON.stringify([...(result.plans||[]),...(result.equipment||[])].map(item=>[item.id,item.x,item.y,item.width,item.height,item.parentId,item.planId,item.color]))).digest('hex');result.etag='"'+crypto.createHash('sha1').update(String(result.etag||'')+':'+taskManagement.snapshot().revision+':'+layoutRevision).digest('hex')+'"'; if(process.env.ADIB_AUTO_SYNC_LINKS!=='0')syncServiceLinks(baseUrl).catch(error => console.warn('Service link sync failed:', error.message)); if (!full && result.etag && request.headers['if-none-match'] === result.etag) { response.writeHead(304, { 'ETag': result.etag, 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization', ...SECURITY_HEADERS }); return response.end(); } return json(response, 200, result, result.etag ? { 'ETag': result.etag } : {}); }
     if (url.pathname === '/manifest.webmanifest') return file(response, path.join(__dirname, 'manifest.webmanifest'), 'application/manifest+json; charset=utf-8', 'no-cache');
     if (url.pathname === '/sw.js') return file(response, path.join(__dirname, 'sw.js'), 'application/javascript; charset=utf-8', 'no-cache');
     if (url.pathname === '/icons/icon-192.png') return file(response, path.join(__dirname, 'icons/icon-192.png'), 'image/png', 'public, max-age=31536000, immutable');
