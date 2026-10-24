@@ -85,6 +85,14 @@ html body .adib-design-focus{background:var(--bg);color:var(--text);width:420px;
  html body #adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader#adibWorkspaceHeader .miro-mobile-actions>.adib-design-overflow{display:block!important}
  html body #adibWorkspaceHeader .adib-design-overflow>div button{width:100%!important;justify-content:flex-start!important}
 }
+/* Native Android WebViews can report a desktop-sized CSS viewport. Still honor
+   the collapsed drawer state when a task folder is selected there. */
+html.adib-native-android body.adib-side-collapsed,
+html body.adib-android-wrapper.adib-side-collapsed{--adib-side-width:0px!important}
+html.adib-native-android body.adib-side-collapsed #adibPersistentSide,
+html body.adib-android-wrapper.adib-side-collapsed #adibPersistentSide{width:0!important;transform:translateX(-110%)!important;pointer-events:none!important}
+html.adib-native-android body:not(.adib-side-collapsed) #adibPersistentSide,
+html body.adib-android-wrapper:not(.adib-side-collapsed) #adibPersistentSide{transform:translateX(0)!important;pointer-events:auto!important}
 .adib-drawer-backdrop{display:none}
 @media(max-width:700px){body:not(.adib-side-collapsed) .adib-drawer-backdrop{display:block}}
 html body .adib-home-list{background:var(--bg)!important}
