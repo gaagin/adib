@@ -19,7 +19,7 @@ test('Android web back closes top overlays, task properties, then internal app h
  assert.ok(handler.includes('s.adibNavigation&&!s.adibRoot'));
  assert.ok(handler.includes('s.adibNavigation&&s.adibRoot'));
 });
-test('next Android patch increments installable APK version',()=>{assert.match(gradle,/versionCode 10/);assert.match(gradle,/versionName '1\.1\.8'/);assert.match(readme,/1\.1\.8/);assert.match(readme,/одного обновления онлайн-страницы недостаточно/)});
+test('next Android patch increments installable APK version',()=>{assert.match(gradle,/versionCode 11/);assert.match(gradle,/versionName '1\.1\.9'/);assert.match(readme,/1\.1\.9/);assert.match(readme,/Устанавливайте APK поверх 1\.1\.8/);assert.match(readme,/одного обновления онлайн-страницы недостаточно/)});
 
 function executeBackHandler({state,canPersonal=false,canEquipment=false,dialog=null,personalMode=false}={}){
  const calls=[],hidden=id=>({hidden:true,setAttribute(){},classList:{contains:()=>false,remove(){}}});
