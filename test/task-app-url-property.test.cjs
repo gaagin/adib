@@ -2,10 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {appHtml}=require('./helpers/app-html.cjs');
 
 const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
 const server = read('server.js');
-const app = read('ela-nov-paketleme-dynamic.html');
+const app = appHtml();
 const env = read('env.example');
 
 test('task app deep links default to the Notion URL property and equipment keeps its own property', () => {

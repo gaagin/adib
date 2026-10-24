@@ -2,8 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {appHtml}=require('./helpers/app-html.cjs');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'ela-nov-paketleme-dynamic.html'), 'utf8');
+const html = appHtml();
 const tabs = fs.readFileSync(path.join(__dirname, '..', 'task-tabs.js'), 'utf8');
 
 test('existing equipment task editor exposes the source Notion page in its header tools', () => {

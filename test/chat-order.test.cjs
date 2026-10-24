@@ -3,8 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const {appHtml}=require('./helpers/app-html.cjs');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'ela-nov-paketleme-dynamic.html'), 'utf8');
+const html = appHtml();
 const line = prefix => {
   const result = html.split(/\r?\n/).find(value => value.startsWith(prefix));
   assert.ok(result, `missing ${prefix}`);

@@ -3,10 +3,11 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const {appHtml}=require('./helpers/app-html.cjs');
 const root=path.join(__dirname,'..');
 const css=fs.readFileSync(path.join(root,'elegant-ui.css'),'utf8');
 const tabsCss=fs.readFileSync(path.join(root,'task-tabs.css'),'utf8');
-const html=fs.readFileSync(path.join(root,'ela-nov-paketleme-dynamic.html'),'utf8');
+const html=appHtml();
 const js=fs.readFileSync(path.join(root,'elegant-ui.js'),'utf8');
 test('mobile task sheet pins actions to the bottom and does not reserve hidden navigation space',()=>{
  assert.match(css,/height:var\(--adib-elegant-sheet-height,100dvh\)!important;max-height:var\(--adib-elegant-sheet-height,100dvh\)!important/);

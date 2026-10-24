@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const html = fs.readFileSync(path.join(__dirname, '..', 'ela-nov-paketleme-dynamic.html'), 'utf8');
+const {appHtml}=require('./helpers/app-html.cjs');
+const html = appHtml();
 const source = fs.readFileSync(path.join(__dirname, '..', 'notion-date-picker.js'), 'utf8');
 function picker() {
   const context = { window: {}, document: {} };

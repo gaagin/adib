@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { NetworkIdle, DEFAULT_IDLE_MS } = require('../network-idle');
+const {appHtml}=require('./helpers/app-html.cjs');
 
 class Target {
   constructor() { this.listeners = new Map(); }
@@ -77,7 +78,7 @@ test('destroy removes listeners and clears pending timers', () => {
 });
 
 test('recurring data clients pause while idle and the device clock makes no network requests', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'ela-nov-paketleme-dynamic.html'), 'utf8');
+  const html = appHtml();
   const time = fs.readFileSync(path.join(__dirname, '..', 'network-time.js'), 'utf8');
   const account = fs.readFileSync(path.join(__dirname, '..', 'account-client.js'), 'utf8');
   const work = fs.readFileSync(path.join(__dirname, '..', 'work-timer-ui.js'), 'utf8');

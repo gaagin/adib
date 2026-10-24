@@ -1,5 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'..','ela-nov-paketleme-dynamic.html'),'utf8');
+const {appHtml}=require('./helpers/app-html.cjs');
+const html=appHtml();
 test('task editor Plan has searchable suggestions wired to the saved select',()=>{
  assert.ok(html.includes('id=\\"taskPlanSearch\\" type=\\"search\\" placeholder=\\"Plan axtarışı…\\"'));
  assert.ok(html.includes('id=\\"taskPlanResults\\" class=\\"task-machine-results\\" role=\\"listbox\\"'));
