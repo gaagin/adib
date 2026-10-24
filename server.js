@@ -23,6 +23,7 @@ loadDotEnv(path.join(__dirname, '.env'));
 
 const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
+const {resolveEquipmentTaskPlan}=require('./equipment-task-access');
 const {DirectChats}=require('./direct-chats');
 const {EmployeeChatsAPI}=require('./employee-chats-api');
 const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')}),comments:{list:listEmployeeChatComments,create:createEmployeeChatComment}});
@@ -1807,7 +1808,7 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/personal-pomodoro'){need('timer');await accountTask(u,b.id);return;}
  if(['/api/personal-task','/api/task'].includes(p)){
  const kind=p==='/api/personal-task'?'personal':'equipment';
- if(method==='POST'){need('create');if(kind==='personal'){if(u.rules.containers!=='*'&&!u.rules.containers.includes(accountKey(b.containerId)))deny();if(u.rules.assignedOnly&&!(b.assignees||[]).includes(u.rules.assignee))deny();}else{if(!accounts.section(u,'equipment')||u.rules.plans!=='*'&&!u.rules.plans.includes(accountKey(b.planId)))deny();if(u.rules.assignedOnly&&![b.assigneeId,b.assigneeName,...(b.tapsirildi||[])].includes(u.rules.assignee))deny();if(b.machineId){const machine=buildSnapshotFromRawCache().equipment.find(e=>accountKey(e.id)===accountKey(b.machineId));if(!machine||accountKey(machine.planId)!==accountKey(b.planId))deny();}}if(b.parentId)await accountTask(u,b.parentId,kind);return;}
+ if(method==='POST'){need('create');if(kind==='personal'){if(u.rules.containers!=='*'&&!u.rules.containers.includes(accountKey(b.containerId)))deny();if(u.rules.assignedOnly&&!(b.assignees||[]).includes(u.rules.assignee))deny();}else{if(!accounts.section(u,'equipment'))deny();let equipment=buildSnapshotFromRawCache().equipment;if(b.machineId&&!equipment.some(e=>accountKey(e.id)===accountKey(b.machineId))){const refreshed=await snapshot(true);equipment=refreshed.equipment||equipment;}const target=resolveEquipmentTaskPlan({machineId:b.machineId,planId:b.planId,allowedPlans:u.rules.plans},equipment);if(!target.ok)deny();b.planId=target.planId;if(u.rules.assignedOnly&&![b.assigneeId,b.assigneeName,...(b.tapsirildi||[])].includes(u.rules.assignee))deny();}if(b.parentId)await accountTask(u,b.parentId,kind);return;}
  const found=await accountTask(u,method==='DELETE'?url.searchParams.get('id'):b.id,kind),t=found.task;
  if(method==='DELETE'){need('delete');if((accountTasks()[kind]||[]).some(x=>accountKey(x.parentId)===accountKey(t.id)))deny();return;}
  if(method!=='PATCH')deny();
