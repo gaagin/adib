@@ -1,6 +1,6 @@
 /* Content-addressed public UI cache, independent of application release numbers. */
 const CACHE_NAME='adib-online-ui-content-v1';
-const SHELL_CACHE_NAME='adib-online-ui-shell-v1';
+const SHELL_CACHE_NAME='adib-online-ui-shell-v2';
 const ASSETS=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "realtime-runtime.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-day-plan.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "images.js", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 const ACTIVE_CACHES=new Set([CACHE_NAME,SHELL_CACHE_NAME]);
@@ -24,14 +24,16 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==self.location.origin)return;
  if(isAppNavigation(event.request,u)){
   const shellCache=caches.open(SHELL_CACHE_NAME);
-  // Return the last known app shell immediately; refresh it in the background.
+  // Prefer the current app shell whenever online; keep the cached shell as an
+  // offline fallback so a stale UI does not remain visible after deployments.
   const update=shellCache.then(cache=>refreshShell(cache,event.request)).catch(()=>null);
   event.waitUntil(update.then(()=>undefined));
   event.respondWith((async()=>{
+   const fresh=await update;
+   if(fresh?.ok)return fresh;
    const cache=await shellCache;
    const cached=await cache.match(event.request,{ignoreSearch:true});
    if(cached)return cached;
-   const fresh=await update;
    if(fresh)return fresh;
    return new Response('Application shell is not available offline. Reconnect and retry.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}});
   })());
