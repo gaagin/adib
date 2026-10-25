@@ -25,7 +25,18 @@ test('day-plan actions are a fixed panel footer outside the scrolling timeline',
 });
 
 test('calendar assets use refreshed cache keys for the day-plan layout', () => {
-  assert.match(html, /calendar-view\.css\?v=calendar-session-delete-v1-day-plan-quick-select-v1/);
-  assert.match(html, /calendar-day-plan\.js\?v=1\.1\.68-task-picker-v1/);
-  assert.match(html, /calendar-view\.js\?v=1\.1\.68-day-plan-picker-v1/);
+  assert.match(html, /calendar-view\.css\?v=calendar-session-delete-v1-day-plan-pomo-shrink-v1/);
+  assert.match(html, /calendar-day-plan\.js\?v=1\.1\.68-task-picker-v1-pomo-shrink-v1/);
+  assert.match(html, /calendar-view\.js\?v=1\.1\.69-equipment-picker-v1-pomo-shrink-v1/);
+});
+
+test('calendar plus opens an equipment-only picker for non-admin accounts', () => {
+  assert.match(js, /function equipmentOnlyCalendarUser\(\).*user\.role!=='admin'/);
+  assert.match(js, /function openEquipmentDayPicker\(day\).*dayPlanPicker\.equipmentOnly=true;dayPlanPicker\.open=true/);
+  assert.match(js, /function addCalendarTask\(day,preset=\{\}\).*if\(equipmentOnlyCalendarUser\(\)\)\{openEquipmentDayPicker\(day\);return;\}/);
+  assert.match(js, /button\('\+',\(\)=>addCalendarTask\(day\)\)/);
+  assert.match(js, /button\('',\(\)=>addCalendarTask\(T\.key\(anchor\)\)\)/);
+  assert.match(js, /addCalendarTask\(day,T\.slot\(day,minute\)\)/);
+  assert.match(js, /equipmentOnly\?\(root\.ADIBEquipmentCalendar\?\.tasks\?\.\(\)\|\|data\(\)\.tasks\.filter\(task=>\['todo','gorulen'\]\.includes\(task\.sourceKey\)\)\)/);
+  assert.match(js, /equipmentOnly\?'Avadanlıq tapşırıqlarını seçin və müddət təyin edin'/);
 });
