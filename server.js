@@ -22,6 +22,7 @@ const notionRate=new NotionRateGate({fetchFn:async(url,options)=>{
 loadDotEnv(path.join(__dirname, '.env'));
 
 const {Accounts,key:accountKey,fail:accessError}=require('./accounts');
+const {UserPreferencesStore}=require('./user-preferences-store');
 const accounts=new Accounts({file:process.env.ADIB_ACCOUNTS_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'accounts.json'),enabled:process.env.NOTION_TOKEN!=='native'&&process.env.ADIB_ACCOUNTS_ENABLED!=='0',adminLogin:process.env.ADIB_ADMIN_LOGIN,adminPassword:process.env.ADIB_ADMIN_PASSWORD,adminName:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'});
 const {resolveEquipmentTaskPlan}=require('./equipment-task-access');
 const {DirectChats}=require('./direct-chats');
@@ -341,6 +342,18 @@ function number(page, name) { return property(page, name)?.number ?? null; }
 function select(page, name) { const p = property(page, name); return p?.select?.name || p?.status?.name || ''; }
 let personalDirectoryCache={at:0,rows:null,flight:null};
 async function personalDirectory(force=false){if(!force&&personalDirectoryCache.rows&&Date.now()-personalDirectoryCache.at<60000)return personalDirectoryCache.rows;if(personalDirectoryCache.flight)return personalDirectoryCache.flight;personalDirectoryCache.flight=(async()=>{const pages=await queryDatabase(PERSONAL_DIRECTORY_DB,PERSONAL_DIRECTORY_DS),rows=pages.filter(p=>!p.archived&&!p.in_trash).map(p=>({id:cleanId(p.id),name:title(p,'Name'),department:select(p,'Bolme'),url:p.url||''})).filter(p=>p.id&&p.name).sort((a,b)=>a.name.localeCompare(b.name,'az'));personalDirectoryCache={at:Date.now(),rows,flight:null};return rows;})().catch(error=>{personalDirectoryCache.flight=null;throw error});return personalDirectoryCache.flight;}
+const userPreferences=new UserPreferencesStore({
+ file:path.join(path.dirname(accounts.file),'user-preferences.json'),
+ notion:(...args)=>notion(...args),
+ listBlocks:listPageBlocks,
+ parentPageForUser:async user=>{
+  if(user?.personalPageId)return cleanId(user.personalPageId);
+  const normalized=String(user?.name||'').trim().toLocaleLowerCase('az');
+  if(!normalized)return '';
+  const matches=(await personalDirectory()).filter(person=>person.name.trim().toLocaleLowerCase('az')===normalized);
+  return matches.length===1?matches[0].id:'';
+ },
+});
 function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
 function relationIds(page, name) { return (property(page, name)?.relation || []).map(x => x.id); }
 function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
@@ -1774,6 +1787,7 @@ async function accountTask(u,id,kind){
 async function accountAuthorize(req,res,url,u,b){
  res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
  const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
+ if(p==='/api/user/preferences'){if(!['GET','PUT'].includes(method))deny();res.__accountScope='preferences';return;}
  const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
  if(scopes[p])res.__accountScope=scopes[p];
  if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
@@ -1866,6 +1880,12 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/events')return realtime.connect(request,response,(url.searchParams.get('scopes')||'personal,equipment,management').split(','))||json(response,400,{error:'Unknown scopes'});
     if(request.method==='GET'&&url.pathname==='/api/realtime/state')return json(response,200,await realtime.read(url.searchParams.get('scope')||'personal',url.searchParams.get('revision'),url.searchParams.get('epoch')));
     if(request.method==='GET'&&url.pathname==='/api/realtime/status')return json(response,200,{enabled:true,transport:'sse',externalPollMs:realtime.pollMs});
+    if(url.pathname==='/api/user/preferences'){
+      const actor=request.__accountBody?.__account||accounts.user(request);
+      if(request.method==='GET')return json(response,200,await userPreferences.get(actor));
+      if(request.method==='PUT')return json(response,200,await userPreferences.put(actor,request.__accountBody?.settings));
+      throw accessError('Metod icazə verilmir',405);
+    }
     if(request.method==='GET'&&url.pathname==='/api/time'){const began=performance.now();await networkTime.sync(url.searchParams.get('force')==='1');const result=networkTime.snapshot();return json(response,result.trusted?200:503,{...result,processingMs:performance.now()-began});}
 
     // Content-addressed public UI code; private HTML/API responses remain no-store.
