@@ -9,6 +9,7 @@ const root = path.join(__dirname, '..');
 const js = fs.readFileSync(path.join(root, 'calendar-view.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'calendar-view.css'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'ela-nov-paketleme-dynamic.html'), 'utf8');
+const focusedViews = fs.readFileSync(path.join(root, 'focused-views.js'), 'utf8');
 
 test('day-plan actions are a fixed panel footer outside the scrolling timeline', () => {
   assert.match(js, /panel\.append\(header,body,footer\)/);
@@ -27,7 +28,7 @@ test('day-plan actions are a fixed panel footer outside the scrolling timeline',
 test('calendar assets use refreshed cache keys for the day-plan layout', () => {
   assert.match(html, /calendar-view\.css\?v=calendar-session-delete-v1-day-plan-pomo-shrink-v1/);
   assert.match(html, /calendar-day-plan\.js\?v=1\.1\.68-task-picker-v1-pomo-shrink-v1/);
-  assert.match(html, /calendar-view\.js\?v=1\.1\.71-mobile-calendar-equipment-create-v1/);
+  assert.match(html, /calendar-view\.js\?v=1\.1\.72-calendar-plus-equipment-v1/);
 });
 
 test('calendar plus creates an equipment task for non-admin accounts', () => {
@@ -40,6 +41,7 @@ test('calendar plus creates an equipment task for non-admin accounts', () => {
   assert.ok(html.includes('newTask:(preset={})=>{'));
   assert.ok(html.includes("sourceKey:'gorulen'"));
   assert.ok(html.includes('openTaskEditor(draft,null,true)'));
-  assert.ok(js.includes('addTask:()=>addCalendarTask(T.key(anchor))'));
+  assert.ok(js.includes('addTask:(day=T.key(anchor))=>addCalendarTask(day)'));
   assert.ok(html.includes("if(window.ADIBCalendar?.visible&&user&&user.role!=='admin'){window.ADIBCalendar.addTask?.();return}"));
+  assert.ok(focusedViews.includes("if(user&&user.role!=='admin'){if(root.ADIBCalendar?.addTask)root.ADIBCalendar.addTask(date);else root.ADIBEquipmentCalendar?.newTask({date});return;}"));
 });
