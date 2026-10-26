@@ -1500,7 +1500,7 @@ html body #entityModal #entityForm .task-editor :is(input,select){box-sizing:bor
 <button id="centerCurrentCanvasButton" class="center-current-canvas" type="button" aria-label="Mərkəzi kətan məzmunu" title="Mərkəzi kətan məzmunu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M8 12h8m-4-4v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="entityModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="entityModalTitle">Yeni element</h2><div class="muted">Giriş yaradın Notion</div></div><button id="closeEntityModal" type="button">×</button></div><div id="entityForm" class="task-list"></div></section></div>
 <div id="taskModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="modalTitle">Tapşırıqlar</h2><div id="modalSub" class="muted"></div></div><button id="closeModal">×</button></div><div id="taskList" class="task-list"></div></section></div>
-<script src="/realtime-runtime.js?v=canvas-alignment-guides-v1"></script>
+<script src="/realtime-runtime.js?v=canvas-element-lock-v1"></script>
 <script>
 (function(){
   const PERSONAL_LAYOUT_KEY='ela-personal-board-v1';const PERSONAL_SNAPSHOT_KEY='ela-personal-snapshot-v1';const PERSONAL_POMODORO_KEY='ela-personal-pomodoro-v1';
@@ -2483,9 +2483,13 @@ function setupCanvasActionsDropdown(){
   const actionButtons=[...toolbar.querySelectorAll(':scope > button')].filter(button=>!['equipmentBackButton','minus','fit','plus'].includes(button.id));
   const zoomWrap=document.createElement('div');zoomWrap.className='canvas-zoom-controls';zoomButtons.forEach(button=>zoomWrap.appendChild(button));const centerButton=document.createElement('button');centerButton.type='button';centerButton.id='centerCanvasButton';centerButton.className='zoom canvas-center-button';centerButton.setAttribute('aria-label','Mərkəzi kətan məzmunu');centerButton.title='Mərkəzi kətan məzmunu';centerButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M8 12h8m-4-4v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';centerButton.onclick=()=>centerVisiblePlanContent();zoomWrap.appendChild(centerButton);toolbar.appendChild(zoomWrap);
   const wrap=document.createElement('div');wrap.className='canvas-actions-menu';wrap.innerHTML='<button type="button" id="canvasActionsButton" aria-label="Canvas Actions" aria-expanded="false" title="Canvas Actions">⋯</button><div id="canvasActionsPanel" hidden role="menu"></div>';
-  const panel=wrap.querySelector('#canvasActionsPanel');actionButtons.forEach(button=>{button.setAttribute('role','menuitem');panel.appendChild(button)});toolbar.appendChild(wrap);
+  const panel=wrap.querySelector('#canvasActionsPanel');actionButtons.forEach(button=>{button.setAttribute('role','menuitem');panel.appendChild(button)});
+  const lockAction=document.createElement('button');lockAction.type='button';lockAction.id='canvasLockToggle';lockAction.setAttribute('role','menuitem');
+  const updateLockAction=()=>{const target=window.ADIBCanvasElementLock?.getSelected();lockAction.disabled=!target;lockAction.textContent=target?(target.locked?'🔓  Blokdan çıxarın':'🔒  Bloklayın'):'🔒  Əvvəlcə element seçin';lockAction.title=target?(target.locked?'Seçilmiş elementin daşınması və ölçüsünün dəyişməsi bağlıdır':'Seçilmiş elementi daşınma və ölçü dəyişikliyindən kilidlə'):'Əvvəlcə plan və ya avadanlıq seçin'};
+  lockAction.addEventListener('click',()=>{const target=window.ADIBCanvasElementLock?.toggleSelected();if(target)updateLockAction()});
+  panel.appendChild(lockAction);toolbar.appendChild(wrap);
   const toggle=wrap.querySelector('#canvasActionsButton');
-  toggle.onclick=event=>{event.stopPropagation();const opened=!panel.hidden;panel.hidden=opened;toggle.setAttribute('aria-expanded',String(!opened))};
+  toggle.onclick=event=>{event.stopPropagation();const opened=!panel.hidden;if(!opened)updateLockAction();panel.hidden=opened;toggle.setAttribute('aria-expanded',String(!opened))};
   panel.addEventListener('click',()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false')});
   document.addEventListener('click',event=>{if(!wrap.contains(event.target)){panel.hidden=true;toggle.setAttribute('aria-expanded','false')}});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){panel.hidden=true;toggle.setAttribute('aria-expanded','false')}});
