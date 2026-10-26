@@ -2337,6 +2337,7 @@ async function adibMoveElementUp(target){
   if(target.kind==='personal-task'){const task=target.task||personalTasks.find(item=>String(item.id)===String(target.id)),position=personalLayout.tasks[target.id]||{x:0,y:0,width:220,height:105,order:0},containerId=position.containerId||task?.containerId||'',container=containerId?containerById(containerId):null;try{if(containerId){const parent=container?.parentId?containerById(container.parentId):null;await personalApi('/api/personal-layout',{method:'PATCH',body:JSON.stringify({kind:'task',id:task.id,x:position.x||0,y:position.y||0,width:position.width||220,height:position.height||105,order:position.order||0,containerId:parent?.id||''})});position.containerId=parent?.id||null;task.containerId=parent?.id||''}else if(task?.parentId){const parentTask=personalTasks.find(item=>String(item.id)===String(task.parentId)),nextParent=parentTask?.parentId||'';await personalApi('/api/personal-task',{method:'PATCH',body:JSON.stringify({id:task.id,parentId:nextParent})});task.parentId=nextParent}personalLayout.tasks[task.id]=position;writePersonalLayout();writePersonalSnapshot();renderPersonalBoard()}catch(error){personalError.textContent='Transfer xətası: '+error.message}}
 }
 let adibActiveMoveTarget=null;
+window.__adibGetActiveMoveTarget=()=>adibActiveMoveTarget;
 function adibCanActivateMove(target){
   if(!target)return false;
   if(target.kind==='equipment'||target.kind==='plan')return !isLocked(target.object?.id||target.id);

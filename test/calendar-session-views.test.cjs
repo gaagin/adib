@@ -44,6 +44,15 @@ test('a Pomodoro interval segments into all time-based views', () => {
   }
 });
 
+test('Gündəm agenda is available and remains selectable on mobile', () => {
+  assert.doesNotMatch(js, /if\(!desktopCalendar\(\)&&\['year','agenda'\]\.includes\(view\)\)view='month'/);
+  assert.match(js, /desktopCalendar\(\)\?\[\['month','Ay'\],\['week','Həftə'\],\['year','İl'\],\['day','Gün'\],\['agenda','Gündəm'\]\]:\[\['month','Ay'\],\['week','Həftə'\],\['three','3 gün'\],\['day','Gün'\],\['agenda','Gündəm'\]\]/);
+});
+
+test('agenda time column displays both ends of each timed interval', () => {
+  assert.match(line('function renderAgenda('), /T\.time\(item\.start\)\+'–'\+T\.time\(item\.end\)/);
+});
+
 test('calendar weekday strip is compact while day controls remain touch-friendly', () => {
   assert.match(css, /calendar-header-day\{[^}]*height:58px!important/);
   assert.match(css, /calendar-header-number\{[^}]*width:28px;height:28px/);

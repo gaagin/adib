@@ -6,6 +6,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
 const runtime=fs.readFileSync(path.join(__dirname,'..','realtime-runtime.js'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'..','ela-nov-paketleme-dynamic.html'),'utf8');
 
 test('saving an equipment layout invalidates and broadcasts the shared equipment snapshot',()=>{
  const start=server.indexOf('async function saveLayout(body)');
@@ -19,6 +20,20 @@ test('plan snapshot ETag changes when a device receives new equipment coordinate
  assert.match(server,/const layoutRevision=crypto\.createHash\('sha1'\)/);
  assert.match(server,/item\.id,item\.x,item\.y,item\.width,item\.height,item\.parentId,item\.planId,item\.color/);
  assert.ok(server.includes("taskManagement.snapshot().revision+':'+layoutRevision"));
+});
+
+test('mobile canvas lets the explicitly selected equipment receive a move gesture',()=>{
+ assert.ok(html.includes('window.__adibGetActiveMoveTarget=()=>adibActiveMoveTarget;'));
+ const start=runtime.indexOf("svg.addEventListener('pointerdown',e=>{\n  if(window.ADIBDesktop||e.pointerType!=='touch')return;");
+ const end=runtime.indexOf('},true);',start);
+ assert.ok(start>=0&&end>start,'mobile touch capture handler should exist');
+ const handler=runtime.slice(start,end);
+ assert.ok(handler.indexOf("const object=e.target.closest?.('.machine,.plan-box');")<handler.indexOf('activePointers.set('));
+ assert.match(handler,/if\(object&&moveTarget&&\['equipment','plan'\]\.includes\(moveTarget\.kind\)&&String\(object\.dataset\.id\)===String\(moveTarget\.id\)\)return;/);
+});
+
+test('mobile app revalidates equipment coordinates when it returns to foreground',()=>{
+ assert.ok(runtime.includes("document.addEventListener('visibilitychange',()=>{if(shouldAutoSync())refresh(true)})"));
 });
 
 test('plan and equipment colors are read from and written to the shared Notion Color property',()=>{
