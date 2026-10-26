@@ -985,14 +985,31 @@ async function saveLayout(body) {
     values.parentId = parentId || null;
   }
   if (body.planId !== undefined) properties.Plan = { relation: values.planId ? [{ id: values.planId }] : [] };
-  await notion('/pages/' + encodeURIComponent(id), {
+  const writtenPage = await notion('/pages/' + encodeURIComponent(id), {
     method: 'PATCH',
     body: JSON.stringify({ properties })
   });
+  const savedProperties = writtenPage?.properties || {};
+  const confirmed = {
+    x: savedProperties.X?.number,
+    y: savedProperties.Y?.number,
+    width: savedProperties.Eni?.number,
+    height: savedProperties['Uzunluğu']?.number
+  };
+  const mismatches = Object.entries({ x: values.x, y: values.y, width: values.width, height: values.height })
+    .filter(([key, expected]) => !Number.isFinite(confirmed[key]) || Math.abs(confirmed[key] - expected) > 0.001);
+  if (mismatches.length) {
+    const actual = mismatches.map(([key]) => key + '=' + String(confirmed[key])).join(', ');
+    const expected = mismatches.map(([key, value]) => key + '=' + String(value)).join(', ');
+    throw Object.assign(new Error('Notion координаттарды тастыкламады. Сақталуы керек: ' + expected + '; Notion қайтарды: ' + actual), {
+      statusCode: 502,
+      code: 'NOTION_LAYOUT_SAVE_UNCONFIRMED'
+    });
+  }
   updateLayoutCaches(id, values);
   realtime.invalidate(['equipment']);
-  console.log('Layout saved:', id, values);
-  return { ok: true, id, values, savedAt: new Date().toISOString() };
+  console.log('Layout saved and confirmed by Notion:', id, confirmed);
+  return { ok: true, id, values, confirmedFromNotion: confirmed, savedAt: new Date().toISOString() };
 }
 
 function notionDateStart(value) {

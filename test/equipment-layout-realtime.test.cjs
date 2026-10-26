@@ -24,6 +24,28 @@ test('layout coordinates are written to the durable Railway snapshot cache',()=>
  assert.ok(update.includes('saveRawSnapshotCache()'));
 });
 
+
+test('layout save requires Notion to return the exact persisted coordinates before caching success',()=>{
+ const start=server.indexOf('async function saveLayout(body)');
+ const end=server.indexOf('\n}',start);
+ assert.notEqual(start,-1);
+ const save=server.slice(start,end);
+ assert.ok(save.includes('const writtenPage = await notion('));
+ assert.ok(save.includes("savedProperties['Uzunluğu']?.number"));
+ assert.ok(save.includes('NOTION_LAYOUT_SAVE_UNCONFIRMED'));
+ assert.ok(save.indexOf('if (mismatches.length)')<save.indexOf('updateLayoutCaches(id, values)'));
+ assert.ok(save.includes('confirmedFromNotion: confirmed'));
+});
+
+test('layout saves do not silently return on file URLs or non-HTTP origins',()=>{
+ const start=runtime.indexOf('async function saveRemotePosition(a,layout)');
+ const end=runtime.indexOf('\nfunction updateSyncUi',start);
+ assert.notEqual(start,-1);
+ const save=runtime.slice(start,end);
+ assert.ok(!save.includes("if(location.protocol==='file:')return"));
+ assert.ok(save.includes("!['http:','https:'].includes(base.protocol)"));
+});
+
 test('plan snapshot ETag changes when a device receives new equipment coordinates',()=>{
  assert.match(server,/const layoutRevision=crypto\.createHash\('sha1'\)/);
  assert.match(server,/item\.id,item\.x,item\.y,item\.width,item\.height,item\.parentId,item\.planId,item\.color/);
