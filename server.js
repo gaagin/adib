@@ -1648,7 +1648,7 @@ async function sharedPomodoroSnapshot(){
   const snapshot=sharedPomodoro.snapshot();
   const durableSessions=await loadNotionPomodoroSessions();
   const sessionsById=new Map((snapshot.sessions||[]).map(session=>[String(session.id),session]));
-  for(const session of durableSessions)sessionsById.set(String(session.id),{...sessionsById.get(String(session.id)),...session});
+  for(const session of durableSessions){const id=String(session.id),local=sessionsById.get(id);sessionsById.set(id,{...local,...session,taskId:session.taskId||local?.taskId||''})}
   return {...snapshot,sessions:[...sessionsById.values()]};
 }
 const personalPomodoroLocks = new Map();

@@ -43,8 +43,25 @@ test('manual early finish is still recorded as an early session',async()=>{
  e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-5000).toISOString(),endsAt:e.now()+55000,sessionId:'session-task',pomodoroCount:0,pomodoroMinutes:0});
  await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task',natural:false});
  const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
- assert.equal(timer.completionReason,'early');assert.equal(timer.pomodoroCount,0);assert.equal(record?.fullPomodoro,false);assert.equal(record?.completionReason,'early');assert.ok(record?.notionPageId);
+ assert.equal(timer.completionReason,'early');assert.equal(timer.pomodoroCount,1);assert.equal(record?.fullPomodoro,false);assert.equal(record?.completionReason,'early');assert.ok(record?.notionPageId);
 });
+
+test('session count includes every finished non-cancelled Pomodoro and reconciles prior records',async()=>{
+ const e=make();
+ e.store.sessions.push(
+  {id:'old-early-1',taskId:'task',kind:'pomodoro',status:'saved',completionReason:'early'},
+  {id:'old-full-2',taskId:'task',kind:'pomodoro',status:'saved',completionReason:'elapsed'},
+  {id:'old-cancelled',taskId:'task',kind:'pomodoro',status:'saved',completionReason:'cancelled'},
+  {id:'other-task',taskId:'other',kind:'pomodoro',status:'saved',completionReason:'elapsed'},
+  {id:'work-timer',taskId:'task',kind:'work',status:'saved',completionReason:'elapsed'},
+ );
+ e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-5000).toISOString(),endsAt:e.now()+55000,sessionId:'session-task',pomodoroCount:1,pomodoroMinutes:0});
+ await e.sessions.handle({id:'task',action:'finish',sessionId:'session-task',natural:false});
+ const timer=e.store.get('task'),record=e.store.sessions.find(s=>s.id==='session-task');
+ assert.equal(timer.pomodoroCount,3,'two saved sessions plus this early finish count; cancellations and other session types do not');
+ assert.equal(record?.fullPomodoro,false);
+});
+
 test('cancelled pomodoro is not added to the session journal',async()=>{
  const e=make();
  e.store.put({id:'task',title:'Test',mode:'work',duration:1,plannedDuration:1,running:true,status:'running',startedAt:new Date(e.now()-5000).toISOString(),endsAt:e.now()+55000,sessionId:'session-task',pomodoroCount:0,pomodoroMinutes:0});

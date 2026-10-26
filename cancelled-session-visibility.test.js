@@ -15,5 +15,7 @@ test('cancelled work and Pomodoro sessions stay out of session lists and calenda
   {id:'pomodoro-kept',taskId:'task-2',kind:'pomodoro',status:'saved',completionReason:'elapsed',startedAt:startedAt+2000,endedAt:startedAt+3000,seconds:1,plannedMinutes:25,title:'Completed'},
  ]});
  assert.deepEqual(sessions.rows().map(s=>s.id),['work-kept','pomodoro-kept']);
+ assert.equal(sessions.count('task-2','pomodoro'),1,'counts saved sessions but excludes cancelled ones');
+ assert.equal(sessions.count('task-2','work'),0);
  assert.deepEqual(sessions.calendar().map(t=>t.workSession.id),['pomodoro-kept']);
 });

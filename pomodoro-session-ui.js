@@ -3,6 +3,7 @@ function accept(data){if(!Array.isArray(data.sessions))return;const changed=data
 function visible(s){return !!s&&s.status!=='cancelled'&&s.completionReason!=='cancelled'}
 function all(){return [...(root.ADIBWork?.state.sessions||[]).map(s=>({...s,kind:'work'})),...state.sessions].filter(visible).sort((a,b)=>a.startedAt-b.startedAt)}
 function rows(id){return all().filter(s=>!id||String(s.taskId)===String(id))}
+function count(id,kind='pomodoro'){return rows(id).filter(s=>s.kind===kind&&s.status!=='running').length}
 function matches(s,f){return(!f.workSource||s.sourceKey===f.workSource)&&(!f.workWorker||s.worker===f.workWorker)&&(!f.workTask||s.taskId===f.workTask)&&(!f.workState||(s.status==='sync-pending'?'pending':s.status)===f.workState)&&(!f.sessionType||f.sessionType===s.kind)}
 function calendar(filters={}){const tasks=new Map((root.ADIBHomeBridge?.snapshot().tasks||[]).map(t=>[String(t.id),t]));const now=root.ADIBClock?.now()||Date.now();return state.sessions.filter(s=>s.kind==='pomodoro'&&visible(s)&&matches(s,filters)).map(s=>({...tasks.get(String(s.taskId)),id:'pomodoro:'+s.id,sessionKind:'pomodoro',workSession:s,sourceKey:'personal',title:(s.status==='running'?'▶ ':s.status==='sync-pending'?'◷ ':'✓ ')+'🍅 '+s.title+(s.worker?' · '+s.worker:''),date:new Date(s.startedAt).toISOString(),dateEnd:new Date(Math.max(s.startedAt+1000,s.endedAt||Math.min(now,s.startedAt+(s.plannedMinutes||25)*60000))).toISOString(),assignees:[s.worker],tapsirildi:[s.worker],completed:false}))}
 function duration(seconds){const n=Math.floor(Math.max(0,Number(seconds)||0));return String(Math.floor(n/3600)).padStart(2,'0')+':'+String(Math.floor(n/60)%60).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
@@ -50,6 +51,6 @@ function history(id,focusId,kindFilter){
  const footer=add('footer',''),taskButton=add('button','Tapşırığı aç',footer);taskButton.type='button';taskButton.onclick=()=>{d.close();const task=sessions[0];if(task?.sourceKey==='todo'||task?.sourceKey==='gorulen')root.ADIBEquipmentCalendar?.open(id);else root.ADIBHomeBridge?.openTask(id)};
  const done=add('button','Bağla',footer);done.type='button';done.onclick=()=>d.close();d.addEventListener('close',()=>d.remove());doc.body.append(d);d.showModal();d.querySelector('.session-selected')?.scrollIntoView({block:'nearest'});
 }
-root.ADIBSessions={accept,all,rows,calendar,history,duration,label,formatDateTime,matches,visible,get state(){return state}};
+root.ADIBSessions={accept,all,rows,count,calendar,history,duration,label,formatDateTime,matches,visible,get state(){return state}};
 if(typeof module==='object'&&module.exports)module.exports=root.ADIBSessions;
 })(typeof window==='object'?window:globalThis);
