@@ -939,6 +939,9 @@ function updateLayoutCaches(id, values) {
     }
     snapshotCache.fetchedAt = new Date().toISOString();
   }
+  // Keep Railway's mounted raw snapshot in step with a successful Notion PATCH;
+  // otherwise a process restart can restore the old coordinates from disk.
+  saveRawSnapshotCache();
 }
 
 async function saveLayoutColor(body) {

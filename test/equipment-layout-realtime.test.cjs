@@ -16,6 +16,14 @@ test('saving an equipment layout invalidates and broadcasts the shared equipment
  assert.ok(save.indexOf('updateLayoutCaches(id, values)')<save.indexOf("realtime.invalidate(['equipment'])"));
 });
 
+test('layout coordinates are written to the durable Railway snapshot cache',()=>{
+ const start=server.indexOf('function updateLayoutCaches(id, values)');
+ const end=server.indexOf('\n}',start);
+ assert.notEqual(start,-1);
+ const update=server.slice(start,end);
+ assert.ok(update.includes('saveRawSnapshotCache()'));
+});
+
 test('plan snapshot ETag changes when a device receives new equipment coordinates',()=>{
  assert.match(server,/const layoutRevision=crypto\.createHash\('sha1'\)/);
  assert.match(server,/item\.id,item\.x,item\.y,item\.width,item\.height,item\.parentId,item\.planId,item\.color/);
@@ -30,6 +38,16 @@ test('mobile canvas lets the explicitly selected equipment receive a move gestur
  const handler=runtime.slice(start,end);
  assert.ok(handler.indexOf("const object=e.target.closest?.('.machine,.plan-box');")<handler.indexOf('activePointers.set('));
  assert.match(handler,/if\(object&&moveTarget&&\['equipment','plan'\]\.includes\(moveTarget\.kind\)&&String\(object\.dataset\.id\)===String\(moveTarget\.id\)\)return;/);
+});
+
+test('a successful position save clears its pending override and asks for canonical coordinates',()=>{
+ const start=runtime.indexOf('async function saveRemotePosition(a,layout)');
+ const end=runtime.indexOf('\nfunction updateSyncUi',start);
+ assert.notEqual(start,-1);
+ const save=runtime.slice(start,end);
+ assert.ok(save.includes('pendingLayouts.delete(a.id)'));
+ assert.ok(save.includes("request('equipment')"));
+ assert.ok(save.includes('__refreshEquipmentData?.(false,true)'));
 });
 
 test('mobile app revalidates equipment coordinates when it returns to foreground',()=>{
