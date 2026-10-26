@@ -1500,7 +1500,7 @@ html body #entityModal #entityForm .task-editor :is(input,select){box-sizing:bor
 <button id="centerCurrentCanvasButton" class="center-current-canvas" type="button" aria-label="Mərkəzi kətan məzmunu" title="Mərkəzi kətan məzmunu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M8 12h8m-4-4v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="entityModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="entityModalTitle">Yeni element</h2><div class="muted">Giriş yaradın Notion</div></div><button id="closeEntityModal" type="button">×</button></div><div id="entityForm" class="task-list"></div></section></div>
 <div id="taskModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="modalTitle">Tapşırıqlar</h2><div id="modalSub" class="muted"></div></div><button id="closeModal">×</button></div><div id="taskList" class="task-list"></div></section></div>
-<script src="/realtime-runtime.js?v=canvas-element-lock-v1"></script>
+<script src="/realtime-runtime.js?v=canvas-inspector-exit-v1"></script>
 <script>
 (function(){
   const PERSONAL_LAYOUT_KEY='ela-personal-board-v1';const PERSONAL_SNAPSHOT_KEY='ela-personal-snapshot-v1';const PERSONAL_POMODORO_KEY='ela-personal-pomodoro-v1';
@@ -2466,6 +2466,7 @@ function adibHandleAndroidBackAll(event){
     if(event.state?.adibNavigation&&!event.state?.adibPersonal)adibHandleAndroidBack(event);
     return
   }
+  if(document.getElementById('layout')?.classList.contains('mobile-inspector-mode')){setMobileMode('canvas');return}
   adibHandleAndroidBack(event)
 }
 window.addEventListener('popstate',adibHandleAndroidBackAll);
