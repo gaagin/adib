@@ -51,6 +51,7 @@ test('Gündəm agenda is available and remains selectable on mobile', () => {
 
 test('agenda time column displays both ends of each timed interval', () => {
   assert.match(line('function renderAgenda('), /T\.time\(item\.start\)\+'–'\+T\.time\(item\.end\)/);
+  assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.calendar-agenda-row\{grid-template-columns:92px minmax\(0,1fr\)/);
 });
 
 test('calendar weekday strip is compact while day controls remain touch-friendly', () => {

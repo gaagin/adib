@@ -234,6 +234,16 @@ html body #adibCalendar#adibCalendar.adib-tick-calendar .adib-calendar-heading{d
 @media(max-width:700px){.calendar-year-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 html.dark .calendar-year-month:hover{background:#252a34;border-color:#3a414d}html.dark .calendar-year-day.has-items:not(.today)::after{background:#91a8ff}html.dark .calendar-agenda-card{background:#283551!important}
 
+@media(max-width:700px){
+ html body #adibCalendar#adibCalendar .adib-calendar-grid[data-view=agenda]{display:block!important;overflow:auto!important}
+ .calendar-agenda{box-sizing:border-box;width:100%;max-width:none;margin:0;padding:14px 12px 32px}
+ .calendar-agenda-date{margin:0 0 12px;font-size:16px}
+ .calendar-agenda-row{grid-template-columns:92px minmax(0,1fr);gap:8px;padding:8px 0}
+ .calendar-agenda-time{padding-top:8px;font-size:12px}
+ .calendar-agenda-card{min-height:38px!important;padding:8px!important}
+ .calendar-agenda-card .calendar-task-title{font-size:13px!important;line-height:18px!important}
+}
+
 @media(min-width:701px){html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-day-head{display:flex!important}html body #adibCalendar#adibCalendar.adib-tick-calendar[data-calendar-view=day] .calendar-time-layout>.calendar-time-corner{display:flex!important;visibility:hidden!important}}
 
 /* Month view: compact task chips so narrow day cells show more of each task. */
