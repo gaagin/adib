@@ -102,3 +102,15 @@ test('opening container properties switches mobile canvas to the inspector panel
  assert.match(handler,/if\(action==='open-properties'\)\{select\(target\.id,target\.kind\);if\(window\.matchMedia\('\(max-width:650px\)'\)\.matches\)setMobileMode\('inspector'\);return\}/);
  assert.match(runtime,/function setMobileMode\(mode\)/);
 });
+
+test('equipment layout accepts its Notion Plan relation ID while validating numeric coordinates',()=>{
+ const start=server.indexOf('async function saveLayout(body)');
+ const end=server.indexOf('\n}',start);
+ assert.ok(start>=0&&end>start,'saveLayout should exist');
+ const save=server.slice(start,end);
+ assert.match(save,/\['x', 'y', 'width', 'height'\]\.some\(key => !Number\.isFinite\(values\[key\]\)\)/);
+ assert.doesNotMatch(save,/Object\.values\(values\)\.some\(value => !Number\.isFinite\(value\)\)/);
+ const isValid=values=>!['x','y','width','height'].some(key=>!Number.isFinite(values[key]));
+ assert.equal(isValid({x:10,y:20,width:200,height:200,planId:'notion-plan-id'}),true);
+ assert.equal(isValid({x:Infinity,y:20,width:200,height:200,planId:'notion-plan-id'}),false);
+});

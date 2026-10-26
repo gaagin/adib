@@ -969,7 +969,7 @@ async function saveLayout(body) {
   const id = String(body.id || '').trim();
   const values = { x: Number(body.x), y: Number(body.y), width: Number(body.width), height: Number(body.height) };
   if (body.planId !== undefined) values.planId = body.planId ? cleanId(String(body.planId)) : null;
-  if (!id || Object.values(values).some(value => !Number.isFinite(value))) {
+  if (!id || ['x', 'y', 'width', 'height'].some(key => !Number.isFinite(values[key]))) {
     throw new Error('Lazımdır id, x, y, width və height');
   }
   const properties = {
