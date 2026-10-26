@@ -368,6 +368,7 @@ function startDrag(e,id,kind){if(e.target.closest&&(e.target.closest('.icon')||e
 function startResize(e,id,kind){const a=state.equipment.find(x=>x.id===id)||state.plans.find(x=>x.id===id);if(!a||isLocked(id))return;e.preventDefault();e.stopPropagation();const start=point(e.clientX,e.clientY);state.selected=id;state.drag={id,kind,mode:'resize',startPoint:start,baseWidth:Number(a.width)||35,baseHeight:Number(a.height)||30,startValues:{x:Number(a.x)||0,y:Number(a.y)||0,width:Number(a.width)||0,height:Number(a.height)||0,parentId:a.parentId||null},pointerId:e.pointerId};state.last=start;state.snapGuides={x:null,y:null};svg.setPointerCapture(e.pointerId)}
 let mobileTapCandidate=null;
 let mobileTapLast=null;
+window.__adibResetCanvasTapState=()=>{mobileTapCandidate=null;mobileTapLast=null};
 function mobileObjectAt(clientX,clientY){const p=point(clientX,clientY),worldX=(p.x-state.ox)/state.scale,worldY=(p.y-state.oy)/state.scale;return visibleObjects().slice().reverse().find(object=>worldX>=Number(object.x)&&worldX<=Number(object.x)+Number(object.width)&&worldY>=Number(object.y)&&worldY<=Number(object.y)+Number(object.height))||null}
 function isMobileTouch(e){return window.matchMedia('(max-width:650px)').matches&&e.pointerType!=='mouse'}
 svg.addEventListener('pointerdown',e=>{if(!isMobileTouch(e))return;const object=mobileObjectAt(e.clientX,e.clientY);mobileTapCandidate=object&&(object.kind==='plan'||object.kind==='equipment')?{id:object.id,kind:object.kind,x:e.clientX,y:e.clientY,time:performance.now()}:null},true);
