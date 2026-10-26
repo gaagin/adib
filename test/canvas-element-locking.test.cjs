@@ -39,3 +39,8 @@ test('lock controls only movement and resizing; element entry remains available'
  assert.match(page,/window\.ADIBCanvasElementLock\?\.toggleSelected\(\)/);
  assert.match(runtime,/isLocked\(o\.id\)\?'#65717e':'#8da4ff'/);
 });
+
+test('locked canvas elements keep a normal clickable cursor',()=>{
+ assert.match(page,/\.locked\{cursor:pointer!important/);
+ assert.doesNotMatch(page,/\.locked\{cursor:not-allowed/);
+});
