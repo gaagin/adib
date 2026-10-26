@@ -2,6 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+const path=require('node:path');
 
 class FakeElement{
   constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.listeners={};this.attributes={};this.className='';this.textContent='';this.disabled=false;this.parent=null;this.open=false;this.classList={add:(name)=>{const names=new Set(this.className.split(/\s+/).filter(Boolean));names.add(name);this.className=[...names].join(' ')},contains:(name)=>this.className.split(/\s+/).includes(name)}}
@@ -23,7 +24,7 @@ function setup(status){
   const body=new FakeElement('body'),document={body,createElement:tag=>new FakeElement(tag)};
   const calls=[],state={sessions:[session]};
   const root={document,ADIBClock:{now:()=>Date.now(),timeZone:'UTC'},ADIBWork:{state,stop:async()=>{},action:async request=>{calls.push(request.action);const current=state.sessions[0];if(request.action==='stop'){current.status='pending';current.endedAt=Date.now();current.revision++;return{session:{...current}}}if(request.action==='save'){current.status='saved';current.revision++;return{session:{...current}}}throw Error('unexpected action')}}};
-  vm.runInNewContext(fs.readFileSync(__dirname+'/pomodoro-session-ui.js','utf8'),{window:root});
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','pomodoro-session-ui.js'),'utf8'),{window:root});
   root.ADIBSessions.history('t1');
   const history=body.children[0],row=history.find(e=>e.classList.contains('session-finishable'));
   row.dispatch('click',{target:row,preventDefault(){}});

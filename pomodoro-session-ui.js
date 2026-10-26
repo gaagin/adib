@@ -7,6 +7,7 @@ function matches(s,f){return(!f.workSource||s.sourceKey===f.workSource)&&(!f.wor
 function calendar(filters={}){const tasks=new Map((root.ADIBHomeBridge?.snapshot().tasks||[]).map(t=>[String(t.id),t]));const now=root.ADIBClock?.now()||Date.now();return state.sessions.filter(s=>s.kind==='pomodoro'&&visible(s)&&matches(s,filters)).map(s=>({...tasks.get(String(s.taskId)),id:'pomodoro:'+s.id,sessionKind:'pomodoro',workSession:s,sourceKey:'personal',title:(s.status==='running'?'▶ ':s.status==='sync-pending'?'◷ ':'✓ ')+'🍅 '+s.title+(s.worker?' · '+s.worker:''),date:new Date(s.startedAt).toISOString(),dateEnd:new Date(Math.max(s.startedAt+1000,s.endedAt||Math.min(now,s.startedAt+(s.plannedMinutes||25)*60000))).toISOString(),assignees:[s.worker],tapsirildi:[s.worker],completed:false}))}
 function duration(seconds){const n=Math.floor(Math.max(0,Number(seconds)||0));return String(Math.floor(n/3600)).padStart(2,'0')+':'+String(Math.floor(n/60)%60).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
 function label(s){return s.completionReason==='cancelled'?'Ləğv edilib':s.status==='running'?'Davam edir':s.status==='sync-pending'?'Serverdə saxlanılıb · Notion gözləyir':s.status==='pending'?'Vaxt təsdiq gözləyir':s.kind==='pomodoro'?(s.fullPomodoro?'Tam Pomodoro':'Erkən bitirilib'):'Tamamlanıb'}
+function formatDateTime(value,timeZone='Asia/Baku'){const parts=new Intl.DateTimeFormat('en-GB',{timeZone,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(value));const part=type=>parts.find(item=>item.type===type)?.value||'';return `${part('day')}.${part('month')}.${part('year')} ${part('hour')}:${part('minute')}:${part('second')}`}
 function finishDialog(s,historyDialog){
  const doc=root.document,popup=doc.createElement('dialog');popup.className='adib-session-finish';
  const add=(tag,text,parent=popup)=>{const e=doc.createElement(tag);e.textContent=text;parent.append(e);return e;};
@@ -31,12 +32,11 @@ function history(id,focusId,kindFilter){
  const add=(tag,text,parent=d)=>{const e=doc.createElement(tag);e.textContent=text;parent.append(e);return e;};
  const header=add('header','');add('h2',kindFilter==='pomodoro'?'Pomodoro seansları':'İş seansları',header);const close=add('button','×',header);close.type='button';close.setAttribute('aria-label','Bağla');close.onclick=()=>d.close();
  const sessions=rows(id).filter(s=>!kindFilter||s.kind===kindFilter).slice().reverse(),list=add('div','');list.className='adib-session-list';if(!sessions.length)add('p','Hələ seans yoxdur',list);
- const local=n=>new Date(n).toLocaleString('az',{timeZone:root.ADIBClock?.timeZone||'Asia/Baku',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});
  for(const s of sessions){
   const item=add('article','',list);item.className='session-row '+(s.status==='saved'?'session-completed':s.status==='running'?'session-active':'session-pending');
   if(s.id===focusId)item.classList.add('session-selected');
   add('strong',(s.kind==='pomodoro'?'🍅 Pomodoro':'◷ İş taymeri')+' · '+s.title,item);
-  add('p',local(s.startedAt)+' → '+(s.endedAt?local(s.endedAt):'Davam edir'),item);
+  add('p',formatDateTime(s.startedAt,root.ADIBClock?.timeZone||'Asia/Baku')+' → '+(s.endedAt?formatDateTime(s.endedAt,root.ADIBClock?.timeZone||'Asia/Baku'):'Davam edir'),item);
   add('p',(s.worker||'İstifadəçi')+' · '+duration(s.status==='running'?(Math.min(root.ADIBClock.now(),s.startedAt+(s.plannedMinutes||100000)*60000)-s.startedAt)/1000:s.seconds)+' · '+label(s),item);
   const canFinish=s.kind==='work'&&['running','pending'].includes(s.status)&&!!root.ADIBWork?.action;
   if(canFinish){
@@ -50,6 +50,6 @@ function history(id,focusId,kindFilter){
  const footer=add('footer',''),taskButton=add('button','Tapşırığı aç',footer);taskButton.type='button';taskButton.onclick=()=>{d.close();const task=sessions[0];if(task?.sourceKey==='todo'||task?.sourceKey==='gorulen')root.ADIBEquipmentCalendar?.open(id);else root.ADIBHomeBridge?.openTask(id)};
  const done=add('button','Bağla',footer);done.type='button';done.onclick=()=>d.close();d.addEventListener('close',()=>d.remove());doc.body.append(d);d.showModal();d.querySelector('.session-selected')?.scrollIntoView({block:'nearest'});
 }
-root.ADIBSessions={accept,all,rows,calendar,history,duration,label,matches,visible,get state(){return state}};
+root.ADIBSessions={accept,all,rows,calendar,history,duration,label,formatDateTime,matches,visible,get state(){return state}};
 if(typeof module==='object'&&module.exports)module.exports=root.ADIBSessions;
 })(typeof window==='object'?window:globalThis);
