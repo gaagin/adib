@@ -317,3 +317,10 @@ body.adib-day-plan-visible{overflow:hidden!important}
 .calendar-day-plan-focus-complete h3{margin:0 0 4px;font-size:13px}
 .calendar-day-plan-focus-complete p{margin:0 0 7px;color:var(--muted,#72809a);font-size:11px;line-height:1.4}
 .calendar-day-plan-focus-complete-item{display:block;width:100%;margin-top:5px;padding:7px 9px;border:1px solid var(--line,#dce2ee);border-radius:9px;background:var(--surface,#fff);color:var(--text,#172335);text-align:left;font-size:12px;cursor:pointer}
+
+
+/* Pomodoro history cards reserve their visual height so close sessions never cover one another. */
+#adibCalendar .calendar-time-event.calendar-session{min-height:64px!important;padding-top:6px!important;padding-bottom:5px!important}
+#adibCalendar .calendar-time-event.calendar-session .calendar-event-title{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;max-height:36px!important;white-space:normal!important;overflow-wrap:anywhere!important;text-overflow:clip!important;overflow:hidden!important}
+#adibCalendar .calendar-time-event.calendar-session .calendar-event-time,#adibCalendar .calendar-time-event.calendar-session.calendar-short .calendar-event-time{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+@media(max-width:700px){#adibCalendar .calendar-time-event.calendar-session{min-height:88px!important;padding-top:6px!important;padding-bottom:5px!important}#adibCalendar .calendar-time-event.calendar-session .calendar-event-title{font-size:11px!important;line-height:13px!important;-webkit-line-clamp:5!important;max-height:65px!important}#adibCalendar .calendar-time-event.calendar-session .calendar-event-time{font-size:10px!important;line-height:13px!important}}
