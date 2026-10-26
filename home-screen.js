@@ -32,16 +32,17 @@ function ensure(){if(host)return;host=make('section','adib-home');host.id='adibH
  side.append(make('small','adib-home-heading','QOVLUQLAR'));containers=make('nav','adib-home-containers');containers.setAttribute('aria-label','Qovluqlar');side.append(containers);
  const tools=make('details','adib-home-tools');tools.append(make('summary','','Digər görünüşlər'));tools.append(button('Kanban',()=>navAction(()=>bridge().kanban())),button('Eyzenhauer matrisi',()=>navAction(()=>bridge().matrix())),button('Tapşırıqlarımın təsviri',()=>leave(()=>bridge().personalCanvas())));side.append(tools);
  const openSettings=event=>{
-  event.stopPropagation();
+  event.preventDefault();event.stopImmediatePropagation();
   const panel=document.getElementById('adibSettingsMenu'),original=document.getElementById('adibSettingsButton'),anchor=event.currentTarget;
   if(panel&&!panel.hidden){root.ADIBSettings?.close?.();panel.hidden=true;original?.setAttribute('aria-expanded','false');anchor.setAttribute('aria-expanded','false');return}
   if(root.ADIBSettings?.open){try{root.ADIBSettings.open(anchor);if(panel&&!panel.hidden){panel.style.setProperty('z-index','2147483000','important');anchor.setAttribute('aria-expanded','true');return}}catch(error){root.console?.warn('ADIB settings panel failed',error)}}
   if(panel){
    document.body.append(panel);panel.classList.add('adib-settings-portal');panel.hidden=false;
-   const viewport=root.visualViewport,width=Math.min(340,(viewport?.width||innerWidth)-24),rect=anchor.getBoundingClientRect(),height=panel.getBoundingClientRect().height;
-   let left=Math.max(12,Math.min((viewport?.width||innerWidth)-width-12,rect.left));
-   let top=rect.bottom+8;if(top+height>(viewport?.height||innerHeight)-12)top=Math.max(12,rect.top-height-8);
-   panel.style.setProperty('position','fixed','important');panel.style.setProperty('left',left+'px','important');panel.style.setProperty('top',top+'px','important');panel.style.setProperty('width',width+'px','important');panel.style.setProperty('max-height',Math.max(120,(viewport?.height||innerHeight)-top-12)+'px','important');panel.style.setProperty('overflow','auto','important');panel.style.setProperty('z-index','2147483000','important');
+   const viewport=root.visualViewport,width=Math.min(340,Math.max(220,(viewport?.width||innerWidth)-24)),rect=anchor.getBoundingClientRect(),viewHeight=viewport?.height||innerHeight;
+   panel.style.setProperty('position','fixed','important');panel.style.setProperty('left',Math.max(12,Math.min((viewport?.width||innerWidth)-width-12,rect.left))+'px','important');panel.style.setProperty('width',width+'px','important');panel.style.setProperty('max-height',Math.max(120,viewHeight-24)+'px','important');panel.style.setProperty('overflow','auto','important');panel.style.setProperty('z-index','2147483000','important');
+   // Hidden panels measure as 0px; reveal invisibly before choosing above/below placement.
+   panel.style.setProperty('visibility','hidden','important');const height=Math.min(panel.scrollHeight||panel.getBoundingClientRect().height,viewHeight-24);
+   let top=rect.bottom+8;if(top+height>viewHeight-12)top=Math.max(12,rect.top-height-8);top=Math.max(12,Math.min(viewHeight-height-12,top));panel.style.setProperty('top',top+'px','important');panel.style.removeProperty('visibility');
    original?.setAttribute('aria-expanded','true');anchor.setAttribute('aria-expanded','true');panel.querySelector('button,input,select')?.focus({preventScroll:true});return
   }
   original?.click();
