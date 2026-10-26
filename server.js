@@ -1878,7 +1878,7 @@ const server = http.createServer(async (request, response) => {
     await accounts.ready;
     if(employeeChats.routes(url.pathname))return json(response,200,await employeeChats.handle(request,url,request.method==='GET'?{}:await readBody(request)));
     if(url.pathname.startsWith('/api/auth/')||url.pathname.startsWith('/api/admin/')){
-      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH'],'/api/admin/invites':['POST','DELETE'],'/api/admin/personal-directory':['GET']};
+      const verbs={'/api/auth/status':['GET'],'/api/auth/me':['GET'],'/api/auth/login':['POST'],'/api/auth/accept':['POST'],'/api/auth/password':['POST'],'/api/auth/logout':['POST'],'/api/admin/users':['GET','PATCH','DELETE'],'/api/admin/invites':['POST','DELETE'],'/api/admin/personal-directory':['GET']};
       if(!verbs[url.pathname]?.includes(request.method))throw accessError('Metod icazə verilmir',405);
       if(request.headers.origin&&request.headers.origin!=='null'&&!request.headers.authorization){const o=new URL(request.headers.origin);if(o.host!==request.headers.host&&!['adib:'].includes(o.protocol))throw accessError('Yanlış sorğu mənbəyi');}
       const body=request.method==='GET'?{}:await readBody(request);
