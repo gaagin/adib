@@ -1500,7 +1500,7 @@ html body #entityModal #entityForm .task-editor :is(input,select){box-sizing:bor
 <button id="centerCurrentCanvasButton" class="center-current-canvas" type="button" aria-label="Mərkəzi kətan məzmunu" title="Mərkəzi kətan məzmunu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3M8 12h8m-4-4v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="entityModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="entityModalTitle">Yeni element</h2><div class="muted">Giriş yaradın Notion</div></div><button id="closeEntityModal" type="button">×</button></div><div id="entityForm" class="task-list"></div></section></div>
 <div id="taskModal" class="modal-backdrop" role="dialog" aria-modal="true"><section class="modal"><div class="modal-head"><div><h2 id="modalTitle">Tapşırıqlar</h2><div id="modalSub" class="muted"></div></div><button id="closeModal">×</button></div><div id="taskList" class="task-list"></div></section></div>
-<script src="/realtime-runtime.js?v=layout-write-through-v2"></script>
+<script src="/realtime-runtime.js?v=layout-write-through-v3-feedback"></script>
 <script>
 (function(){
   const PERSONAL_LAYOUT_KEY='ela-personal-board-v1';const PERSONAL_SNAPSHOT_KEY='ela-personal-snapshot-v1';const PERSONAL_POMODORO_KEY='ela-personal-pomodoro-v1';
@@ -3569,4 +3569,13 @@ html.dark #adibNavMenu.adib-nav-menu button>span:first-child,html.dark #adibNavM
 </style>
 
 <link rel="stylesheet" href="/whatsapp-discussions.css?v=1.1.68">
+
+<style class="layout-sync-feedback-mobile-fix">
+@media (max-width:650px){
+  .layout.mobile-canvas-mode .canvas-wrap #syncError:not(:empty){display:block!important;box-sizing:border-box!important;position:fixed!important;z-index:180!important;left:12px!important;right:12px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;width:auto!important;max-width:none!important;min-height:0!important;margin:0!important;padding:10px 13px!important;border:1px solid #cbd5e1!important;border-radius:12px!important;background:#fff!important;color:#344054!important;box-shadow:0 6px 20px rgba(18,20,28,.22)!important;white-space:normal!important;line-height:1.4!important;font-size:13px!important;pointer-events:none!important}
+  #syncError[data-layout-sync-state="pending"]{border-color:#9db9ff!important;background:#eff4ff!important;color:#2145a0!important}
+  #syncError[data-layout-sync-state="success"]{border-color:#75d5a6!important;background:#ecfdf3!important;color:#067647!important}
+  #syncError[data-layout-sync-state="error"]{border-color:#f1a6a0!important;background:#fff1f0!important;color:#b42318!important}
+}
+</style>
 </body></html>
