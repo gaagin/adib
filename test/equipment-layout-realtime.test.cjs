@@ -38,7 +38,7 @@ test('layout save requires Notion to return the exact persisted coordinates befo
 });
 
 test('layout saves do not silently return on file URLs or non-HTTP origins',()=>{
- const start=runtime.indexOf('async function saveRemotePosition(a,layout)');
+ const start=runtime.indexOf('async function writeRemotePosition(a,position)');
  const end=runtime.indexOf('\nfunction updateSyncUi',start);
  assert.notEqual(start,-1);
  const save=runtime.slice(start,end);
@@ -63,7 +63,7 @@ test('mobile canvas lets the explicitly selected equipment receive a move gestur
 });
 
 test('a successful position save clears its pending override and asks for canonical coordinates',()=>{
- const start=runtime.indexOf('async function saveRemotePosition(a,layout)');
+ const start=runtime.indexOf('async function writeRemotePosition(a,position)');
  const end=runtime.indexOf('\nfunction updateSyncUi',start);
  assert.notEqual(start,-1);
  const save=runtime.slice(start,end);
