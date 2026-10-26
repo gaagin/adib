@@ -2368,7 +2368,7 @@ async function adibContextDeletePersonalContainer(target){if(!confirm('Konteyner
 async function adibContextRun(action,target){
   if(action==='activate-move'){adibActivateMove(target);return}
   if(action==='move-element-up'){await adibMoveElementUp(target);return}
-  if(action==='open-properties'){select(target.id,target.kind);return}
+  if(action==='open-properties'){select(target.id,target.kind);if(window.matchMedia('(max-width:650px)').matches)setMobileMode('inspector');return}
   if(action==='open-equipment-tasks'){openTasks(target.id);return}
   if(action==='new-equipment-task'){openTaskEditor(newTaskDraft(),target.object,true);return}
   if(action==='open-plan'){openPlan(target.id);return}

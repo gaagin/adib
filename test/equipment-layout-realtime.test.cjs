@@ -93,3 +93,12 @@ test('the inspector exposes shared color choices and the canvas renders the sele
  assert.match(runtime,/\/api\/layout-color/);
  assert.match(runtime,/CANVAS_COLORS\[o\.color\]/);
 });
+
+test('opening container properties switches mobile canvas to the inspector panel',()=>{
+ const start=html.indexOf('async function adibContextRun(action,target){');
+ const end=html.indexOf("\ndocument.addEventListener('contextmenu'",start);
+ assert.ok(start>=0&&end>start,'canvas context menu handler should exist');
+ const handler=html.slice(start,end);
+ assert.match(handler,/if\(action==='open-properties'\)\{select\(target\.id,target\.kind\);if\(window\.matchMedia\('\(max-width:650px\)'\)\.matches\)setMobileMode\('inspector'\);return\}/);
+ assert.match(runtime,/function setMobileMode\(mode\)/);
+});
