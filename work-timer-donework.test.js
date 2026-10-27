@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {WorkTimerStore}=require('./work-timer');
+(async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'adib-work-note-')),file=path.join(dir,'sessions.json'),calls=[],events=[];
+ const taskId='11111111-2222-4333-8444-555555555555';let remote='Notion əvvəlki qeyd',unavailable=false;
+ const store=new WorkTimerStore({file,now:()=>30000,sources:()=>[{key:'gorulen',ds:'ds',db:'db',doneWorkName:'Gorulen is',doneWorkType:'rich_text'}],changed:meta=>events.push(meta),saveSession:async()=>({id:'log'}),notion:async(url,options={})=>{calls.push({url,method:options.method||'GET',body:options.body?JSON.parse(options.body):null});if(unavailable)throw new Error('Notion is offline');if(url==='/pages/'+taskId&&options.method==='GET')return {id:taskId,parent:{data_source_id:'ds'},properties:{'Gorulen is':{type:'rich_text',rich_text:remote?[{plain_text:remote}]:[]}}};if(url==='/pages/'+taskId&&options.method==='PATCH'){const props=JSON.parse(options.body).properties;if(props['Gorulen is'])remote=props['Gorulen is'].rich_text.map(x=>x.text.content).join('');return {}; }throw new Error('Unexpected Notion request '+url);}});
+ const session={id:'session-1',taskId,sourceKey:'gorulen',title:'Test',actorId:'actor-1',actorName:'Araz',worker:'Araz',status:'pending',startedAt:10000,endedAt:20000,seconds:10,revision:1};
+ store.data.sessions.push(session);store.data.tasks[taskId.replace(/-/g,'') ]={id:taskId,baseSeconds:0,dirty:false,doneWork:'Notion əvvəlki qeyd',doneWorkQueue:[]};
+ const result=await store.action({action:'save',sessionId:session.id,revision:1,operationId:'save-12345678',doneWorkEntry:'Yeni qeyd'}, {id:'actor-1',name:'Araz',role:'admin'}, {id:taskId,doneWork:'Notion əvvəlki qeyd'});
+ assert.equal(calls.length,0,'saving to ADIB must not wait for Notion');
+ assert.equal(result.doneWork,'Notion əvvəlki qeyd\nYeni qeyd');
+ assert.equal(store.data.tasks[taskId.replace(/-/g,'')].doneWorkQueue.length,1,'note is durably queued locally');
+ assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).tasks[taskId.replace(/-/g,'')].doneWorkQueue.length,1,'queue survives restart');
+ unavailable=true;await store.flush();
+ assert.equal(store.data.tasks[taskId.replace(/-/g,'')].doneWorkQueue.length,1,'note stays queued when Notion is unavailable');
+ assert.equal(store.data.tasks[taskId.replace(/-/g,'')].doneWork,'Notion əvvəlki qeyd\nYeni qeyd','ADIB keeps the local note while sync is offline');
+ unavailable=false;const row=store.data.tasks[taskId.replace(/-/g,'')];row.retryAt=0;for(const item of row.doneWorkQueue)item.retryAt=0;await store.flush();
+ assert.equal(remote,'Notion əvvəlki qeyd\nYeni qeyd','queued note reaches Notion in background');
+ assert.equal(store.data.tasks[taskId.replace(/-/g,'')].doneWorkQueue.length,0);
+ assert(events.some(e=>e?.doneWorkTaskId===taskId&&e.pending===true),'local save announces pending state');
+ assert(events.some(e=>e?.doneWorkTaskId===taskId&&e.pending===false),'successful sync clears pending state');
+ fs.rmSync(dir,{recursive:true,force:true});console.log('work timer local-first note sync: ok');
+})().catch(e=>{console.error(e);process.exitCode=1;});
