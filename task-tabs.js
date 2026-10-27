@@ -1,6 +1,7 @@
 (function(root){'use strict';
+root.addEventListener('adib-done-work-updated',e=>{const id=String(e.detail?.taskId??'');if(!id)return;for(const editor of document.querySelectorAll('.task-editor[data-adib-task-id]'))if(editor.dataset.adibTaskId===id){const field=editor.querySelector('#taskDoneWork');if(field)field.value=String(e.detail?.value??'');}});
 function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteChild,children=[],onOpenChild,onOpenParent,parentTitle=''}={}){
- if(isNew)return null;const editor=list.querySelector('.task-editor');if(!editor)return null;
+ if(isNew)return null;const editor=list.querySelector('.task-editor');if(!editor)return null;editor.dataset.adibTaskId=String(task.id??'');
  const androidEquipment=!personal&&(document.documentElement.classList.contains('adib-android-wrapper')||document.body.classList.contains('adib-android-wrapper'));
  if(androidEquipment){
   const topLevel=selector=>{let node=editor.querySelector(selector);while(node&&node.parentElement!==editor)node=node.parentElement;return node?.parentElement===editor?node:null};
