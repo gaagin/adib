@@ -12,6 +12,15 @@ test('native work-time confirmation patch offers an explicit cancel action',()=>
  assert.match(overlay,/cancelParams\.setMargins\(0,0,dp\(8\),0\)/);
  assert.match(overlay116,/cancelButton=actionButton\("Ləğv et"\)/);
  assert.match(overlay116,/cancelButton\.setOnClickListener\(v->cancelConfirmedTime\(\)\)/);
+ assert.match(overlay116,/workNoteField=confirmationNote\(box\)/);
+ assert.match(overlay116,/put\("doneWorkEntry",note\)/);
+ assert.match(overlay116,/draft_work_note:/);
+});
+
+test('work confirmation web UI exposes the Gorulen isler note field',()=>{
+ const ui=fs.readFileSync(path.join(__dirname,'../work-timer-ui.js'),'utf8');
+ assert.match(ui,/Gorulen isler/);
+ assert.match(ui,/doneWorkEntry:workNote\.value\.trim\(\)/);
 });
 
 test('native timer cancellation is acknowledged by the server before clearing the pending session',()=>{
