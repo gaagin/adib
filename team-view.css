@@ -94,7 +94,6 @@
 .team-empty-card{grid-column:1/-1;border:1px dashed var(--team-line);border-radius:14px;background:var(--team-surface)}
 .team-message{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--team-blue-soft);color:var(--team-blue);font-size:12px}
 .team-message.error{background:#fff0ee;color:#c64a42}
-.team-mobile-bottom{display:none}
 
 html.dark .adib-team-view{--team-bg:#0e171d;--team-surface:#17242b;--team-soft:#202e35;--team-text:#e5edf0;--team-muted:#96a8b1;--team-line:#2a3a42;--team-blue:#6378ff;--team-blue-soft:#252c49;--team-green:#28b694;--team-orange:#f3aa50;box-shadow:0 0 0 100vmax #0006}
 html.dark .team-task-card.personal{border-color:#245547;background:#17372f}
@@ -154,8 +153,6 @@ html.dark .team-message.error{background:#472b2c;color:#ffb0a9}
   .team-employee-card,.team-task-group{padding:15px;border-radius:16px}
   .team-employee-head{padding-bottom:12px}
   .team-task-card{min-height:74px}
-  .team-mobile-bottom{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));flex:0 0 auto;min-height:62px;padding:5px 4px calc(5px + env(safe-area-inset-bottom));border-top:1px solid var(--team-line);background:var(--team-surface)}
-  .team-mobile-bottom button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;border:0;background:transparent;color:var(--team-muted);font:inherit;font-size:9px}
-  .team-mobile-bottom button span{font-size:19px;line-height:1}
-  .team-mobile-bottom button.active{color:var(--team-blue);font-weight:800}
 }
+/* Keep the existing app navigation, its order and its icons in the team view. */
+html body.adib-team-open .adib-design-nav{z-index:30001!important}

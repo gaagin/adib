@@ -95,13 +95,6 @@
           <section class="team-cards" data-team-cards></section>
         </main>
       </div>
-      <nav class="team-mobile-bottom" aria-label="Əsas naviqasiya">
-        <button type="button" data-team-destination="tasks"><span>✓</span>Tapşırıqlar</button>
-        <button type="button" data-team-destination="calendar"><span>▦</span>Təqvim</button>
-        <button type="button" data-team-destination="equipment"><span>⬡</span>Avadanlıq</button>
-        <button type="button" class="active" aria-current="page"><span>♧</span>Komanda</button>
-        <button type="button" data-team-close><span>⋯</span>Daha çox</button>
-      </nav>
     `;
     document.body.append(root);
     root.querySelectorAll('[data-team-close]').forEach(button => button.addEventListener('click', close));
@@ -124,13 +117,6 @@
       render();
     }));
     root.querySelector('[data-team-add]').addEventListener('click', () => addTask());
-    root.querySelectorAll('[data-team-destination]').forEach(button => button.addEventListener('click', () => {
-      const destination = button.dataset.teamDestination;
-      close();
-      if (destination === 'tasks') window.ADIBHomeBridge?.activate?.();
-      if (destination === 'equipment') window.ADIBHomeBridge?.canvas?.();
-      if (destination === 'calendar') window.ADIBCalendar?.open?.();
-    }));
     root.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
   }
 
@@ -216,11 +202,20 @@
     }
   }
 
+  function syncSharedNavigation() {
+    if (!root || root.hidden) return;
+    const nav = document.querySelector('.adib-design-nav');
+    const height = nav ? nav.getBoundingClientRect().height : 0;
+    root.style.bottom = `${height}px`;
+    root.setAttribute('aria-modal', height > 0 ? 'false' : 'true');
+  }
+
   function show() {
     if (!root) return;
     root.hidden = false;
     document.documentElement.classList.add('adib-team-open');
     document.body.classList.add('adib-team-open');
+    syncSharedNavigation();
     root.querySelector('[data-team-close]').focus({preventScroll: true});
     if (!payload) load();
     clearInterval(refreshTimer);
@@ -441,6 +436,14 @@
     }
     makeDashboard();
     addNavigation(user);
+    window.addEventListener('resize', syncSharedNavigation);
+    window.visualViewport?.addEventListener('resize', syncSharedNavigation);
+    const sharedNav = document.querySelector('.adib-design-nav');
+    if (sharedNav && window.ResizeObserver) new ResizeObserver(syncSharedNavigation).observe(sharedNav);
+    document.addEventListener('click', event => {
+      const button = event.target.closest?.('.adib-design-nav button');
+      if (button && button.dataset.designNav !== 'team' && root && !root.hidden) close();
+    }, true);
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && root && !root.hidden) close();
     });
