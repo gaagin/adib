@@ -207,7 +207,8 @@
     const nav = document.querySelector('.adib-design-nav');
     const height = nav ? nav.getBoundingClientRect().height : 0;
     root.style.bottom = `${height}px`;
-    root.setAttribute('aria-modal', height > 0 ? 'false' : 'true');
+    const besideSidebar = globalThis.window?.innerWidth > 700 && document.body.classList.contains('adib-side-ready');
+    root.setAttribute('aria-modal', height > 0 || besideSidebar ? 'false' : 'true');
   }
 
   function show() {
@@ -216,6 +217,7 @@
     document.documentElement.classList.add('adib-team-open');
     document.body.classList.add('adib-team-open');
     syncSharedNavigation();
+    document.getElementById('teamSidebarButton')?.setAttribute('aria-current', 'page');
     root.querySelector('[data-team-close]').focus({preventScroll: true});
     if (!payload) load();
     clearInterval(refreshTimer);
@@ -227,6 +229,7 @@
     root.hidden = true;
     document.documentElement.classList.remove('adib-team-open');
     document.body.classList.remove('adib-team-open');
+    document.getElementById('teamSidebarButton')?.removeAttribute('aria-current');
     clearInterval(refreshTimer);
     const trigger = lastTrigger?.isConnected ? lastTrigger : document.getElementById('teamSidebarButton') || document.getElementById('teamViewButton');
     trigger?.focus({preventScroll: true});
@@ -442,7 +445,9 @@
     if (sharedNav && window.ResizeObserver) new ResizeObserver(syncSharedNavigation).observe(sharedNav);
     document.addEventListener('click', event => {
       const button = event.target.closest?.('.adib-design-nav button');
-      if (button && button.dataset.designNav !== 'team' && root && !root.hidden) close();
+      const sideButton = event.target.closest?.('#adibPersistentSide button');
+      const sideDestination = sideButton && sideButton.id !== 'teamSidebarButton' && !sideButton.matches('.adib-side-toggle,.adib-home-theme,.adib-home-clock');
+      if (((button && button.dataset.designNav !== 'team') || sideDestination) && root && !root.hidden && (!window.ADIBHome?.canLeave || window.ADIBHome.canLeave())) close();
     }, true);
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && root && !root.hidden) close();

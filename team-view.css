@@ -156,3 +156,12 @@ html.dark .team-message.error{background:#472b2c;color:#ffb0a9}
 }
 /* Keep the existing app navigation, its order and its icons in the team view. */
 html body.adib-team-open .adib-design-nav{z-index:30001!important}
+
+/* Desktop team view shares the persistent workspace sidebar, including collapse state. */
+@media(min-width:701px){
+  body.adib-side-ready .adib-team-view{left:var(--adib-side-width,0px)}
+  body.adib-team-open #adibPersistentSide{z-index:30002}
+  html.dark body.adib-side-ready .adib-team-view{box-shadow:none}
+}
+body.adib-team-open #teamSidebarButton{background:var(--blue-soft)!important;color:var(--blue)!important;font-weight:600!important}
+body.adib-team-open #adibPersistentSide [data-home-nav="tasks"]{background:transparent!important;color:var(--text)!important}
