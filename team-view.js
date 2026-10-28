@@ -1,3 +1,4 @@
+// Persistent sidebar navigation: included in the team dashboard deployment.
 (() => {
   'use strict';
 
