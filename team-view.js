@@ -32,7 +32,7 @@
   const initials = name => String(name || 'ADIB').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('az');
   const openTasks = person => (person.tasks || []).filter(task => !task.completed);
 
-  let root, user, payload, selectedDate = today(), currentView = 'employees', currentFilter = 'all', searchText = '', refreshTimer;
+  let root, user, payload, selectedDate = today(), currentView = 'employees', currentFilter = 'all', searchText = '', refreshTimer, navigationObserver, lastTrigger;
 
   async function request(path, options = {}) {
     const response = await fetch(path, {cache: 'no-store', credentials: 'same-origin', ...options});
@@ -133,7 +133,34 @@
     root.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
   }
 
+  function mountSidebarNavigation() {
+    if (!user || !['admin', 'manager'].includes(user.role)) return;
+    const side = document.getElementById('adibPersistentSide');
+    if (!side || document.getElementById('teamSidebarButton')) return;
+    const button = el('button', 'adib-home-nav');
+    button.id = 'teamSidebarButton';
+    button.type = 'button';
+    button.dataset.homeNav = 'team';
+    button.setAttribute('aria-label', 'Komanda planını açın');
+    button.innerHTML = '<span class="adib-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Komanda</span>';
+    button.addEventListener('click', event => {
+      if (window.ADIBHome?.canLeave && !window.ADIBHome.canLeave()) return;
+      window.ADIBHome?.closeSidebarOnMobile?.();
+      window.ADIBHomeBridge?.closeViews?.();
+      open(event);
+    });
+    const chat = side.querySelector('[data-home-nav="chat"]');
+    if (chat) side.insertBefore(button, chat);
+    else side.append(button);
+  }
+
   function addNavigation(userInfo) {
+    mountSidebarNavigation();
+    if (!navigationObserver) {
+      // The persistent home sidebar is created lazily, after team initialization.
+      navigationObserver = new MutationObserver(mountSidebarNavigation);
+      navigationObserver.observe(document.body, {childList: true});
+    }
     const brand = document.querySelector('#adibWorkspaceHeader .brandline');
     if (brand && !document.getElementById('teamViewButton')) {
       const button = el('button', 'team-open-desktop', 'Komanda');
@@ -205,10 +232,14 @@
     document.documentElement.classList.remove('adib-team-open');
     document.body.classList.remove('adib-team-open');
     clearInterval(refreshTimer);
-    document.getElementById('teamViewButton')?.focus({preventScroll: true});
+    const trigger = lastTrigger?.isConnected ? lastTrigger : document.getElementById('teamSidebarButton') || document.getElementById('teamViewButton');
+    trigger?.focus({preventScroll: true});
   }
 
-  function open() { show(); }
+  function open(event) {
+    lastTrigger = event?.currentTarget || document.activeElement;
+    show();
+  }
 
   function matchesSearch(person) {
     if (!searchText) return true;
