@@ -5,7 +5,7 @@ const path = require('node:path');
 const { URL } = require('node:url');
 const crypto = require('node:crypto');
 const {UiAssets}=require('./ui-assets');
-const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "realtime-runtime.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-day-plan.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-stats.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js"]);
+const publicAssets=new Set(["loading-ui.js", "loading-ui.css", "discussions-ui.js", "discussions-ui.css", "focused-views.js", "focused-views.css", "local-timer-visibility.js", "network-idle.js", "pomodoro-session-ui.js", "browser-pomodoro.js", "compact-design.css", "compact-design.js", "work-timer-ui.js", "work-timer-ui.css", "az-locale.js", "account-client.js", "autosave.js", "zoned-time.js", "filter-memory.js", "realtime-client.js", "realtime-runtime.js", "filter-dialog.js", "filter-dialog.css", "calendar-time.js", "calendar-filter.js", "calendar-day-plan.js", "calendar-view.css", "calendar-view.js", "comment-state.js", "day-plan-refresh.js", "home-screen.css", "home-screen.js", "hybrid-theme.css", "icons/icon-192.png", "icons/icon-512.png", "images.js", "manifest.webmanifest", "network-time.css", "network-time.js", "personal-options.js", "personal-workspace.js", "pomodoro-rollup.js", "screen-system.css", "screens.js", "startup-view.js", "task-cards.css", "task-cards.js", "task-history.js", "task-stats.js", "task-tabs.css", "task-tabs.js", "task-concept.css", "task-concept.js", "notion-date-picker.css", "notion-date-picker.js", "elegant-ui.css", "elegant-ui.js", "ui-system.css", "ui-theme.js", "widget-hub.js", "workspace-headers.css", "workspace-headers.js", "team-view.js", "team-view.css"]);
 const uiAssets=new UiAssets(__dirname,publicAssets);
 const {RealtimeHub}=require('./realtime-server');
 const {NotionRateGate}=require('./notion-rate');
@@ -28,6 +28,7 @@ const {resolveEquipmentTaskPlan}=require('./equipment-task-access');
 const {DirectChats}=require('./direct-chats');
 const {EmployeeChatsAPI}=require('./employee-chats-api');
 const employeeChats=new EmployeeChatsAPI({accounts,chats:new DirectChats({file:path.join(path.dirname(accounts.file),'employee-chats.json')}),comments:{list:listEmployeeChatComments,create:createEmployeeChatComment}});
+const {buildTeamDashboard}=require('./team-dashboard');
 const PORT = Number(process.env.PORT || 3000);
 const {NetworkTime}=require('./network-clock-server');
 const networkTime=new NetworkTime({timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'});
@@ -1815,6 +1816,7 @@ async function accountAuthorize(req,res,url,u,b){
  if(p==='/api/realtime/state'){const scope=url.searchParams.get('scope')||'personal';if(scope==='equipment'&&!accounts.section(u,'equipment'))deny();res.__accountScope='realtime';url.searchParams.delete('revision');url.searchParams.delete('epoch');return;}
  if(p==='/api/personal-snapshot')return;
  if(p==='/api/plan-snapshot'){if(!accounts.section(u,'equipment'))deny();return;}
+ if(p==='/api/team-snapshot'){if(method!=='GET'||!['admin','manager'].includes(u.role))deny();return;}
  if(p==='/api/calendar-capabilities'){if(!accounts.section(u,'calendar'))deny();return;}
  if(p==='/api/task-options'){if(!['personal','calendar','day','matrix','equipment'].some(s=>accounts.section(u,s)))deny();res.__accountScope='options';return;}
  if(p==='/api/users'){res.__accountScope='users';return;}
@@ -1866,6 +1868,33 @@ function workActor(request){if(accounts.enabled){const u=accounts.user(request);
 async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
 async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}
 function workTasks(actor){return accountTasks().equipment.filter(t=>actor.role==='admin'||accounts.task(actor,t,'equipment'));}
+async function teamSnapshot(request){
+ const baseUrl=appBaseUrl(request);
+ const [personalData,equipmentData]=await Promise.all([
+  personalSnapshot(false,false,false),
+  snapshot(false,baseUrl,false)
+ ]);
+ const personalRows=withTaskEstimates(personalData).tasks||[];
+ const equipmentRows=withTaskEstimates(equipmentData).pomodoroTasks||[];
+ const machines=new Map((equipmentData.equipment||[]).map(item=>[accountKey(item.id),item]));
+ let tasks=[
+  ...personalRows.map(task=>({...task,kind:'personal',source:'Tapşırıqlarım'})),
+  ...equipmentRows.map(task=>({...task,kind:'equipment',machineName:machines.get(accountKey(task.machineId))?.name||'',source:task.source||'Avadanlıq'}))
+ ];
+ const actor=request.__accountBody?.__account;
+ if(accounts.enabled&&actor?.role!=='admin')tasks=tasks.filter(task=>accounts.task(actor,task,task.kind==='equipment'?'equipment':'personal'));
+ let directory=[];
+ try{directory=await personalDirectory();}catch(error){console.warn('Team directory lookup deferred:',error.message);}
+ const users=accounts.enabled?accounts.state.users.filter(user=>!user.disabled):[];
+ const sessions=workTimer.data.sessions.filter(session=>['running','pending'].includes(session.status)).map(session=>({
+  taskId:session.taskId,worker:session.worker,status:session.status,startedAt:session.startedAt
+ }));
+ return {ok:true,...buildTeamDashboard({
+  users,directory,tasks,sessions,
+  now:networkTime.snapshot().now||Date.now(),
+  timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'
+ }),refreshedAt:new Date().toISOString()};
+}
 const workFlush=setInterval(()=>void workTimer.flush().catch(e=>console.warn('Work timer sync:',e.message)),30000);workFlush.unref();
 
 const server = http.createServer(async (request, response) => {
@@ -1937,6 +1966,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/task-comments') {
       return json(response, 200, await listTaskComments({ id: url.searchParams.get('id') }));
     }
+    if(request.method==='GET'&&url.pathname==='/api/team-snapshot')return json(response,200,await teamSnapshot(request));
     if(request.method==='GET'&&url.pathname==='/api/work-state'){await workClock();const actor=workActor(request);if(url.searchParams.get('revision')===String(workTimer.data.revision))return json(response,200,{ok:true,unchanged:true,revision:workTimer.data.revision,serverNow:networkTime.snapshot().now});if(!rawCache.lastSyncAt)void snapshot(false).catch(e=>console.warn('Work background snapshot:',e.message));let tasks=workTasks(actor);if(actor.role!=='admin')for(const session of workTimer.data.sessions.filter(s=>s.actorId===actor.id&&s.status!=='saved'))if(!tasks.some(t=>accountKey(t.id)===accountKey(session.taskId)))try{tasks.push((await workAccountTask(actor,session.taskId)).task);}catch(e){if(e.statusCode!==403)throw e;}const ids=new Set(tasks.map(t=>accountKey(t.id)));return json(response,200,{...workTimer.snapshot(actor,id=>actor.role==='admin'||ids.has(accountKey(id))),tasks,tasksLoading:!rawCache.lastSyncAt,actor:{id:actor.id,name:actor.name,assignee:actor.assignee,role:actor.role}});}
     if(request.method==='POST'&&url.pathname==='/api/work-schema')return json(response,200,await workTimer.setup(workActor(request)));
     if(request.method==='POST'&&url.pathname==='/api/work-timer'){await workClock();const b=await readBody(request),actor=workActor(request);let task,prepared;if(b.action==='start'||b.action==='continue'){const target=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;const found=request.__workTarget||await workAccountTask(actor,target);task=found.task;prepared=found.prepared;}const result=await workTimer.action(b,actor,task,prepared);if(b.action==='save'||b.action==='continue'||b.action==='cancel'||b.action==='delete')void workTimer.flush().catch(()=>{});return json(response,200,{...result,serverNow:networkTime.snapshot().now,revision:workTimer.data.revision});}
