@@ -32,7 +32,9 @@ function buildTeamDashboard({
   users = [], directory = [], tasks = [], sessions = [],
   now = Date.now(), timeZone = 'Asia/Baku'
 } = {}) {
-  tasks = [...new Map(tasks.filter(task => task?.id).map(task => [String(task.id), task])).values()];
+  // Deduplicate before filtering: a newer tombstone must override an older row.
+  tasks = [...new Map(tasks.filter(task => task?.id).map(task => [String(task.id), task])).values()]
+    .filter(task => !task.deleted && !task.archived && !task.in_trash);
   const today = dateInZone(now, timeZone);
   const profiles = new Map(directory.map(person => [String(person.id || '').replaceAll('-', '').toLowerCase(), person]));
   const employees = users.filter(user => !user.disabled).map(user => {

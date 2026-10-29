@@ -186,19 +186,52 @@
     box.classList.toggle('error', isError);
   }
 
+  let refreshPromise = null, refreshQueued = false, refreshVersion = 0, refreshSoon;
+
+  function refreshFromChanges() {
+    // Hidden dashboards still invalidate requests that started before a mutation.
+    refreshVersion++;
+    clearTimeout(refreshSoon);
+    if (!root || root.hidden) return;
+    refreshSoon = setTimeout(() => load(true), 100);
+  }
+
   async function load(quiet = false) {
+    if (refreshPromise) {
+      refreshQueued = true;
+      return refreshPromise;
+    }
+    clearTimeout(refreshSoon);
+    const version = refreshVersion;
+    refreshPromise = (async () => {
     if (!quiet) setMessage('Komanda məlumatları yüklənir…');
     const refreshButton = root.querySelector('[data-team-refresh]');
     refreshButton.disabled = true;
     try {
-      payload = await request('/api/team-snapshot');
+      const result = await request('/api/team-snapshot');
+      if (version !== refreshVersion) {
+        refreshQueued = true;
+        return;
+      }
+      payload = result;
       if (!selectedDate || selectedDate === today()) selectedDate = payload.selectedDate || today();
       setMessage('');
       render();
     } catch (error) {
+      if (version !== refreshVersion) { refreshQueued = true; return; }
       setMessage(`Məlumatları yükləmək alınmadı: ${error.message}`, true);
     } finally {
       refreshButton.disabled = false;
+    }
+    })();
+    try {
+      return await refreshPromise;
+    } finally {
+      refreshPromise = null;
+      if (refreshQueued) {
+        refreshQueued = false;
+        if (root && !root.hidden) load(true);
+      }
     }
   }
 
@@ -219,7 +252,9 @@
     syncSharedNavigation();
     document.getElementById('teamSidebarButton')?.setAttribute('aria-current', 'page');
     root.querySelector('[data-team-close]').focus({preventScroll: true});
-    if (!payload) load();
+    // Always revalidate on entry; tasks may have been deleted in an editor.
+    refreshVersion++;
+    load(Boolean(payload));
     clearInterval(refreshTimer);
     refreshTimer = setInterval(() => { if (!root.hidden) load(true); }, 60000);
   }
@@ -231,6 +266,7 @@
     document.body.classList.remove('adib-team-open');
     document.getElementById('teamSidebarButton')?.removeAttribute('aria-current');
     clearInterval(refreshTimer);
+    clearTimeout(refreshSoon);
     const trigger = lastTrigger?.isConnected ? lastTrigger : document.getElementById('teamSidebarButton') || document.getElementById('teamViewButton');
     trigger?.focus({preventScroll: true});
   }
@@ -439,6 +475,16 @@
     }
     makeDashboard();
     addNavigation(user);
+    // The common task stores emit these after applying confirmed mutations or
+    // realtime snapshots. Do not wait for the minute-long fallback poll.
+    for (const type of ['adib-home-data', 'adib-equipment-data', 'adib-work-data',
+      'adib-work-changed', 'adib-autosaved', 'adib-task-deleted']) {
+      window.addEventListener(type, refreshFromChanges);
+    }
+    window.addEventListener('focus', () => { if (!root.hidden) refreshFromChanges(); });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !root.hidden) refreshFromChanges();
+    });
     window.addEventListener('resize', syncSharedNavigation);
     window.visualViewport?.addEventListener('resize', syncSharedNavigation);
     const sharedNav = document.querySelector('.adib-design-nav');
