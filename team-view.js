@@ -272,6 +272,7 @@
   }
 
   function open(event) {
+    cancelTaskReturn();
     lastTrigger = event?.currentTarget || document.activeElement;
     show();
   }
@@ -302,8 +303,17 @@
     };
   }
 
+  function rememberTeamScroll() {
+    const positions = [root, ...root.querySelectorAll('.team-main,.team-workspace,.team-staff-list')]
+      .map(node => ({node, top: node.scrollTop, left: node.scrollLeft}));
+    return () => positions.forEach(({node, top, left}) => {
+      if (node.isConnected) { node.scrollTop = top; node.scrollLeft = left; }
+    });
+  }
+
   function render() {
     if (!root || !payload) return;
+    const restoreScroll = rememberTeamScroll();
     const people = filteredPeople();
     const totals = computeTotals(people);
     root.querySelector('[data-team-date]').value = selectedDate;
@@ -314,6 +324,7 @@
     renderStats(totals);
     renderStaff(people);
     renderCards(people);
+    restoreScroll();
   }
 
   function renderStats(stats) {
@@ -441,19 +452,66 @@
     });
   }
 
-  function openTask(task) {
-    if (task.kind === 'personal' && window.ADIBHomeBridge?.openTask) {
+  let taskReturn = null;
+
+  function cancelTaskReturn() {
+    const context = taskReturn;
+    taskReturn = null;
+    context?.observer.disconnect();
+    clearTimeout(context?.checkTimer);
+  }
+
+  function activeTaskEditor() {
+    return document.querySelector('#taskModal.open:not([hidden]) .task-editor, '
+      + '.kanban-task-editor-layer:not([hidden]) .task-editor, '
+      + '.personal-kanban-editor-layer:not([hidden]) .task-editor');
+  }
+
+  function beginTaskReturn() {
+    cancelTaskReturn();
+    const context = {restoreScroll: rememberTeamScroll(), ready: false};
+    context.restore = () => {
+      if (taskReturn !== context) return;
+      cancelTaskReturn();
+      show();
+      context.restoreScroll();
+    };
+    context.check = () => {
+      clearTimeout(context.checkTimer);
+      // Wait until the original close handler and any synchronous rerender finish.
+      context.checkTimer = setTimeout(() => {
+        if (context.ready && taskReturn === context && !activeTaskEditor()) context.restore();
+      }, 0);
+    };
+    context.observer = new MutationObserver(context.check);
+    context.observer.observe(document.body, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden']
+    });
+    taskReturn = context;
+    return context;
+  }
+
+  async function openTask(task) {
+    const opener = task.kind === 'personal' && window.ADIBHomeBridge?.openTask
+      ? () => {
+        window.ADIBHomeBridge.activate?.();
+        return window.ADIBHomeBridge.openTask(task.id);
+      }
+      : task.kind === 'equipment' && window.ADIBEquipmentCalendar?.open
+        ? () => window.ADIBEquipmentCalendar.open(task.id) : null;
+    if (opener) {
+      const context = beginTaskReturn();
       close();
-      window.ADIBHomeBridge.activate?.();
-      window.ADIBHomeBridge.openTask(task.id);
-      return;
-    }
-    if (task.kind === 'equipment' && window.ADIBEquipmentCalendar?.open) {
-      close();
-      window.ADIBEquipmentCalendar.open(task.id).catch(error => {
-        show();
+      try {
+        await opener();
+        if (taskReturn !== context) return;
+        context.ready = true;
+        context.check();
+      } catch (error) {
+        if (taskReturn !== context) return;
+        context.restore();
         setMessage(`Tapşırığı açmaq alınmadı: ${error.message}`, true);
-      });
+      }
       return;
     }
     const url = task.serviceUrl || task.url;
@@ -493,7 +551,12 @@
       const button = event.target.closest?.('.adib-design-nav button');
       const sideButton = event.target.closest?.('#adibPersistentSide button');
       const sideDestination = sideButton && sideButton.id !== 'teamSidebarButton' && !sideButton.matches('.adib-side-toggle,.adib-home-theme,.adib-home-clock');
-      if (((button && button.dataset.designNav !== 'team') || sideDestination) && root && !root.hidden && (!window.ADIBHome?.canLeave || window.ADIBHome.canLeave())) close();
+      if (((button && button.dataset.designNav !== 'team') || sideDestination)
+        && (taskReturn || (root && !root.hidden))
+        && (!window.ADIBHome?.canLeave || window.ADIBHome.canLeave())) {
+        cancelTaskReturn();
+        if (root && !root.hidden) close();
+      }
     }, true);
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && root && !root.hidden) close();
