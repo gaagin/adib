@@ -423,6 +423,7 @@
 
       const add = el('button', 'team-add-inline', '＋  Tapşırıq əlavə et');
       add.type = 'button';
+      add.hidden = !canCreateTeamTask();
       add.addEventListener('click', () => addTask(person));
       card.append(add);
 
@@ -438,18 +439,78 @@
     }
   }
 
+  function canCreateTeamTask() {
+    return user?.role === 'admin' || user?.rules?.actions?.includes('create');
+  }
+
   function addTask(person) {
-    close();
-    if (!window.ADIBHomeBridge?.newTask) {
-      setTimeout(() => show(), 0);
-      setMessage('Tapşırıq yaratmaq üçün şəxsi tapşırıqlar görünüşünü açın.');
-      return;
+    if (!canCreateTeamTask()) return;
+    const existing = root.querySelector('.team-source-picker');
+    if (existing) { existing.querySelector('button')?.focus(); return; }
+    const trigger = document.activeElement;
+    const dialog = el('dialog', 'team-source-picker');
+    dialog.setAttribute('aria-labelledby', 'team-source-title');
+    const heading = el('h3', '', 'Tapşırıq mənbəyini seçin');
+    heading.id = 'team-source-title';
+    dialog.append(heading);
+    if (person?.name) dialog.append(el('p', 'team-source-person', person.name));
+    const dismiss = () => {
+      if (dialog.open) dialog.close();
+      dialog.remove();
+      if (trigger?.isConnected) trigger.focus({preventScroll: true});
+    };
+    for (const [key, label, detail] of [
+      ['todo', 'ToDo', 'Planlaşdırılan iş və tapşırıqlar'],
+      ['gorulen', 'Gorulen isler', 'Avadanlıq üzrə görülən işlər'],
+      ['personal', 'Tasks', 'Şəxsi və komanda tapşırıqları']
+    ]) {
+      const button = el('button', 'team-source-choice');
+      button.type = 'button';
+      button.dataset.teamSource = key;
+      button.append(el('strong', '', label), el('small', '', detail));
+      button.addEventListener('click', () => { dismiss(); createTeamTask(key, person); });
+      dialog.append(button);
     }
-    window.ADIBHomeBridge.activate?.();
-    window.ADIBHomeBridge.newTask({
-      date: selectedDate,
-      assignees: person?.assignee ? [person.assignee] : []
+    const cancel = el('button', 'team-source-cancel', 'Ləğv et');
+    cancel.type = 'button';
+    cancel.addEventListener('click', dismiss);
+    dialog.append(cancel);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
+    dialog.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dismiss(); }
     });
+    dialog.addEventListener('click', event => {
+      const rect = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right
+        || event.clientY < rect.top || event.clientY > rect.bottom)) dismiss();
+    });
+    root.append(dialog);
+    dialog.showModal();
+  }
+
+  async function createTeamTask(sourceKey, person) {
+    if (!canCreateTeamTask() || !['todo', 'gorulen', 'personal'].includes(sourceKey)) return;
+    const assignees = person?.assignee ? [person.assignee] : [];
+    try {
+      if (sourceKey === 'personal') {
+        if (!window.ADIBHomeBridge?.newTask) throw new Error('Tasks redaktoru hazır deyil.');
+        await openEditorFromTeam(() => {
+          window.ADIBHomeBridge.activate?.();
+          return window.ADIBHomeBridge.newTask({date: selectedDate, assignees});
+        });
+      } else {
+        const account = window.ADIBAccount;
+        if (account?.user && (!account.section('equipment') || !account.action('create')))
+          throw new Error('Avadanlıq tapşırığı yaratmaq üçün icazəniz yoxdur.');
+        if (!window.newTaskDraft || !window.openTaskEditor) throw new Error('Avadanlıq redaktoru hazır deyil.');
+        const draft = {...window.newTaskDraft(), sourceKey,
+          source: sourceKey === 'todo' ? 'ToDo' : 'Gorulen isler',
+          date: selectedDate, tapsirildi: assignees};
+        await openEditorFromTeam(() => window.openTaskEditor(draft, null, true));
+      }
+    } catch (error) {
+      setMessage(`Tapşırıq yaratmaq alınmadı: ${error.message}`, true);
+    }
   }
 
   let taskReturn = null;
@@ -491,6 +552,21 @@
     return context;
   }
 
+  async function openEditorFromTeam(opener) {
+    const context = beginTaskReturn();
+    close();
+    try {
+      await opener();
+      if (taskReturn !== context) return;
+      context.ready = true;
+      context.check();
+    } catch (error) {
+      if (taskReturn !== context) return;
+      context.restore();
+      setMessage(`Tapşırığı açmaq alınmadı: ${error.message}`, true);
+    }
+  }
+
   async function openTask(task) {
     const opener = task.kind === 'personal' && window.ADIBHomeBridge?.openTask
       ? () => {
@@ -500,18 +576,7 @@
       : task.kind === 'equipment' && window.ADIBEquipmentCalendar?.open
         ? () => window.ADIBEquipmentCalendar.open(task.id) : null;
     if (opener) {
-      const context = beginTaskReturn();
-      close();
-      try {
-        await opener();
-        if (taskReturn !== context) return;
-        context.ready = true;
-        context.check();
-      } catch (error) {
-        if (taskReturn !== context) return;
-        context.restore();
-        setMessage(`Tapşırığı açmaq alınmadı: ${error.message}`, true);
-      }
+      await openEditorFromTeam(opener);
       return;
     }
     const url = task.serviceUrl || task.url;
