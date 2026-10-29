@@ -1,8 +1,9 @@
 (function(root){'use strict';
 root.addEventListener('adib-done-work-updated',e=>{const id=String(e.detail?.taskId??'');if(!id)return;for(const editor of document.querySelectorAll('.task-editor[data-adib-task-id]'))if(editor.dataset.adibTaskId===id){const field=editor.querySelector('#taskDoneWork');if(field)field.value=String(e.detail?.value??'');}});
 function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteChild,children=[],onOpenChild,onOpenParent,parentTitle=''}={}){
- if(isNew)return null;const editor=list.querySelector('.task-editor');if(!editor)return null;editor.dataset.adibTaskId=String(task.id??'');
- const androidEquipment=!personal&&(document.documentElement.classList.contains('adib-android-wrapper')||document.body.classList.contains('adib-android-wrapper'));
+ if(isNew)return null;const editor=list.querySelector('.task-editor');if(!editor)return null;if(editor.__adibTaskTabs)return editor.__adibTaskTabs;editor.dataset.adibTaskId=String(task.id??'');
+ // Equipment editors share the same three-pane layout on desktop and Android.
+ const androidEquipment=!personal;
  if(androidEquipment){
   const topLevel=selector=>{let node=editor.querySelector(selector);while(node&&node.parentElement!==editor)node=node.parentElement;return node?.parentElement===editor?node:null};
   const ordered=['#taskTitle','#taskTapsirildi','.task-machine-field','.editor-source','#taskPlan','#taskDate','#taskDateHasTime','#taskTimeWrap'].map(topLevel).filter(Boolean);
@@ -41,7 +42,41 @@ function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteC
   };
   normalizeChat();
  }
- if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}select('task');return {panes,select,androidEquipment};
+ if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}select('task');return editor.__adibTaskTabs={panes,select,androidEquipment};
 }
 root.ADIBTaskTabs={install};
+/* The browser editor predates the desktop/Android tab entry point. Its existing
+   autosave binding is the shared lifecycle boundary: all fields and handlers
+   are ready here. Move the original nodes; never clone controls or save data. */
+const autosave=root.ADIBAutosave;
+if(autosave?.bind){
+ const bind=autosave.bind;
+ autosave.bind=function(list,options){
+  const editor=list?.querySelector('.task-editor');
+  if(editor?.querySelector('#taskTitle')&&!options?.fresh&&options?.id&&options.endpoint==='/api/task'&&!editor.__adibTaskTabs){
+   const task=root.ADIBEquipmentCalendar?.tasks?.().find(t=>String(t.id)===String(options.id))||{id:options.id,title:editor.querySelector('#taskTitle').value};
+   const tabs=install(list,{task});
+   if(tabs){
+    // Work controls and photos can be siblings of the legacy form.
+    const timer=list.querySelector('.adib-work-panel');
+    const date=tabs.panes.task.querySelector('.adib-notion-date-field')||tabs.panes.task.querySelector('#taskDate')?.closest('label');
+    if(timer){if(date)date.after(timer);else tabs.panes.task.append(timer)}
+    for(const photos of list.querySelectorAll('.adib-photo-fields'))tabs.panes.description.append(photos);
+   }
+  }
+  const tabs=editor?.__adibTaskTabs;
+  if(tabs?.androidEquipment){
+   const actions=editor.querySelector('.editor-actions');
+   const save=actions?.querySelector('#saveTask');if(save)save.textContent='İndi saxla';
+   if(actions&&!actions.querySelector('.adib-equipment-more')){
+    const more=document.createElement('details');more.className='adib-equipment-more adib-elegant-actions-menu';
+    const summary=document.createElement('summary');summary.textContent='…';summary.setAttribute('aria-label','Əlavə əməliyyatlar');
+    const menu=document.createElement('div');menu.className='adib-equipment-more-menu adib-elegant-actions-pop';
+    for(const button of actions.querySelectorAll('button:not(#saveTask):not(#cancelTaskEdit)'))menu.append(button);
+    if(menu.children.length){more.append(summary,menu);actions.append(more)}
+   }
+  }
+  return bind.apply(this,arguments);
+ };
+}
 })(window);

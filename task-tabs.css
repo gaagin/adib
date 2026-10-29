@@ -6,8 +6,8 @@
 .adib-subtask-check:focus-visible{outline:2px solid var(--blue,#4776ef);outline-offset:3px}
 .adib-subtask-row.completed [data-task-open-child]{text-decoration:line-through;opacity:.65}
 
-/* Android equipment task properties: compact footer, independent field scrolling. */
-@media(max-width:700px){
+/* Shared equipment task properties: compact footer, independent field scrolling. */
+@media all{
 html body .task-list:has(.adib-task-detail.adib-android-equipment-task){display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;box-sizing:border-box!important;overflow:hidden!important;padding:6px 12px calc(env(safe-area-inset-bottom,0px) + 8px)!important}
 html body .task-list:has(.adib-task-detail.adib-android-equipment-task)>.task-editor{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;gap:0!important;padding:0!important;overflow:hidden!important}
 html body .adib-task-detail.adib-android-equipment-task{display:flex!important;flex:1 1 0!important;flex-direction:column!important;width:100%!important;height:100%!important;min-height:0!important;border-radius:0!important;overflow:hidden!important}
@@ -63,4 +63,25 @@ html body:has(.adib-task-detail.adib-android-equipment-task) button[aria-label="
 @media(max-width:700px){
 html body #taskModal#taskModal#taskModal#taskModal.adib-task-stats-origin .adib-task-detail.adib-android-equipment-task>.adib-task-footer{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;box-sizing:border-box!important;margin:0!important;padding:7px 12px max(4px,env(safe-area-inset-bottom,0px))!important;background:var(--surface,#fff)!important;border-top:1px solid var(--line,#dfe5ef)!important;z-index:2147481200!important}
 html body #taskModal#taskModal#taskModal#taskModal.adib-task-stats-origin .task-list:has(.adib-task-detail.adib-android-equipment-task){padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))!important}
+}
+
+/* Desktop uses the mobile field order, without stretching short fields into columns. */
+html body .adib-task-detail.adib-android-equipment-task{min-height:0!important}
+html body .adib-task-detail.adib-android-equipment-task [data-task-pane="task"]{grid-template-columns:minmax(0,1fr)!important}
+html body .adib-task-detail.adib-android-equipment-task [data-task-pane="task"]>label{display:block!important;width:100%!important;box-sizing:border-box!important;grid-column:1/-1!important}
+html body .adib-task-detail.adib-android-equipment-task .adib-task-title-group:not(:has(.adib-task-parent-link)){display:none!important}
+html body .adib-task-detail.adib-android-equipment-task>.adib-task-detail-header{justify-content:flex-end!important;padding:4px 0!important}
+html body .adib-task-detail.adib-android-equipment-task>.adib-task-tabs{justify-content:space-around!important;gap:8px!important}
+html body .adib-task-detail.adib-android-equipment-task>.adib-task-tabs button{flex:1!important;text-align:center!important}
+html body .adib-equipment-more{position:relative;flex:0 0 44px;margin:0}
+html body .adib-equipment-more>summary{display:grid;place-items:center;box-sizing:border-box;height:44px;min-width:44px;border:1px solid var(--line,#dfe5ef);border-radius:10px;list-style:none;cursor:pointer;font-size:24px;background:var(--surface,#fff)}
+html body .adib-equipment-more>summary::-webkit-details-marker{display:none}
+html body .adib-equipment-more-menu{position:absolute;right:0;bottom:calc(100% + 8px);min-width:150px;padding:8px;border:1px solid var(--line,#dfe5ef);border-radius:12px;background:var(--surface,#fff);box-shadow:0 8px 30px #18284826;z-index:10}
+html body .adib-equipment-more-menu>button{display:block;width:100%;text-align:left}
+@media(min-width:701px){
+html body #taskModal.adib-task-properties>.adib-task-properties-panel>.task-list:has(.adib-android-equipment-task),
+html body .kanban-task-editor-layer.adib-task-properties>.adib-task-properties-panel>.task-list:has(.adib-android-equipment-task){padding:8px 24px 12px!important;overflow:hidden!important;flex:1 1 0!important;height:0!important}
+html body .adib-task-detail.adib-android-equipment-task [data-task-pane="task"]>label input:not([type=checkbox]),
+html body .adib-task-detail.adib-android-equipment-task [data-task-pane="task"]>label select{width:100%!important;box-sizing:border-box!important;min-height:44px!important}
+html body .adib-task-detail.adib-android-equipment-task>.adib-task-footer .editor-actions{flex-wrap:nowrap!important}
 }
