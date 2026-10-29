@@ -177,3 +177,12 @@ body.adib-team-open #adibPersistentSide [data-home-nav="tasks"]{background:trans
 .team-source-choice:hover,.team-source-choice:focus-visible{border-color:var(--team-blue,#5266f6);background:var(--team-blue-soft,#f0f2ff);outline:2px solid var(--team-blue,#5266f6);outline-offset:1px}
 .team-source-cancel{display:block;width:100%;min-height:44px;padding:10px;border:0;border-radius:12px;background:transparent;color:var(--team-muted,#7c8ca4);font:inherit;cursor:pointer}
 .team-add-inline[hidden],.team-add-task[hidden]{display:none!important}
+
+/* Touch grip preserves normal vertical scrolling outside the grip. */
+.team-task-movable{position:relative;padding-right:42px;cursor:grab}
+.team-drag-handle{position:absolute;right:3px;top:4px;display:grid;place-items:center;width:36px;height:44px;font-size:26px!important;color:var(--team-muted);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+.team-dragging,.team-dragging *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+.team-drag-source{opacity:.4}
+.team-drop-target{outline:3px solid var(--team-blue);outline-offset:2px;background:var(--team-blue-soft);box-shadow:0 0 0 7px #5266f619}
+.team-drag-ghost{position:fixed;z-index:30010;pointer-events:none;max-width:280px;padding:12px 18px;border:2px solid var(--team-blue);border-radius:12px;background:var(--team-surface);color:var(--team-text);box-shadow:0 12px 36px #14203844;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team-transfer-pending .team-task-movable{opacity:.6;cursor:wait}

@@ -57,6 +57,12 @@ function buildTeamDashboard({
     return {
       id: task.id,
       title: task.title || 'Tapşırıq',
+      sourceKey: task.sourceKey || (task.kind === 'personal' ? 'personal' : ''),
+      assignees: [...(task.assignees || [])],
+      tapsirildi: [...(task.tapsirildi || [])],
+      assigneeId: task.assigneeId || '',
+      assigneeName: task.assigneeName || '',
+      activeSession: sessions.some(session => session.taskId === task.id && ['running', 'pending'].includes(session.status)),
       kind: task.kind || 'personal',
       source: task.source || (task.kind === 'equipment' ? 'Avadanlıq' : 'Tapşırıqlarım'),
       status: task.status || task.process || '',

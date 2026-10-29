@@ -189,7 +189,6 @@
   let refreshPromise = null, refreshQueued = false, refreshVersion = 0, refreshSoon;
 
   function refreshFromChanges() {
-    // Hidden dashboards still invalidate requests that started before a mutation.
     refreshVersion++;
     clearTimeout(refreshSoon);
     if (!root || root.hidden) return;
@@ -252,7 +251,6 @@
     syncSharedNavigation();
     document.getElementById('teamSidebarButton')?.setAttribute('aria-current', 'page');
     root.querySelector('[data-team-close]').focus({preventScroll: true});
-    // Always revalidate on entry; tasks may have been deleted in an editor.
     refreshVersion++;
     load(Boolean(payload));
     clearInterval(refreshTimer);
@@ -261,6 +259,7 @@
 
   function close() {
     if (!root || root.hidden) return;
+    cancelTeamDrag();
     root.hidden = true;
     document.documentElement.classList.remove('adib-team-open');
     document.body.classList.remove('adib-team-open');
@@ -312,7 +311,7 @@
   }
 
   function render() {
-    if (!root || !payload) return;
+    if (!root || !payload || teamDrag || transferPending) return;
     const restoreScroll = rememberTeamScroll();
     const people = filteredPeople();
     const totals = computeTotals(people);
@@ -364,11 +363,24 @@
     if (!people.length) host.append(el('p', 'team-empty', 'Bu filtrə uyğun əməkdaş yoxdur.'));
   }
 
-  function taskCard(task, label) {
+  function taskCard(task, label, person) {
     if (!task) return null;
     const button = el('button', `team-task-card ${task.kind === 'equipment' ? 'equipment' : 'personal'}`);
     button.type = 'button';
-    button.addEventListener('click', () => openTask(task));
+    button.addEventListener('click', event => {
+      if (Date.now() < suppressTaskClick || event.target.closest('.team-drag-handle')) { event.preventDefault(); return; }
+      openTask(task);
+    });
+    if (canMoveTask(task) && person) {
+      button.classList.add('team-task-movable');
+      const handle = el('span', 'team-drag-handle', '⠿');
+      handle.title = 'Tutub başqa əməkdaşa daşıyın';
+      handle.setAttribute('aria-label', handle.title);
+      button.append(handle);
+      button.addEventListener('pointerdown', event => beginTeamDrag(event, task, person, button));
+      button.addEventListener('dragstart', event => event.preventDefault());
+      handle.addEventListener('contextmenu', event => event.preventDefault());
+    }
     if (label) button.append(el('small', 'team-task-label', label));
     button.append(el('strong', '', task.title));
     const meta = [task.machineName, task.source, task.date ? prettyDate(task.date) : ''].filter(Boolean).join(' · ');
@@ -386,10 +398,11 @@
     if (currentView === 'tasks') {
       for (const person of people) {
         const section = el('section', 'team-task-group');
+        section.dataset.employee = person.key;
         section.append(el('h4', '', person.name));
         const rows = (person.tasks || []).filter(task => !task.completed || dayKey(task.completedAt) === selectedDate);
         if (!rows.length) section.append(el('p', 'team-empty', 'Bu gün üçün tapşırıq yoxdur.'));
-        for (const task of rows) section.append(taskCard(task, task.completed ? 'TAMAMLANIB' : task.status || 'PLANLI'));
+        for (const task of rows) section.append(taskCard(task, task.completed ? 'TAMAMLANIB' : task.status || 'PLANLI', person));
         host.append(section);
       }
       return;
@@ -409,14 +422,14 @@
       const current = person.currentTask;
       const active = el('section', 'team-card-section');
       active.append(el('div', 'team-section-label', current ? (person.activeSessionStatus === 'pending' ? 'VAXTI TƏSDİQLƏYİN' : 'DAVAM EDİR') : 'CARİ İŞ'));
-      active.append(current ? taskCard(current, current.kind === 'equipment' ? 'AVADANLIQ' : 'TAPŞIRIQ') : el('div', 'team-no-task', 'Hazırda aktiv tapşırıq yoxdur'));
+      active.append(current ? taskCard(current, current.kind === 'equipment' ? 'AVADANLIQ' : 'TAPŞIRIQ', person) : el('div', 'team-no-task', 'Hazırda aktiv tapşırıq yoxdur'));
       card.append(active);
 
       const upcoming = person.nextTask;
       if (upcoming) {
         const next = el('section', 'team-card-section next');
         next.append(el('div', 'team-section-label', 'NÖVBƏTİ TAPŞIRIQ'));
-        const row = taskCard(upcoming, upcoming.date ? prettyDate(upcoming.date) : 'PLANLI');
+        const row = taskCard(upcoming, upcoming.date ? prettyDate(upcoming.date) : 'PLANLI', person);
         if (row) next.append(row);
         card.append(next);
       }
@@ -436,6 +449,147 @@
       progress.append(bar, el('small', '', `${completeCount} / ${person.taskCount} tamamlandı`));
       card.append(progress);
       host.append(card);
+    }
+  }
+
+  let teamDrag = null, transferPending = false, suppressTaskClick = 0;
+
+  function canMoveTask(task) {
+    return !task.completed && !task.activeSession && !transferPending
+      && (task.kind === 'personal' || ['todo', 'gorulen'].includes(task.sourceKey))
+      && (user?.role === 'admin' || user?.rules?.actions?.includes('edit'));
+  }
+
+  function cancelTeamDrag() {
+    const drag = teamDrag;
+    if (!drag) return;
+    teamDrag = null;
+    clearTimeout(drag.hold);
+    cancelAnimationFrame(drag.frame);
+    document.removeEventListener('pointermove', drag.move, true);
+    document.removeEventListener('pointerup', drag.up, true);
+    document.removeEventListener('pointercancel', drag.cancel, true);
+    document.removeEventListener('keydown', drag.key, true);
+    window.removeEventListener('blur', drag.cancel);
+    drag.button.classList.remove('team-drag-source');
+    drag.ghost?.remove();
+    root.classList.remove('team-dragging');
+    root.querySelectorAll('.team-drop-target').forEach(node => node.classList.remove('team-drop-target'));
+    if (drag.active) suppressTaskClick = Date.now() + 600;
+  }
+
+  function beginTeamDrag(event, task, person, button) {
+    if (event.button !== 0 || !event.isPrimary || !canMoveTask(task) || teamDrag) return;
+    if (event.pointerType !== 'mouse' && !event.target.closest('.team-drag-handle')) return;
+    const drag = teamDrag = {task, person, button, id: event.pointerId,
+      x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, active: false};
+    const hit = () => {
+      root.querySelectorAll('.team-drop-target').forEach(node => node.classList.remove('team-drop-target'));
+      const node = document.elementFromPoint(drag.x, drag.y)?.closest('[data-employee]');
+      drag.target = node && root.contains(node) && node.dataset.employee !== person.key
+        ? payload.employees.find(item => item.key === node.dataset.employee) : null;
+      if (drag.target) node.classList.add('team-drop-target');
+      if (drag.ghost) {
+        drag.ghost.style.left = `${Math.min(window.innerWidth - 150, Math.max(8, drag.x + 12))}px`;
+        drag.ghost.style.top = `${Math.max(8, drag.y - 38)}px`;
+        drag.ghost.textContent = drag.target ? `${task.title} → ${drag.target.name}` : task.title;
+      }
+    };
+    const tick = () => {
+      if (teamDrag !== drag || !drag.active) return;
+      const scroller = [...root.querySelectorAll('.team-workspace,.team-main')]
+        .find(node => node.scrollHeight > node.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(node).overflowY));
+      if (scroller) {
+        const rect = scroller.getBoundingClientRect(), edge = 70;
+        const amount = drag.y < rect.top + edge ? -Math.min(18, (rect.top + edge - drag.y) / 4)
+          : drag.y > rect.bottom - edge ? Math.min(18, (drag.y - rect.bottom + edge) / 4) : 0;
+        if (amount) scroller.scrollTop += amount;
+      }
+      hit();
+      drag.frame = requestAnimationFrame(tick);
+    };
+    const activate = () => {
+      if (teamDrag !== drag || drag.active) return;
+      drag.active = true;
+      button.classList.add('team-drag-source');
+      root.classList.add('team-dragging');
+      drag.ghost = el('div', 'team-drag-ghost', task.title);
+      drag.ghost.setAttribute('aria-hidden', 'true');
+      root.append(drag.ghost);
+      tick();
+    };
+    drag.move = e => {
+      if (e.pointerId !== drag.id) return;
+      drag.x = e.clientX; drag.y = e.clientY;
+      if (event.pointerType === 'mouse' && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > 6) activate();
+      if (drag.active) { e.preventDefault(); hit(); }
+    };
+    drag.up = e => {
+      if (e.pointerId !== drag.id) return;
+      drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.active) { hit(); e.preventDefault(); e.stopPropagation(); }
+      const target = drag.active && drag.target;
+      cancelTeamDrag();
+      if (target) void transferTeamTask(task, person, target);
+      else render();
+    };
+    drag.cancel = () => { cancelTeamDrag(); render(); };
+    drag.key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); drag.cancel(); } };
+    document.addEventListener('pointermove', drag.move, {capture: true, passive: false});
+    document.addEventListener('pointerup', drag.up, true);
+    document.addEventListener('pointercancel', drag.cancel, true);
+    document.addEventListener('keydown', drag.key, true);
+    window.addEventListener('blur', drag.cancel);
+    if (event.pointerType !== 'mouse') { event.preventDefault(); drag.hold = setTimeout(activate, 180); }
+  }
+
+  async function transferTeamTask(task, from, to) {
+    if (!canMoveTask(task) || from.key === to.key || !to.assignee) return;
+    const key = task.kind === 'personal' ? 'assignees' : 'tapsirildi';
+    const previous = [...(task[key] || [])];
+    const aliases = new Set([...(from.aliases || []), from.assignee, from.name]);
+    const next = [...new Set([...previous.filter(name => !aliases.has(name)), to.assignee])];
+    const body = {id: task.id, [key]: next, autosaveBase: {[key]: previous}};
+    if (task.kind === 'equipment') {
+      body.sourceKey = task.sourceKey;
+      if (task.assigneeId && (aliases.has(task.assigneeId) || aliases.has(task.assigneeName))) {
+        body.assigneeId = '';
+        body.autosaveBase.assigneeId = task.assigneeId;
+      }
+    }
+    transferPending = true;
+    refreshVersion++;
+    root.classList.add('team-transfer-pending');
+    setMessage('Tapşırıq köçürülür…');
+    let failure = '';
+    try {
+      await request(task.kind === 'personal' ? '/api/personal-task' : '/api/task', {
+        method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+      });
+      const moved = {...task, [key]: next};
+      for (const person of payload.employees) {
+        const had = (person.tasks || []).some(row => row.id === task.id);
+        const assigned = person.key === to.key || (had && person.key !== from.key);
+        person.tasks = (person.tasks || []).filter(row => row.id !== task.id);
+        if (assigned) person.tasks.push(moved);
+        person.taskCount = person.tasks.length;
+        person.openCount = openTasks(person).length;
+        if (person.currentTask?.id === task.id) person.currentTask = null;
+        person.nextTask = openTasks(person).filter(row => row.id !== person.currentTask?.id)
+          .sort((a,b) => (a.date || '9999').localeCompare(b.date || '9999'))[0] || null;
+      }
+      setMessage(`Tapşırıq ${to.name} əməkdaşına köçürüldü.`);
+      window.dispatchEvent(new CustomEvent('adib-autosaved', {detail: {id: task.id}}));
+    } catch (error) {
+      failure = `Tapşırığı köçürmək alınmadı: ${error.message}`;
+      setMessage(failure, true);
+    } finally {
+      transferPending = false;
+      root.classList.remove('team-transfer-pending');
+      refreshVersion++;
+      render();
+      await load(true);
+      if (failure) setMessage(failure, true);
     }
   }
 
@@ -539,7 +693,6 @@
     };
     context.check = () => {
       clearTimeout(context.checkTimer);
-      // Wait until the original close handler and any synchronous rerender finish.
       context.checkTimer = setTimeout(() => {
         if (context.ready && taskReturn === context && !activeTaskEditor()) context.restore();
       }, 0);
