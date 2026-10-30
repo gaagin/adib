@@ -24,3 +24,75 @@ d.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagati
 async function choose(){await refresh(true);const d=document.createElement('dialog');d.className='adib-employee-picker';const title=document.createElement('h2');title.textContent='Əməkdaşla söhbət';const list=document.createElement('div'),input=document.createElement('input');input.type='search';input.placeholder='Əməkdaşı axtarın';input.setAttribute('aria-label','Əməkdaşı axtarın');const paint=()=>{list.replaceChildren();for(const p of peers.filter(p=>p.name.toLocaleLowerCase('az-AZ').includes(input.value.trim().toLocaleLowerCase('az-AZ')))){const b=document.createElement('button');b.type='button';b.textContent=p.name;b.onclick=()=>{d.close();upsert({taskId:'employee:'+p.id,title:p.name,source:'Əməkdaş',isEmployee:true,peerId:p.id,comments:[],unreadCount:0});bridge.open({id:'employee:'+p.id});};list.append(b);}if(!list.childElementCount){const empty=document.createElement('p');empty.textContent=available?'Əməkdaş tapılmadı. ADIB-ə dəvət olunmuş aktiv istifadəçilər burada görünür.':'Əməkdaşlarla söhbət üçün ADIB hesabına daxil olun.';list.append(empty);}};input.oninput=paint;const close=document.createElement('button');close.type='button';close.textContent='Bağla';close.onclick=()=>d.close();d.append(title,input,list,close);d.addEventListener('close',()=>d.remove());document.body.append(d);paint();d.showModal();input.focus();}
 root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,acceptRow,decorate,bind:v=>bridge=v};
 })(window);
+
+/* Keep mobile chat inside the visible viewport, not the keyboard-covered 100dvh. */
+(function chatKeyboardViewport(root){
+  'use strict';
+  const doc = root.document;
+  let overlay = null, overlayObserver = null, frame = 0, settle = 0;
+  const mobile = () => !root.ADIBDesktop && (doc.documentElement.classList.contains('adib-native-android')
+    || doc.body?.classList.contains('adib-android-wrapper')
+    || root.matchMedia('(max-width:700px), (pointer:coarse) and (max-width:900px)').matches);
+  function clear() {
+    if (!overlay) return;
+    overlay.removeAttribute('data-chat-viewport');
+    overlay.removeAttribute('data-chat-keyboard');
+    overlay.style.removeProperty('--adib-chat-visible-height');
+    overlay.style.removeProperty('--adib-chat-visible-top');
+  }
+  function sync() {
+    frame = 0;
+    const current = doc.getElementById('adibChatOverlay');
+    if (current !== overlay) {
+      clear();
+      overlayObserver?.disconnect();
+      overlay = current;
+      if (overlay) {
+        overlayObserver = new MutationObserver(schedule);
+        overlayObserver.observe(overlay, {attributes:true, attributeFilter:['hidden','class'], childList:true});
+      }
+    }
+    if (!overlay || overlay.hidden || !mobile() || !doc.body.classList.contains('adib-chat-open')) { clear(); return; }
+    const viewport = root.visualViewport;
+    // Do not reinterpret accessibility pinch-zoom as an on-screen keyboard.
+    if (viewport && Math.abs((viewport.scale || 1) - 1) > .05) return;
+    const top = Math.max(0, Math.round(viewport?.offsetTop || 0));
+    let height = Math.max(1, Math.round(viewport?.height || root.innerHeight));
+    const keyboard = root.navigator?.virtualKeyboard?.boundingRect;
+    if (keyboard?.height > 80 && keyboard.top > top) height = Math.min(height, Math.round(keyboard.top - top));
+    const messages = overlay.querySelector('.adib-chat-messages');
+    const scroll = messages?.scrollTop || 0;
+    const follow = messages && messages.scrollHeight - scroll - messages.clientHeight < 64;
+    const changed = overlay.style.getPropertyValue('--adib-chat-visible-height') !== height + 'px'
+      || overlay.style.getPropertyValue('--adib-chat-visible-top') !== top + 'px';
+    overlay.style.setProperty('--adib-chat-visible-height', height + 'px');
+    overlay.style.setProperty('--adib-chat-visible-top', top + 'px');
+    overlay.setAttribute('data-chat-viewport', 'true');
+    const editing = overlay.contains(doc.activeElement) && doc.activeElement.matches('input,textarea,[contenteditable=true]');
+    overlay.toggleAttribute('data-chat-keyboard', root.innerHeight - height > 100 || keyboard?.height > 80 || (editing && height < 380));
+    if (changed && messages) {
+      // Resizing must not throw a reader back to the newest message.
+      messages.scrollTop = follow ? messages.scrollHeight : scroll;
+    }
+  }
+  function schedule() { if (!frame) frame = root.requestAnimationFrame(sync); }
+  function focusChanged() {
+    schedule();
+    root.clearTimeout(settle);
+    settle = root.setTimeout(schedule, 350);
+  }
+  function init() {
+    if (!doc.body) return;
+    new MutationObserver(schedule).observe(doc.body, {attributes:true, attributeFilter:['class'], childList:true});
+    schedule();
+  }
+  root.visualViewport?.addEventListener('resize', schedule);
+  root.visualViewport?.addEventListener('scroll', schedule);
+  root.navigator?.virtualKeyboard?.addEventListener('geometrychange', schedule);
+  root.addEventListener('resize', schedule);
+  root.addEventListener('orientationchange', focusChanged);
+  doc.addEventListener('focusin', focusChanged);
+  doc.addEventListener('focusout', focusChanged);
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init, {once:true});
+  else init();
+})(window);

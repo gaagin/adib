@@ -118,3 +118,12 @@ html.dark body.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay .adi
  html body.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay .adib-chat-bubble .adib-image-thumbs img{width:min(210px,66vw)!important;height:144px!important}
  html body.adib-discussions-fullscreen #adibChatOverlay#adibChatOverlay .adib-chat-compose{padding:10px 10px max(12px,env(safe-area-inset-bottom,0px))!important;gap:6px!important}
 }
+
+/* More specific than legacy fullscreen/100dvh rules, even if loaded earlier. */
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport]{top:var(--adib-chat-visible-top,0px)!important;bottom:auto!important;height:var(--adib-chat-visible-height,100dvh)!important;max-height:var(--adib-chat-visible-height,100dvh)!important;min-height:0!important;overflow:hidden!important;box-sizing:border-box!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .adib-chat-window{height:100%!important;max-height:100%!important;min-height:0!important;overflow:hidden!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .adib-chat-conversation{min-height:0!important;overflow:hidden!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .adib-chat-messages{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .adib-chat-compose{flex:0 0 auto!important;position:relative!important;bottom:auto!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport][data-chat-keyboard] .adib-chat-compose{padding-bottom:8px!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport][data-chat-keyboard] .adib-chat-conversation-head{flex:0 0 auto!important;min-height:0!important;max-height:36%!important;overflow-y:auto!important}
