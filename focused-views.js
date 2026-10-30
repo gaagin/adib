@@ -86,7 +86,20 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    request:callback=>root.requestAnimationFrame(callback),cancel:id=>root.cancelAnimationFrame(id),
    now:()=>performance.now(),reduced:()=>root.matchMedia('(prefers-reduced-motion: reduce)').matches
   });
-  let panFrame=0,pan=null;
+  let panFrame=0,pan=null,pinchFrame=0,pinchCamera=null,inertiaFrame=0;
+  // Freeze the screen-to-SVG conversion for the gesture: reading getScreenCTM
+  // after every transform forces a synchronous SVG layout on Android WebView.
+  function coordinateReader(){
+   const m=svg.getScreenCTM()?.inverse();
+   return m?(x,y)=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f}):(x,y)=>point(x,y);
+  }
+  function stopInertia(){if(inertiaFrame)root.cancelAnimationFrame(inertiaFrame);inertiaFrame=0;}
+  function paintCamera(camera){state.scale=camera.scale;state.ox=camera.ox;state.oy=camera.oy;apply();}
+  function flushPinch(){
+   if(pinchFrame)root.cancelAnimationFrame(pinchFrame);pinchFrame=0;
+   if(pinchCamera){paintCamera(pinchCamera);pinchCamera=null;}
+  }
+  function stopPinch(flush=false){if(flush)flushPinch();else{if(pinchFrame)root.cancelAnimationFrame(pinchFrame);pinchFrame=0;pinchCamera=null;}}
   function applyPan(){
    panFrame=0;if(!pan||state.drag!==pan.drag)return;
    state.ox=pan.ox+pan.point.x-pan.start.x;
@@ -97,25 +110,54 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    if(panFrame)root.cancelAnimationFrame(panFrame);panFrame=0;
    if(flush)applyPan();pan=null;
   }
-  // Pan follows the pointer 1:1. Batch only drawing, never ease pointer movement.
+  function trackPan(event){
+   pan.point=pan.read(event.clientX,event.clientY);
+   const sample={x:pan.point.x,y:pan.point.y,t:event.timeStamp};
+   pan.samples.push(sample);
+   pan.samples=pan.samples.filter(value=>sample.t-value.t<=90).slice(-12);
+  }
+  function coast(released,event){
+   if(!released||event.pointerType!=='touch'||root.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+   const samples=released.samples,last=samples[samples.length-1],first=samples[0];
+   if(!last||!first||last.t-first.t<12||event.timeStamp-last.t>70)return;
+   const dt=last.t-first.t;
+   let vx=(last.x-first.x)/dt,vy=(last.y-first.y)/dt;
+   const screen=svg.getScreenCTM(),factor=screen?Math.hypot(screen.a,screen.b):1;
+   const speed=Math.hypot(vx,vy)*factor;
+   if(speed<.12)return;
+   const cap=Math.min(1,2.5/speed);vx*=cap;vy*=cap;
+   let previous=performance.now(),elapsed=0;
+   function tick(time){
+    inertiaFrame=0;if(state.drag||document.hidden)return;
+    const step=Math.min(32,Math.max(0,time-previous));previous=time;elapsed+=step;
+    const decay=Math.exp(-step/180),distance=180*(1-decay);
+    state.ox+=vx*distance;state.oy+=vy*distance;vx*=decay;vy*=decay;apply();
+    if(elapsed<700&&Math.hypot(vx,vy)*factor>.025)inertiaFrame=root.requestAnimationFrame(tick);
+   }
+   inertiaFrame=root.requestAnimationFrame(tick);
+  }
+  // Direct manipulation: no easing while a finger is down. Draw latest input once
+  // per frame; only a released touch swipe receives a short, interruptible coast.
   svg.addEventListener('pointermove',event=>{
    const drag=state.drag;
    if(!drag||drag.kind!=='canvas'||drag.mode!=='pan'||activePointers.size>=2
      ||(drag.pointerId!==undefined&&drag.pointerId!==event.pointerId))return;
-   const samples=event.getCoalescedEvents?.(),latest=samples?.length?samples[samples.length-1]:event;
-   if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:latest.clientX,y:latest.clientY});
-   if(!pan||pan.drag!==drag)pan={drag,start:{...(state.last||point(latest.clientX,latest.clientY))},ox:state.ox,oy:state.oy,point:null};
-   pan.point=point(latest.clientX,latest.clientY);
+   if(!pan||pan.drag!==drag){const read=coordinateReader();pan={drag,read,start:{...(state.last||read(event.clientX,event.clientY))},ox:state.ox,oy:state.oy,point:null,samples:[]};}
+   const samples=event.getCoalescedEvents?.();
+   for(const sample of samples?.length?samples:[event])trackPan(sample);
+   if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
    if(!panFrame)panFrame=root.requestAnimationFrame(applyPan);
    if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();
   },{capture:true,passive:false});
   const originalBegin=root.beginPinch;
-  root.beginPinch=function(){stopPan(true);animator.stop(true);return originalBegin();};
+  let pinchRead=null;
+  root.beginPinch=function(){stopInertia();stopPan(true);stopPinch(true);animator.stop(true);pinchRead=coordinateReader();return originalBegin();};
   root.updatePinch=function(){
    const points=pointerList();if(points.length<2||!pinchState)return;
    const middle=pointerMidpoint(points),distance=pointerDistance(points);if(distance<1)return;
-   animator.aim(pinchState.startScale*distance/pinchState.startDistance,
-    point(middle.x,middle.y),{x:pinchState.worldX,y:pinchState.worldY});
+   const anchor=(pinchRead||point)(middle.x,middle.y),scale=Math.max(.35,Math.min(3,pinchState.startScale*distance/pinchState.startDistance));
+   pinchCamera={scale,ox:anchor.x-pinchState.worldX*scale,oy:anchor.y-pinchState.worldY*scale};
+   if(!pinchFrame)pinchFrame=root.requestAnimationFrame(flushPinch);
   };
   root.zoomAt=function(factor,x=svg.getBoundingClientRect().left+svg.clientWidth/2,y=svg.getBoundingClientRect().top+svg.clientHeight/2){
    if(!Number.isFinite(factor)||factor<=0)return;
@@ -124,30 +166,34 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   };
   svg.addEventListener('wheel',event=>{
    if(state.drag&&state.drag.kind!=='canvas')return;
+   stopInertia();stopPan(true);stopPinch(true);
    event.preventDefault();event.stopImmediatePropagation();
    const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?svg.clientHeight:1);
    root.zoomAt(Math.exp(-Math.max(-160,Math.min(160,pixels))*.0018),event.clientX,event.clientY);
   },{capture:true,passive:false});
-  // Commit the last two-finger position before the original handler changes to pan.
+  // Commit the release point before the runtime transfers ownership to one finger.
   svg.addEventListener('pointerup',event=>{
-   if(pan&&pan.drag.pointerId===event.pointerId)pan.point=point(event.clientX,event.clientY);
+   const released=pan;
+   if(pan&&pan.drag.pointerId===event.pointerId)trackPan(event);
    stopPan(true);
-   if(!pinchState)return;
-   if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
-   root.updatePinch();animator.stop(true);
+   if(pinchState){
+    if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    root.updatePinch();stopPinch(true);
+   }else if(released)coast(released,event);
   },true);
-  svg.addEventListener('pointercancel',()=>{stopPan(false);animator.stop(false);},true);
-  // Interrupt animation before a new gesture or explicit navigation uses camera state.
-  document.addEventListener('pointerdown',event=>{if(svg.contains(event.target)){stopPan(true);animator.stop(true);}},true);
+  function interrupt(flush=false){stopInertia();stopPan(flush);stopPinch(flush);animator.stop(flush);}
+  svg.addEventListener('pointercancel',()=>interrupt(false),true);
+  document.addEventListener('pointerdown',()=>interrupt(true),true);
+  document.addEventListener('wheel',event=>{if(!svg.contains(event.target))interrupt(false);},true);
   document.addEventListener('click',event=>{
-   if(event.target.closest?.('#fit,#plus,#minus,#treePanel,[data-mobile-mode],[data-design-nav]'))animator.stop(true);
+   if(event.target.closest?.('#fit,#plus,#minus,#treePanel,[data-mobile-mode],[data-design-nav]'))interrupt(true);
   },true);
   const originalCancel=root.__adibCancelCanvasGesture;
-  if(originalCancel)root.__adibCancelCanvasGesture=function(){stopPan(false);animator.stop(false);return originalCancel();};
-  root.addEventListener('blur',()=>{stopPan(false);animator.stop(false);});
-  root.addEventListener('resize',()=>{stopPan(false);animator.stop(false);});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPan(false);animator.stop(false);}});
-  root.ADIBSmoothEquipmentZoom.stop=animator.stop;
+  if(originalCancel)root.__adibCancelCanvasGesture=function(){interrupt(false);return originalCancel();};
+  root.addEventListener('blur',()=>interrupt(false));
+  root.addEventListener('resize',()=>interrupt(false));
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)interrupt(false);});
+  root.ADIBSmoothEquipmentZoom.stop=()=>interrupt(false);
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })(window);
