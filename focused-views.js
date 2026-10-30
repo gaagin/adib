@@ -86,8 +86,31 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    request:callback=>root.requestAnimationFrame(callback),cancel:id=>root.cancelAnimationFrame(id),
    now:()=>performance.now(),reduced:()=>root.matchMedia('(prefers-reduced-motion: reduce)').matches
   });
+  let panFrame=0,pan=null;
+  function applyPan(){
+   panFrame=0;if(!pan||state.drag!==pan.drag)return;
+   state.ox=pan.ox+pan.point.x-pan.start.x;
+   state.oy=pan.oy+pan.point.y-pan.start.y;
+   state.last={...pan.point};apply();
+  }
+  function stopPan(flush=false){
+   if(panFrame)root.cancelAnimationFrame(panFrame);panFrame=0;
+   if(flush)applyPan();pan=null;
+  }
+  // Pan follows the pointer 1:1. Batch only drawing, never ease pointer movement.
+  svg.addEventListener('pointermove',event=>{
+   const drag=state.drag;
+   if(!drag||drag.kind!=='canvas'||drag.mode!=='pan'||activePointers.size>=2
+     ||(drag.pointerId!==undefined&&drag.pointerId!==event.pointerId))return;
+   const samples=event.getCoalescedEvents?.(),latest=samples?.length?samples[samples.length-1]:event;
+   if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:latest.clientX,y:latest.clientY});
+   if(!pan||pan.drag!==drag)pan={drag,start:{...(state.last||point(latest.clientX,latest.clientY))},ox:state.ox,oy:state.oy,point:null};
+   pan.point=point(latest.clientX,latest.clientY);
+   if(!panFrame)panFrame=root.requestAnimationFrame(applyPan);
+   if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();
+  },{capture:true,passive:false});
   const originalBegin=root.beginPinch;
-  root.beginPinch=function(){animator.stop(true);return originalBegin();};
+  root.beginPinch=function(){stopPan(true);animator.stop(true);return originalBegin();};
   root.updatePinch=function(){
    const points=pointerList();if(points.length<2||!pinchState)return;
    const middle=pointerMidpoint(points),distance=pointerDistance(points);if(distance<1)return;
@@ -107,21 +130,23 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   },{capture:true,passive:false});
   // Commit the last two-finger position before the original handler changes to pan.
   svg.addEventListener('pointerup',event=>{
+   if(pan&&pan.drag.pointerId===event.pointerId)pan.point=point(event.clientX,event.clientY);
+   stopPan(true);
    if(!pinchState)return;
    if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
    root.updatePinch();animator.stop(true);
   },true);
-  svg.addEventListener('pointercancel',()=>animator.stop(false),true);
+  svg.addEventListener('pointercancel',()=>{stopPan(false);animator.stop(false);},true);
   // Interrupt animation before a new gesture or explicit navigation uses camera state.
-  document.addEventListener('pointerdown',event=>{if(svg.contains(event.target))animator.stop(true);},true);
+  document.addEventListener('pointerdown',event=>{if(svg.contains(event.target)){stopPan(true);animator.stop(true);}},true);
   document.addEventListener('click',event=>{
    if(event.target.closest?.('#fit,#plus,#minus,#treePanel,[data-mobile-mode],[data-design-nav]'))animator.stop(true);
   },true);
   const originalCancel=root.__adibCancelCanvasGesture;
-  if(originalCancel)root.__adibCancelCanvasGesture=function(){animator.stop(false);return originalCancel();};
-  root.addEventListener('blur',()=>animator.stop(false));
-  root.addEventListener('resize',()=>animator.stop(false));
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)animator.stop(false);});
+  if(originalCancel)root.__adibCancelCanvasGesture=function(){stopPan(false);animator.stop(false);return originalCancel();};
+  root.addEventListener('blur',()=>{stopPan(false);animator.stop(false);});
+  root.addEventListener('resize',()=>{stopPan(false);animator.stop(false);});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPan(false);animator.stop(false);}});
   root.ADIBSmoothEquipmentZoom.stop=animator.stop;
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();

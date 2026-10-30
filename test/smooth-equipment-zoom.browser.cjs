@@ -9,7 +9,18 @@ await page.evaluate(()=>{window.emit=(type,id,x,y)=>svg.dispatchEvent(new Pointe
 await page.waitForTimeout(150);
 let camera=await page.evaluate(()=>({...state}));assert(camera.scale>1.35&&camera.scale<1.4);
 await page.evaluate(()=>emit('pointerup',1,82,300));camera=await page.evaluate(()=>({...state}));assert(Math.abs(camera.scale-1.36)<.0001);assert.equal(camera.drag.mode,'pan');
-await page.evaluate(()=>emit('pointermove',2,228,305));const pan=await page.evaluate(()=>({...state}));assert.notEqual(pan.ox,camera.ox);await page.evaluate(()=>emit('pointerup',2,228,305));assert.equal(await page.evaluate(()=>state.drag),null);
+await page.evaluate(()=>emit('pointermove',2,228,305));await page.waitForTimeout(35);const pan=await page.evaluate(()=>({...state}));assert.notEqual(pan.ox,camera.ox);await page.evaluate(()=>emit('pointerup',2,228,305));assert.equal(await page.evaluate(()=>state.drag),null);
 const old=pan.scale;await page.locator('#plan').dispatchEvent('wheel',{deltaY:-3,clientX:180,clientY:300});await page.waitForTimeout(220);camera=await page.evaluate(()=>({...state}));assert(camera.scale>old&&camera.scale<old*1.02,'small wheel delta must not jump ten percent');
 await page.evaluate(()=>{zoomAt(1.2,150,300);__adibCancelCanvasGesture()});const after=await page.evaluate(()=>({...state}));await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>state.scale),after.scale);
-console.log('PASS: actual runtime pointer handlers, pinch release, one-finger continuation, fine wheel, cancel');await b.close();process.exit(0)})().catch(e=>{console.error(e);process.exit(1)});
+
+// Multiple input events must paint at most once per display frame, without smoothing pan.
+await page.evaluate(()=>{emit('pointerdown',8,120,320);window.panStart={...state};window.startPoint=point(120,320);window.writes=0;const original=viewport.setAttribute.bind(viewport);viewport.setAttribute=(name,value)=>{if(name==='transform')window.writes++;return original(name,value)};for(let i=1;i<=60;i++)emit('pointermove',8,120+i,320+i/2);window.immediateWrites=window.writes;});
+assert.equal(await page.evaluate(()=>window.immediateWrites),0,'pan rendered between input events');
+await page.waitForTimeout(40);
+const moved=await page.evaluate(()=>{const end=point(180,350);return{writes,dx:state.ox-panStart.ox,dy:state.oy-panStart.oy,expectedX:end.x-startPoint.x,expectedY:end.y-startPoint.y}});
+assert.equal(moved.writes,1);assert(Math.abs(moved.dx-moved.expectedX)<1e-7);assert(Math.abs(moved.dy-moved.expectedY)<1e-7);
+await page.evaluate(()=>emit('pointerup',8,185,355));
+const released=await page.evaluate(()=>({dx:state.ox-panStart.ox,expected:point(185,355).x-startPoint.x,drag:state.drag}));assert(Math.abs(released.dx-released.expected)<1e-7);assert.equal(released.drag,null);
+await page.evaluate(()=>{emit('pointerdown',9,150,320);emit('pointermove',9,200,320);emit('pointercancel',9,200,320)});const cancelled=await page.evaluate(()=>state.ox);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>state.ox),cancelled);
+
+console.log('PASS: responsive 1:1 pan, coalesced frames, final release, cancellation;  actual runtime pointer handlers, pinch release, one-finger continuation, fine wheel, cancel');await b.close();process.exit(0)})().catch(e=>{console.error(e);process.exit(1)});
