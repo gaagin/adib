@@ -45,3 +45,84 @@ let frame=0;function update(){frame=0;if(root.ADIBDesktop){document.body.classLi
 function start(){document.body.classList.add('adib-focused-views');titlebar();settings();new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});update();}
 document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design-nav button');if(tab){closePhoneMenus();if(tab.dataset.designNav!=='chat')root.closeCommentChat?.();}const b=e.target.closest?.('.adib-view-menu-panel button');if(b&&!b.matches('[data-undated-toggle]')&&!b.closest('[data-equipment-menu]'))b.closest('details').open=false;for(const d of document.querySelectorAll('.adib-view-menu[open]'))if(!d.contains(e.target)&&!(d.dataset.equipmentMenu&&e.target.closest?.('.adib-equipment-search')))d.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const d of document.querySelectorAll('.adib-view-menu[open]')){d.open=false;d.firstElementChild.focus();}});root.addEventListener('adib-home-data',schedule);root.ADIBFocusedViews={refresh:update};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })(window);
+
+/* Smooth equipment-camera updates. No object positions or persisted layouts change. */
+(function smoothEquipmentCamera(root){
+ 'use strict';
+ function createCameraAnimator({read,write,request,cancel,now,reduced=()=>false}){
+  let frame=0,target=null,last=0;
+  const clamp=value=>Math.max(.35,Math.min(3,value));
+  function valueAt(scale){return{scale,ox:target.point.x-target.world.x*scale,oy:target.point.y-target.world.y*scale};}
+  function tick(time){
+   frame=0;if(!target)return;
+   const current=read(),dt=Math.max(1,Math.min(64,time-last));last=time;
+   const error=Math.log(target.scale/current.scale);
+   if(reduced()||Math.abs(error)<.0002){write(valueAt(target.scale));target=null;return;}
+   // Time-based smoothing is consistent on 60/90/120 Hz displays.
+   const scale=current.scale*Math.exp(error*(1-Math.exp(-dt/38)));
+   write(valueAt(scale));frame=request(tick);
+  }
+  function aim(scale,point,world){
+   if(!Number.isFinite(scale)||scale<=0)return;
+   target={scale:clamp(scale),point:{...point},world:{...world}};
+   if(!frame){last=now();frame=request(tick);}
+  }
+  function stop(flush=false){
+   if(frame)cancel(frame);frame=0;
+   if(flush&&target)write(valueAt(target.scale));
+   target=null;
+  }
+  return{aim,stop,targetScale:()=>target?.scale||read().scale};
+ }
+ root.ADIBSmoothEquipmentZoom={create:createCameraAnimator};
+ function install(){
+  if(typeof state==='undefined'||typeof svg==='undefined'||typeof point!=='function'
+    ||typeof updatePinch!=='function'||typeof beginPinch!=='function')return;
+  if(svg.dataset.smoothEquipmentZoom==='1')return;
+  svg.dataset.smoothEquipmentZoom='1';
+  const animator=createCameraAnimator({
+   read:()=>({scale:state.scale,ox:state.ox,oy:state.oy}),
+   write:camera=>{state.scale=camera.scale;state.ox=camera.ox;state.oy=camera.oy;apply();},
+   request:callback=>root.requestAnimationFrame(callback),cancel:id=>root.cancelAnimationFrame(id),
+   now:()=>performance.now(),reduced:()=>root.matchMedia('(prefers-reduced-motion: reduce)').matches
+  });
+  const originalBegin=root.beginPinch;
+  root.beginPinch=function(){animator.stop(true);return originalBegin();};
+  root.updatePinch=function(){
+   const points=pointerList();if(points.length<2||!pinchState)return;
+   const middle=pointerMidpoint(points),distance=pointerDistance(points);if(distance<1)return;
+   animator.aim(pinchState.startScale*distance/pinchState.startDistance,
+    point(middle.x,middle.y),{x:pinchState.worldX,y:pinchState.worldY});
+  };
+  root.zoomAt=function(factor,x=svg.getBoundingClientRect().left+svg.clientWidth/2,y=svg.getBoundingClientRect().top+svg.clientHeight/2){
+   if(!Number.isFinite(factor)||factor<=0)return;
+   const p=point(x,y),world={x:(p.x-state.ox)/state.scale,y:(p.y-state.oy)/state.scale};
+   animator.aim(animator.targetScale()*factor,p,world);
+  };
+  svg.addEventListener('wheel',event=>{
+   if(state.drag&&state.drag.kind!=='canvas')return;
+   event.preventDefault();event.stopImmediatePropagation();
+   const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?svg.clientHeight:1);
+   root.zoomAt(Math.exp(-Math.max(-160,Math.min(160,pixels))*.0018),event.clientX,event.clientY);
+  },{capture:true,passive:false});
+  // Commit the last two-finger position before the original handler changes to pan.
+  svg.addEventListener('pointerup',event=>{
+   if(!pinchState)return;
+   if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+   root.updatePinch();animator.stop(true);
+  },true);
+  svg.addEventListener('pointercancel',()=>animator.stop(false),true);
+  // Interrupt animation before a new gesture or explicit navigation uses camera state.
+  document.addEventListener('pointerdown',event=>{if(svg.contains(event.target))animator.stop(true);},true);
+  document.addEventListener('click',event=>{
+   if(event.target.closest?.('#fit,#plus,#minus,#treePanel,[data-mobile-mode],[data-design-nav]'))animator.stop(true);
+  },true);
+  const originalCancel=root.__adibCancelCanvasGesture;
+  if(originalCancel)root.__adibCancelCanvasGesture=function(){animator.stop(false);return originalCancel();};
+  root.addEventListener('blur',()=>animator.stop(false));
+  root.addEventListener('resize',()=>animator.stop(false));
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)animator.stop(false);});
+  root.ADIBSmoothEquipmentZoom.stop=animator.stop;
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})(window);
