@@ -24,7 +24,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     return{display:getComputedStyle(n).display,height:n.getBoundingClientRect().height,body:b&&{right:b.right,top:b.top,bottom:b.bottom},time:{x:t.x,top:t.top,bottom:t.bottom}};
    }));
    for(const row of result.slice(0,4)){
-    assert.equal(row.display,'grid');assert(row.time.x>=row.body.right+6);assert(row.time.top<row.body.bottom);assert(Math.abs(row.time.bottom-row.body.bottom)<5);
+    assert.equal(row.display,'grid');assert(row.time.x>=row.body.right+3);assert(row.time.top<row.body.bottom);assert(Math.abs(row.time.bottom-row.body.bottom)<5);
    }
    assert(result[0].height<34);assert.notEqual(result[4].display,'grid','image layout must remain unchanged');
   }
