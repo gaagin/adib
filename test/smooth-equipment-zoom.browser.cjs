@@ -17,10 +17,10 @@ await page.evaluate(()=>{zoomAt(1.2,150,300);__adibCancelCanvasGesture()});const
 await page.evaluate(()=>{emit('pointerdown',8,120,320);window.panStart={...state};window.startPoint=point(120,320);window.matrixReads=0;const getMatrix=svg.getScreenCTM.bind(svg);svg.getScreenCTM=()=>{matrixReads++;return getMatrix()};window.writes=0;const original=viewport.setAttribute.bind(viewport);viewport.setAttribute=(name,value)=>{if(name==='transform')window.writes++;return original(name,value)};for(let i=1;i<=60;i++)emit('pointermove',8,120+i,320+i/2);window.immediateWrites=window.writes;window.gestureMatrixReads=matrixReads;});
 assert.equal(await page.evaluate(()=>window.immediateWrites),0,'pan rendered between input events');
 await page.waitForTimeout(40);
-const moved=await page.evaluate(()=>{const end=point(180,350);return{writes,dx:state.ox-panStart.ox,dy:state.oy-panStart.oy,expectedX:end.x-startPoint.x,expectedY:end.y-startPoint.y}});
+const moved=await page.evaluate(()=>{const end=point(180,350);return{writes,dx:state.ox-panStart.ox,dy:state.oy-panStart.oy,expectedX:(end.x-startPoint.x)*2,expectedY:(end.y-startPoint.y)*2}});
 assert.equal(await page.evaluate(()=>gestureMatrixReads),1,'screen matrix must be read once, not for every input event');assert.equal(moved.writes,1);assert(Math.abs(moved.dx-moved.expectedX)<.001);assert(Math.abs(moved.dy-moved.expectedY)<.001);
 await page.evaluate(()=>emit('pointerup',8,185,355));
-const released=await page.evaluate(()=>({dx:state.ox-panStart.ox,expected:point(185,355).x-startPoint.x,drag:state.drag}));assert(Math.abs(released.dx-released.expected)<.001);assert.equal(released.drag,null);
+const released=await page.evaluate(()=>({dx:state.ox-panStart.ox,expected:(point(185,355).x-startPoint.x)*2,drag:state.drag}));assert(Math.abs(released.dx-released.expected)<.001);assert.equal(released.drag,null);
 await page.evaluate(()=>{emit('pointerdown',9,150,320);emit('pointermove',9,200,320);emit('pointercancel',9,200,320)});const cancelled=await page.evaluate(()=>state.ox);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>state.ox),cancelled);
 
 // A touch fling coasts after release; a new gesture stops it immediately.
@@ -33,4 +33,23 @@ await page.evaluate(()=>emit('pointerdown',21,150,350));const interrupted=await 
 await page.emulateMedia({reducedMotion:'reduce'});
 await page.evaluate(()=>{timed('pointerdown',100,2000);timed('pointermove',110,2020);timed('pointermove',150,2040);timed('pointerup',170,2060);window.releaseX=state.ox;});
 await page.waitForTimeout(70);assert.equal(await page.evaluate(()=>state.ox),await page.evaluate(()=>releaseX),'reduced motion must disable coast');
-console.log('PASS: direct pinch without lag; cached screen matrix; 1:1 pan; interruptible touch inertia; cancellation and reduced motion');await b.close();})().catch(error=>{console.error(error);process.exit(1)});
+// Camera sensitivity is measured in screen pixels, independent of zoom.
+for(const scale of [.35,1,3]){
+ for(const [pointerType,gain]of [['touch',2],['mouse',1]]){
+  const result=await page.evaluate(({scale,pointerType})=>{
+   state.scale=scale;state.ox=0;state.oy=0;apply();const before=viewport.getScreenCTM();
+   const send=(type,x,y)=>svg.dispatchEvent(new PointerEvent(type,{pointerId:31,pointerType,clientX:x,clientY:y,bubbles:true,cancelable:true}));
+   send('pointerdown',100,320);send('pointermove',160,350);send('pointerup',160,350);
+   const after=viewport.getScreenCTM();return{dx:after.e-before.e,dy:after.f-before.f};
+  },{scale,pointerType});
+  assert(Math.abs(result.dx-60*gain)<.001,`${pointerType} x sensitivity at zoom ${scale}`);assert(Math.abs(result.dy-30*gain)<.001);
+ }
+}
+// A stale coalesced sample must not override the newest dispatched position.
+const coalesced=await page.evaluate(()=>{
+ state.scale=1;state.ox=0;state.oy=0;apply();const before=viewport.getScreenCTM();
+ emit('pointerdown',32,100,320);const event=new PointerEvent('pointermove',{pointerId:32,pointerType:'touch',clientX:160,clientY:350,bubbles:true,cancelable:true});
+ event.getCoalescedEvents=()=>[new PointerEvent('pointermove',{clientX:110,clientY:325})];svg.dispatchEvent(event);emit('pointerup',32,160,350);
+ const after=viewport.getScreenCTM();return after.e-before.e;
+});assert(Math.abs(coalesced-120)<.001);
+console.log('PASS: 2x one-finger pan across zoom levels, unchanged mouse, latest samples, direct pinch, inertia and cancellation');await b.close();})().catch(error=>{console.error(error);process.exit(1)});

@@ -102,8 +102,8 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   function stopPinch(flush=false){if(flush)flushPinch();else{if(pinchFrame)root.cancelAnimationFrame(pinchFrame);pinchFrame=0;pinchCamera=null;}}
   function applyPan(){
    panFrame=0;if(!pan||state.drag!==pan.drag)return;
-   state.ox=pan.ox+pan.point.x-pan.start.x;
-   state.oy=pan.oy+pan.point.y-pan.start.y;
+   state.ox=pan.ox+(pan.point.x-pan.start.x)*pan.gain;
+   state.oy=pan.oy+(pan.point.y-pan.start.y)*pan.gain;
    state.last={...pan.point};apply();
   }
   function stopPan(flush=false){
@@ -121,7 +121,7 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    const samples=released.samples,last=samples[samples.length-1],first=samples[0];
    if(!last||!first||last.t-first.t<12||event.timeStamp-last.t>70)return;
    const dt=last.t-first.t;
-   let vx=(last.x-first.x)/dt,vy=(last.y-first.y)/dt;
+   let vx=(last.x-first.x)/dt*released.gain,vy=(last.y-first.y)/dt*released.gain;
    const screen=svg.getScreenCTM(),factor=screen?Math.hypot(screen.a,screen.b):1;
    const speed=Math.hypot(vx,vy)*factor;
    if(speed<.12)return;
@@ -136,15 +136,18 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    }
    inertiaFrame=root.requestAnimationFrame(tick);
   }
-  // Direct manipulation: no easing while a finger is down. Draw latest input once
+  // Touch camera pans at 2x sensitivity; mouse and object editing keep their original speed.
+  // No easing while a finger is down. Draw latest input once
   // per frame; only a released touch swipe receives a short, interruptible coast.
   svg.addEventListener('pointermove',event=>{
    const drag=state.drag;
    if(!drag||drag.kind!=='canvas'||drag.mode!=='pan'||activePointers.size>=2
      ||(drag.pointerId!==undefined&&drag.pointerId!==event.pointerId))return;
-   if(!pan||pan.drag!==drag){const read=coordinateReader();pan={drag,read,start:{...(state.last||read(event.clientX,event.clientY))},ox:state.ox,oy:state.oy,point:null,samples:[]};}
+   if(!pan||pan.drag!==drag){const read=coordinateReader();pan={drag,read,start:{...(state.last||read(event.clientX,event.clientY))},ox:state.ox,oy:state.oy,gain:event.pointerType==='touch'?2:1,point:null,samples:[]};}
    const samples=event.getCoalescedEvents?.();
-   for(const sample of samples?.length?samples:[event])trackPan(sample);
+   for(const sample of samples||[])trackPan(sample);
+   // The dispatched event is the newest position even when WebView exposes older coalesced samples.
+   trackPan(event);
    if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
    if(!panFrame)panFrame=root.requestAnimationFrame(applyPan);
    if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();
