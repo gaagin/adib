@@ -58,7 +58,38 @@ public final class OnlineMainActivity extends Activity {
         photoChooser=new WebPhotoChooser(this,()->{Uri u=Uri.parse(web==null?"":String.valueOf(web.getUrl()));return "https".equals(u.getScheme())&&host.equalsIgnoreCase(u.getHost());});photoChooser.restore(state);web.setWebChromeClient(new WebChromeClient(){@Override public boolean onShowFileChooser(WebView v,android.webkit.ValueCallback<Uri[]> callback,FileChooserParams params){return photoChooser.open(callback,params);}});if(state==null||web.restoreState(state)==null)web.loadUrl(BuildConfig.APP_BASE_URL);
     }
     private void configureBars(){boolean dark=(getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK)==android.content.res.Configuration.UI_MODE_NIGHT_YES;statusSurface=dark?Color.rgb(22,30,44):Color.rgb(35,131,226);pageSurface=dark?Color.rgb(22,30,44):Color.rgb(242,245,252);navigationSurface=dark?Color.rgb(22,30,44):Color.rgb(242,245,252);getWindow().setStatusBarColor(Build.VERSION.SDK_INT>=30?Color.TRANSPARENT:statusSurface);getWindow().setNavigationBarColor(Build.VERSION.SDK_INT>=30?Color.TRANSPARENT:navigationSurface);getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);getWindow().getDecorView().setSystemUiVisibility(dark?0:View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);if(Build.VERSION.SDK_INT>=29){getWindow().setStatusBarContrastEnforced(false);getWindow().setNavigationBarContrastEnforced(false);}if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);}
-    private void addInsetHandling(){navigationScrim=new View(this);navigationScrim.setBackgroundColor(navigationSurface);FrameLayout.LayoutParams nav=new FrameLayout.LayoutParams(-1,0,Gravity.BOTTOM);root.addView(navigationScrim,nav);root.setOnApplyWindowInsetsListener((v,insets)->{int top,bottom,left=0,right=0;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets safe=insets.getInsets(android.view.WindowInsets.Type.statusBars()|android.view.WindowInsets.Type.navigationBars()|android.view.WindowInsets.Type.displayCutout());top=safe.top;bottom=safe.bottom;left=safe.left;right=safe.right;}else{top=insets.getSystemWindowInsetTop();bottom=insets.getSystemWindowInsetBottom();left=insets.getSystemWindowInsetLeft();right=insets.getSystemWindowInsetRight();}v.setPadding(left,top,right,bottom);FrameLayout.LayoutParams p=(FrameLayout.LayoutParams)navigationScrim.getLayoutParams();p.height=bottom;p.bottomMargin=-bottom;navigationScrim.setLayoutParams(p);return Build.VERSION.SDK_INT>=30?android.view.WindowInsets.CONSUMED:insets.consumeSystemWindowInsets();});}
+    private void addInsetHandling(){
+        navigationScrim=new View(this);
+        navigationScrim.setBackgroundColor(navigationSurface);
+        FrameLayout.LayoutParams nav=new FrameLayout.LayoutParams(-1,0,Gravity.BOTTOM);
+        root.addView(navigationScrim,nav);
+        root.setOnApplyWindowInsetsListener((v,insets)->{
+            int top,bottom,left,right,contentBottom;
+            if(Build.VERSION.SDK_INT>=30){
+                android.graphics.Insets safe=insets.getInsets(
+                    android.view.WindowInsets.Type.statusBars()
+                    |android.view.WindowInsets.Type.navigationBars()
+                    |android.view.WindowInsets.Type.displayCutout());
+                top=safe.top;bottom=safe.bottom;left=safe.left;right=safe.right;
+                // Edge-to-edge consumes insets here: resize WebView for the IME first.
+                // IME bottom already includes the navigation area; do not add it twice.
+                int imeBottom=insets.getInsets(android.view.WindowInsets.Type.ime()).bottom;
+                contentBottom=Math.max(bottom,imeBottom);
+            }else{
+                // Legacy adjustResize already resizes the window for the keyboard.
+                top=insets.getSystemWindowInsetTop();bottom=insets.getSystemWindowInsetBottom();
+                left=insets.getSystemWindowInsetLeft();right=insets.getSystemWindowInsetRight();
+                contentBottom=bottom;
+            }
+            v.setPadding(left,top,right,contentBottom);
+            FrameLayout.LayoutParams params=(FrameLayout.LayoutParams)navigationScrim.getLayoutParams();
+            params.height=bottom;
+            params.bottomMargin=-contentBottom;
+            navigationScrim.setLayoutParams(params);
+            return Build.VERSION.SDK_INT>=30
+                ?android.view.WindowInsets.CONSUMED:insets.consumeSystemWindowInsets();
+        });
+    }
     private int dp(float v){return Math.round(v*getResources().getDisplayMetrics().density);}
     private void makeOfflineView(){offline=new LinearLayout(this);offline.setOrientation(1);offline.setGravity(Gravity.CENTER);offline.setPadding(dp(24),dp(20),dp(24),dp(20));offline.setBackgroundColor(Color.rgb(242,245,252));offline.setVisibility(View.GONE);TextView title=new TextView(this);title.setText("Bağlantı yoxdur");title.setTextColor(Color.rgb(37,51,75));title.setTextSize(20);title.setGravity(Gravity.CENTER);offline.addView(title);TextView retry=new TextView(this);retry.setText("Yenidən cəhd et");retry.setTextColor(Color.WHITE);retry.setTextSize(15);retry.setGravity(Gravity.CENTER);android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();bg.setColor(Color.rgb(71,118,239));bg.setCornerRadius(dp(12));retry.setBackground(bg);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));p.topMargin=dp(18);offline.addView(retry,p);retry.setOnClickListener(v->{offline.setVisibility(View.GONE);web.reload();});root.addView(offline,new FrameLayout.LayoutParams(-1,-1));}
     private void injectNativeHooks(){if(web==null)return;String js="(function(){if(window.__adibAndroidNativeHooks)return;window.__adibAndroidNativeHooks=true;document.documentElement.classList.add('adib-android-wrapper');if(document.body)document.body.classList.add('adib-android-wrapper');var B=window.ADIBAndroid;if(!B)return;"+
