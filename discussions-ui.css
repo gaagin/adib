@@ -127,3 +127,18 @@ html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .a
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport] .adib-chat-compose{flex:0 0 auto!important;position:relative!important;bottom:auto!important}
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport][data-chat-keyboard] .adib-chat-compose{padding-bottom:8px!important}
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay[data-chat-viewport][data-chat-keyboard] .adib-chat-conversation-head{flex:0 0 auto!important;min-height:0!important;max-height:36%!important;overflow-y:auto!important}
+
+/* Compact message layout; shared by Android and browser task discussions. */
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-messages{gap:3px!important;padding:12px 12px 16px!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble{display:block!important;flex:0 0 auto!important;box-sizing:border-box!important;width:fit-content!important;min-width:0!important;min-height:0!important;max-width:min(82%,560px)!important;align-self:flex-start!important;margin:3px auto 0 0!important;padding:6px 9px 5px!important;border:0!important;border-radius:8px 8px 8px 2px!important;box-shadow:0 1px 2px #00000014!important;overflow-wrap:anywhere!important;background:var(--wa-incoming,var(--surface,#fff))!important;color:var(--wa-text,var(--text,#263247))!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.mine{align-self:flex-end!important;margin-left:auto!important;margin-right:0!important;border-radius:8px 8px 2px 8px!important;background:var(--wa-outgoing,#dcf8c6)!important;color:var(--wa-text,#20312b)!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.grouped{margin-top:0!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble strong{display:block!important;margin:0 0 2px!important;font-size:12px!important;line-height:1.25!important;color:var(--wa-name,#5272bd)!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.mine strong{display:none!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-body{display:inline!important;font-size:14px!important;line-height:1.35!important;white-space:pre-wrap!important;letter-spacing:normal!important;color:inherit!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble time{display:block!important;float:right!important;clear:none!important;margin:5px 0 0 10px!important;font-size:10px!important;line-height:1.2!important;color:var(--wa-time,var(--muted,#78859a))!important;white-space:nowrap!important}
+/* Do not imply read receipts: no delivery/read status is available for Notion comments. */
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble time:after{content:none!important}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble:after{content:'';display:block;clear:both}
+html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble .adib-image-thumbs{margin:4px 0!important;gap:4px!important}
+html.dark body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.mine{background:var(--wa-outgoing,#1d5148)!important;color:var(--wa-text,#edf7f4)!important}
