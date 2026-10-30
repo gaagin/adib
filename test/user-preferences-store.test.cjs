@@ -176,3 +176,11 @@ test('Notion mirror failure does not discard the durable per-user copy', async (
     temp.cleanup();
   }
 });
+test('chat palette is retained by the server settings allowlist', () => {
+  const clean = cleanSettings({ values: { 'adib-chat-palette-v1': 'mint', unrelated: 'drop' } });
+  assert.equal(clean.values['adib-chat-palette-v1'], 'mint');
+  assert.equal(clean.values.unrelated, undefined);
+  for (const client of ['account-client.js', 'filter-memory.js']) {
+    assert.match(fs.readFileSync(path.join(__dirname, '..', client), 'utf8'), /'adib-chat-palette-v1'/);
+  }
+});
