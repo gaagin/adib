@@ -17,11 +17,11 @@ await page.evaluate(()=>{zoomAt(1.2,150,300);__adibCancelCanvasGesture()});const
 await page.evaluate(()=>{emit('pointerdown',8,120,320);window.panStart={...state};window.startPoint=point(120,320);window.matrixReads=0;const getMatrix=svg.getScreenCTM.bind(svg);svg.getScreenCTM=()=>{matrixReads++;return getMatrix()};window.writes=0;const original=viewport.setAttribute.bind(viewport);viewport.setAttribute=(name,value)=>{if(name==='transform')window.writes++;return original(name,value)};for(let i=1;i<=60;i++)emit('pointermove',8,120+i,320+i/2);window.immediateWrites=window.writes;window.gestureMatrixReads=matrixReads;});
 assert.equal(await page.evaluate(()=>window.immediateWrites),0,'pan rendered between input events');
 await page.waitForTimeout(40);
-const moved=await page.evaluate(()=>{const end=point(180,350);return{writes,dx:state.ox-panStart.ox,dy:state.oy-panStart.oy,expectedX:(end.x-startPoint.x)*2,expectedY:(end.y-startPoint.y)*2}});
-assert.equal(await page.evaluate(()=>gestureMatrixReads),1,'screen matrix must be read once, not for every input event');assert.equal(moved.writes,1);assert(Math.abs(moved.dx-moved.expectedX)<.001);assert(Math.abs(moved.dy-moved.expectedY)<.001);
+const moved=await page.evaluate(()=>{const end=point(180,350);return{writes,dx:state.ox-panStart.ox,dy:state.oy-panStart.oy,expectedX:end.x-startPoint.x,expectedY:end.y-startPoint.y}});
+assert.equal(await page.evaluate(()=>gestureMatrixReads),1,'screen matrix must be read once, not for every input event');assert.equal(moved.writes,0,'touch pan must not rewrite SVG transform every frame');assert(await page.evaluate(()=>viewport.style.transform.includes('translate(')));assert(Math.abs(moved.dx-moved.expectedX)<.001);assert(Math.abs(moved.dy-moved.expectedY)<.001);
 await page.evaluate(()=>emit('pointerup',8,185,355));
-const released=await page.evaluate(()=>({dx:state.ox-panStart.ox,expected:(point(185,355).x-startPoint.x)*2,drag:state.drag}));assert(Math.abs(released.dx-released.expected)<.001);assert.equal(released.drag,null);
-await page.evaluate(()=>{emit('pointerdown',9,150,320);emit('pointermove',9,200,320);emit('pointercancel',9,200,320)});const cancelled=await page.evaluate(()=>state.ox);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>state.ox),cancelled);
+const released=await page.evaluate(()=>({dx:state.ox-panStart.ox,expected:point(185,355).x-startPoint.x,drag:state.drag}));assert(Math.abs(released.dx-released.expected)<.001);assert.equal(released.drag,null);
+await page.evaluate(()=>{emit('pointerdown',9,150,320);emit('pointermove',9,200,320);emit('pointercancel',9,200,320)});const cancelled=await page.evaluate(()=>state.ox);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>state.ox),cancelled);assert.equal(await page.evaluate(()=>viewport.style.transform),'','cancel must commit and remove the CSS override');
 
 // A touch fling coasts after release; a new gesture stops it immediately.
 await page.evaluate(()=>{
@@ -35,7 +35,7 @@ await page.evaluate(()=>{timed('pointerdown',100,2000);timed('pointermove',110,2
 await page.waitForTimeout(70);assert.equal(await page.evaluate(()=>state.ox),await page.evaluate(()=>releaseX),'reduced motion must disable coast');
 // Camera sensitivity is measured in screen pixels, independent of zoom.
 for(const scale of [.35,1,3]){
- for(const [pointerType,gain]of [['touch',2],['mouse',1]]){
+ for(const [pointerType,gain]of [['touch',1],['mouse',1]]){
   const result=await page.evaluate(({scale,pointerType})=>{
    state.scale=scale;state.ox=0;state.oy=0;apply();const before=viewport.getScreenCTM();
    const send=(type,x,y)=>svg.dispatchEvent(new PointerEvent(type,{pointerId:31,pointerType,clientX:x,clientY:y,bubbles:true,cancelable:true}));
@@ -51,5 +51,25 @@ const coalesced=await page.evaluate(()=>{
  emit('pointerdown',32,100,320);const event=new PointerEvent('pointermove',{pointerId:32,pointerType:'touch',clientX:160,clientY:350,bubbles:true,cancelable:true});
  event.getCoalescedEvents=()=>[new PointerEvent('pointermove',{clientX:110,clientY:325})];svg.dispatchEvent(event);emit('pointerup',32,160,350);
  const after=viewport.getScreenCTM();return after.e-before.e;
-});assert(Math.abs(coalesced-120)<.001);
-console.log('PASS: 2x one-finger pan across zoom levels, unchanged mouse, latest samples, direct pinch, inertia and cancellation');await b.close();})().catch(error=>{console.error(error);process.exit(1)});
+});assert(Math.abs(coalesced-60)<.001);
+// Check the *rendered* layer on successive frames, not just stored coordinates.
+for(const zoom of [.35,1,3]){
+ await page.evaluate(zoom=>{state.scale=zoom;state.ox=0;state.oy=0;apply();window.originMatrix=viewport.getScreenCTM();emit('pointerdown',40,100,320);},zoom);
+ for(let i=1;i<=8;i++){
+  const x=100+i*3.25,y=320+i*1.5;await page.evaluate(({x,y})=>emit('pointermove',40,x,y),{x,y});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const rendered=await page.evaluate(()=>{const m=viewport.getScreenCTM();return{x:m.e-originMatrix.e,y:m.f-originMatrix.f};});
+  assert(Math.abs(rendered.x-i*3.25)<.01,'rendered frame must follow touch without amplification');assert(Math.abs(rendered.y-i*1.5)<.01);
+ }
+ const beforeRelease=await page.evaluate(()=>{const m=viewport.getScreenCTM();return{x:m.e,y:m.f}});
+ await page.evaluate(()=>emit('pointerup',40,126,332));
+ const afterRelease=await page.evaluate(()=>{const m=viewport.getScreenCTM();return{x:m.e,y:m.f,style:viewport.style.transform}});
+ assert(Math.abs(afterRelease.x-beforeRelease.x)<.01);assert(Math.abs(afterRelease.y-beforeRelease.y)<.01);assert.equal(afterRelease.style,'');
+}
+// Adding a second finger commits the temporary layer without moving its contents.
+await page.evaluate(()=>{emit('pointerdown',50,100,320);emit('pointermove',50,120,330)});await page.waitForTimeout(35);
+const handoffBefore=await page.evaluate(()=>{const m=viewport.getScreenCTM();return{x:m.e,y:m.f}});
+await page.evaluate(()=>emit('pointerdown',51,200,330));
+const handoffAfter=await page.evaluate(()=>{const m=viewport.getScreenCTM();return{x:m.e,y:m.f,style:viewport.style.transform}});
+assert(Math.abs(handoffAfter.x-handoffBefore.x)<.01);assert(Math.abs(handoffAfter.y-handoffBefore.y)<.01);assert.equal(handoffAfter.style,'');await page.evaluate(()=>__adibCancelCanvasGesture());
+console.log('PASS: continuous 1:1 layer rendering, no per-frame SVG attribute writes, no release/pinch handoff jump, mouse, inertia, cancel');await b.close();})().catch(error=>{console.error(error);process.exit(1)});

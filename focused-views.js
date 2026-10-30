@@ -87,6 +87,26 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    now:()=>performance.now(),reduced:()=>root.matchMedia('(prefers-reduced-motion: reduce)').matches
   });
   let panFrame=0,pan=null,pinchFrame=0,pinchCamera=null,inertiaFrame=0;
+  let panLayer=null;
+  const layerProperties=['transform','transform-origin','transform-box','will-change'];
+  function drawPan(touch){
+   if(!touch){apply();return;}
+   if(!panLayer){
+    panLayer=layerProperties.map(name=>[name,viewport.style.getPropertyValue(name),viewport.style.getPropertyPriority(name)]);
+    viewport.style.setProperty('transform-box','view-box','important');
+    viewport.style.setProperty('transform-origin','0px 0px','important');
+    viewport.style.setProperty('will-change','transform');
+   }
+   // Translate the existing SVG layer; do not rewrite its SVG transform on each
+   // touch frame. Fractional coordinates remain intact at every zoom level.
+   viewport.style.setProperty('transform',`translate(${state.ox}px,${state.oy}px) scale(${state.scale})`,'important');
+  }
+  function commitPanLayer(){
+   if(!panLayer)return;
+   apply();
+   for(const [name,value,priority]of panLayer){if(value)viewport.style.setProperty(name,value,priority);else viewport.style.removeProperty(name);}
+   panLayer=null;
+  }
   // Freeze the screen-to-SVG conversion for the gesture: reading getScreenCTM
   // after every transform forces a synchronous SVG layout on Android WebView.
   function coordinateReader(){
@@ -102,9 +122,9 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   function stopPinch(flush=false){if(flush)flushPinch();else{if(pinchFrame)root.cancelAnimationFrame(pinchFrame);pinchFrame=0;pinchCamera=null;}}
   function applyPan(){
    panFrame=0;if(!pan||state.drag!==pan.drag)return;
-   state.ox=pan.ox+(pan.point.x-pan.start.x)*pan.gain;
-   state.oy=pan.oy+(pan.point.y-pan.start.y)*pan.gain;
-   state.last={...pan.point};apply();
+   state.ox=pan.ox+(pan.point.x-pan.start.x);
+   state.oy=pan.oy+(pan.point.y-pan.start.y);
+   state.last={...pan.point};drawPan(pan.touch);
   }
   function stopPan(flush=false){
    if(panFrame)root.cancelAnimationFrame(panFrame);panFrame=0;
@@ -121,29 +141,29 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    const samples=released.samples,last=samples[samples.length-1],first=samples[0];
    if(!last||!first||last.t-first.t<12||event.timeStamp-last.t>70)return;
    const dt=last.t-first.t;
-   let vx=(last.x-first.x)/dt*released.gain,vy=(last.y-first.y)/dt*released.gain;
+   let vx=(last.x-first.x)/dt,vy=(last.y-first.y)/dt;
    const screen=svg.getScreenCTM(),factor=screen?Math.hypot(screen.a,screen.b):1;
    const speed=Math.hypot(vx,vy)*factor;
    if(speed<.12)return;
    const cap=Math.min(1,2.5/speed);vx*=cap;vy*=cap;
    let previous=performance.now(),elapsed=0;
    function tick(time){
-    inertiaFrame=0;if(state.drag||document.hidden)return;
+    inertiaFrame=0;if(state.drag||document.hidden){commitPanLayer();return;}
     const step=Math.min(32,Math.max(0,time-previous));previous=time;elapsed+=step;
     const decay=Math.exp(-step/180),distance=180*(1-decay);
-    state.ox+=vx*distance;state.oy+=vy*distance;vx*=decay;vy*=decay;apply();
-    if(elapsed<700&&Math.hypot(vx,vy)*factor>.025)inertiaFrame=root.requestAnimationFrame(tick);
+    state.ox+=vx*distance;state.oy+=vy*distance;vx*=decay;vy*=decay;drawPan(released.touch);
+    if(elapsed<700&&Math.hypot(vx,vy)*factor>.025)inertiaFrame=root.requestAnimationFrame(tick);else commitPanLayer();
    }
-   inertiaFrame=root.requestAnimationFrame(tick);
+   inertiaFrame=root.requestAnimationFrame(tick);return true;
   }
-  // Touch camera pans at 2x sensitivity; mouse and object editing keep their original speed.
+  // Keep touch movement 1:1: multiplying displacement also multiplies input jitter.
   // No easing while a finger is down. Draw latest input once
   // per frame; only a released touch swipe receives a short, interruptible coast.
   svg.addEventListener('pointermove',event=>{
    const drag=state.drag;
    if(!drag||drag.kind!=='canvas'||drag.mode!=='pan'||activePointers.size>=2
      ||(drag.pointerId!==undefined&&drag.pointerId!==event.pointerId))return;
-   if(!pan||pan.drag!==drag){const read=coordinateReader();pan={drag,read,start:{...(state.last||read(event.clientX,event.clientY))},ox:state.ox,oy:state.oy,gain:event.pointerType==='touch'?2:1,point:null,samples:[]};}
+   if(!pan||pan.drag!==drag){const read=coordinateReader();pan={drag,read,start:{...(state.last||read(event.clientX,event.clientY))},ox:state.ox,oy:state.oy,touch:event.pointerType==='touch',point:null,samples:[]};}
    const samples=event.getCoalescedEvents?.();
    for(const sample of samples||[])trackPan(sample);
    // The dispatched event is the newest position even when WebView exposes older coalesced samples.
@@ -154,7 +174,7 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   },{capture:true,passive:false});
   const originalBegin=root.beginPinch;
   let pinchRead=null;
-  root.beginPinch=function(){stopInertia();stopPan(true);stopPinch(true);animator.stop(true);pinchRead=coordinateReader();return originalBegin();};
+  root.beginPinch=function(){stopInertia();stopPan(true);stopPinch(true);animator.stop(true);commitPanLayer();pinchRead=coordinateReader();return originalBegin();};
   root.updatePinch=function(){
    const points=pointerList();if(points.length<2||!pinchState)return;
    const middle=pointerMidpoint(points),distance=pointerDistance(points);if(distance<1)return;
@@ -169,7 +189,7 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
   };
   svg.addEventListener('wheel',event=>{
    if(state.drag&&state.drag.kind!=='canvas')return;
-   stopInertia();stopPan(true);stopPinch(true);
+   stopInertia();stopPan(true);stopPinch(true);commitPanLayer();
    event.preventDefault();event.stopImmediatePropagation();
    const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?svg.clientHeight:1);
    root.zoomAt(Math.exp(-Math.max(-160,Math.min(160,pixels))*.0018),event.clientX,event.clientY);
@@ -181,10 +201,10 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
    stopPan(true);
    if(pinchState){
     if(activePointers.has(event.pointerId))activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
-    root.updatePinch();stopPinch(true);
-   }else if(released)coast(released,event);
+    commitPanLayer();root.updatePinch();stopPinch(true);
+   }else if(!released||!coast(released,event))commitPanLayer();
   },true);
-  function interrupt(flush=false){stopInertia();stopPan(flush);stopPinch(flush);animator.stop(flush);}
+  function interrupt(flush=false){stopInertia();stopPan(flush);stopPinch(flush);animator.stop(flush);commitPanLayer();}
   svg.addEventListener('pointercancel',()=>interrupt(false),true);
   document.addEventListener('pointerdown',()=>interrupt(true),true);
   document.addEventListener('wheel',event=>{if(!svg.contains(event.target))interrupt(false);},true);
