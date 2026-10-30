@@ -142,3 +142,92 @@ root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,accept
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init, {once:true});
   else init();
 })(window);
+
+/* Open the task represented by the visible conversation, not a stale render closure. */
+(function reliableChatTaskOpening(root){
+ 'use strict';
+ const normalize=id=>String(id||'').replace(/-/g,'').toLowerCase();
+ const same=(a,b)=>normalize(a)===normalize(b);
+ let opening=null,press=null,lastTouch=null;
+ const overlay=()=>document.getElementById('adibChatOverlay');
+ const activeId=()=>overlay()?.querySelector('.adib-chat-messages')?.dataset.taskId||'';
+ function showError(message){const box=overlay()?.querySelector('.adib-chat-error');if(box){box.textContent=message;box.setAttribute('role','alert');}}
+ function busy(value){for(const button of overlay()?.querySelectorAll('[data-chat-open-task]')||[]){button.setAttribute('aria-busy',String(value));button.disabled=value;}}
+ function resolve(id){
+  const home=root.ADIBHomeBridge?.snapshot?.();
+  const personal=[...(home?.tasks||[]),...(typeof chatPersonalTasks!=='undefined'?chatPersonalTasks:[]),...(root.ADIBPersonalPomodoroTasks||[])].find(task=>same(task.id,id));
+  if(personal)return{kind:'personal',task:personal};
+  const equipment=root.ADIBEquipmentCalendar?.tasks?.().find(task=>same(task.id,id));
+  if(equipment)return{kind:'equipment',task:equipment};
+  const info=typeof taskById==='function'?taskById(id):null;
+  if(info)return{kind:'equipment',task:info.task,machine:info.machine};
+  if(typeof state!=='undefined')for(const plan of state.plans||[]){const task=(plan.tasks||[]).find(task=>same(task.id,id));if(task)return{kind:'equipment',task};}
+  return null;
+ }
+ async function refreshTasks(){
+  const jobs=[],account=root.ADIBAccount;
+  if(!account||account.section('personal')){if(root.ADIBHomeBridge?.refresh)jobs.push(Promise.resolve().then(()=>root.ADIBHomeBridge.refresh(false)));}
+  if(!account||account.section('equipment')){if(typeof refresh==='function')jobs.push(Promise.resolve().then(()=>refresh(true)));}
+  const results=await Promise.allSettled(jobs),failure=results.find(result=>result.status==='rejected');
+  return failure?.reason;
+ }
+ async function openResolved(found){
+  const id=found.task.id;
+  if(root.ADIBAutosave?.isPending?.(id)){root.ADIBAutosave.inspect(id);throw Error('Tapşırıq saxlanılır. Saxlama tamamlandıqdan sonra yenidən cəhd edin.');}
+  if(found.kind==='personal'){
+   if(root.__openPersonalChatTask)await root.__openPersonalChatTask(id,found.task.containerId||'');
+   else if(root.ADIBHomeBridge?.openTask){await root.ADIBHomeBridge.activate?.();await root.ADIBHomeBridge.openTask(id);}
+   else throw Error('Tapşırıq redaktoru hazır deyil.');
+  }else{
+   if(typeof setPersonalMode==='function')await setPersonalMode(false);
+   const modal=document.getElementById('taskModal');
+   if(modal){modal.classList.remove('kanban-modal');modal.querySelector('.modal')?.classList.remove('kanban-modal');modal.classList.add('open');delete modal.dataset.planBoardId;}
+   if(root.ADIBEquipmentCalendar?.open)await root.ADIBEquipmentCalendar.open(id);
+   else if(typeof openTaskEditor==='function')await openTaskEditor(found.task,found.machine||null,false);
+   else throw Error('Tapşırıq redaktoru hazır deyil.');
+  }
+  if(!document.querySelector('#taskModal.open .task-editor,#taskModal.open .personal-task-editor,.personal-kanban-editor-layer .personal-task-editor,.kanban-task-editor-layer .task-editor'))throw Error('Tapşırıq redaktoru açılmadı. Yenidən cəhd edin.');
+ }
+ function open(id=activeId()){
+  id=String(id||'');if(!id||id.startsWith('employee:'))return Promise.resolve(false);
+  if(opening)return opening;
+  showError('');busy(true);
+  opening=(async()=>{
+   try{
+    await root.ADIBAccount?.ready;
+    let found=resolve(id);
+    if(!found){const failure=await refreshTasks();found=resolve(id);if(!found)throw failure||Error('Tapşırıq tapılmadı və ya ona giriş yoxdur.');}
+    await openResolved(found);
+    root.closeCommentChat?.();return true;
+   }catch(error){
+    // Never close the conversation on a cache miss or failed editor transition.
+    const chat=overlay();if(chat){chat.hidden=false;document.body.classList.add('adib-chat-open');}
+    showError('Tapşırığı açmaq alınmadı: '+(error?.message||String(error)));return false;
+   }finally{opening=null;busy(false);}
+  })();return opening;
+ }
+ // Delegation survives polling, sending messages, and replacement of header nodes.
+ document.addEventListener('click',event=>{
+  const button=event.target.closest?.('[data-chat-open-task]');if(!button||!overlay()?.contains(button))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  const id=activeId(),compatibilityClick=event.detail>0||event.pointerType==='touch'||event.sourceCapabilities?.firesTouchEvents;
+  if(compatibilityClick&&lastTouch&&same(lastTouch.id,id)&&performance.now()-lastTouch.time<700)return;
+  void open(id);
+ },true);
+ document.addEventListener('pointerdown',event=>{
+  const button=event.target.closest?.('[data-chat-open-task]');
+  if(!button||event.pointerType==='mouse'||button.disabled||!overlay()?.contains(button)){press=null;return;}
+  press={pointerId:event.pointerId,id:activeId(),x:event.clientX,y:event.clientY,time:performance.now()};
+ },true);
+ document.addEventListener('pointermove',event=>{if(press&&press.pointerId===event.pointerId&&Math.hypot(event.clientX-press.x,event.clientY-press.y)>12)press=null;},true);
+ document.addEventListener('pointercancel',()=>{press=null;},true);
+ document.addEventListener('pointerup',event=>{
+  const pending=press;if(!pending||pending.pointerId!==event.pointerId)return;press=null;
+  if(!same(pending.id,activeId())||performance.now()-pending.time>800)return;
+  const button=overlay()?.querySelector('[data-chat-open-task]'),rect=button?.getBoundingClientRect();
+  if(!rect||button.hidden||event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)return;
+  event.preventDefault();event.stopImmediatePropagation();lastTouch={id:pending.id,time:performance.now()};void open(pending.id);
+ },true);
+ root.addEventListener('blur',()=>{press=null;});
+ root.ADIBChatTaskOpening={open};
+})(window);
