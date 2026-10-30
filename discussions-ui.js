@@ -168,6 +168,49 @@ root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,accept
  let opening=null,press=null,lastTouch=null;
  const overlay=()=>document.getElementById('adibChatOverlay');
  const activeId=()=>overlay()?.querySelector('.adib-chat-messages')?.dataset.taskId||'';
+ let taskReturn=null;
+ const editorSelector='#taskModal.open:not([hidden]) .task-editor,#taskModal.open:not([hidden]) .personal-task-editor,.personal-kanban-editor-layer:not([hidden]) .personal-task-editor,.kanban-task-editor-layer:not([hidden]) .task-editor';
+ function cancelReturn(){const context=taskReturn;taskReturn=null;context?.observer?.disconnect();clearTimeout(context?.timer);}
+ function rememberDiscussion(id){
+  const chat=overlay(),input=chat?.querySelector('#adibChatInput');
+  return{id,title:chat?.querySelector('.adib-chat-title strong')?.textContent||'Tapşırıq',scroll:chat?.querySelector('.adib-chat-messages')?.scrollTop||0,draft:input?.value,selectionStart:input?.selectionStart,selectionEnd:input?.selectionEnd,account:root.ADIBAccount?.user?.id||''};
+ }
+ function watchReturn(context){
+  cancelReturn();taskReturn=context;
+  function restore(){
+   if(taskReturn!==context)return;
+   if((root.ADIBAccount?.user?.id||'')!==context.account){cancelReturn();return;}
+   const chat=overlay();if(!chat){cancelReturn();return;}
+   if(!chat.hidden&&activeId()&&!same(activeId(),context.id)){cancelReturn();return;}
+   cancelReturn();
+   // A back button can replace the editor with its task list rather than close
+   // the modal. Close that list too, then restore the originating conversation.
+   const modal=document.getElementById('taskModal');if(modal?.classList.contains('open')&&!modal.querySelector('.task-editor,.personal-task-editor'))document.getElementById('closeModal')?.click();
+   if(typeof chatActiveTaskId!=='undefined')chatActiveTaskId=context.id;
+   if(typeof chatMobileConversationOpen!=='undefined')chatMobileConversationOpen=true;
+   if(typeof chatTextDrafts!=='undefined'&&context.draft!==undefined)chatTextDrafts.set(context.id,context.draft);
+   chat.hidden=false;chat.classList.add('conversation-open');document.body.classList.add('adib-chat-open');
+   if(root.ADIBDiscussions?.enabled())document.body.classList.add('adib-discussions-fullscreen');
+   if(root.renderCommentChat)root.renderCommentChat();
+   else if(root.openCommentChat)void root.openCommentChat({id:context.id,title:context.title});
+   root.requestAnimationFrame(()=>{
+    if(!same(activeId(),context.id))return;
+    const messages=overlay()?.querySelector('.adib-chat-messages'),input=overlay()?.querySelector('#adibChatInput');
+    if(messages)messages.scrollTop=context.scroll;
+    if(input&&context.draft!==undefined){input.value=context.draft;if(context.selectionStart!=null)input.setSelectionRange(context.selectionStart,context.selectionEnd);}
+   });
+  }
+  const check=()=>{clearTimeout(context.timer);context.timer=setTimeout(()=>{if(taskReturn===context&&!document.querySelector(editorSelector))restore();},0);};
+  context.observer=new MutationObserver(check);
+  context.observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});
+  check();
+ }
+ // Explicit navigation leaves the task workflow; it must not bounce back to chat.
+ document.addEventListener('click',event=>{
+  if(!taskReturn)return;
+  const nav=event.target.closest?.('[data-design-nav],[data-mobile-mode],#adibPersistentSide button,[data-home-container],[data-chat-thread]');
+  if(nav&&!nav.closest('#taskModal,.personal-kanban-editor-layer,.kanban-task-editor-layer'))cancelReturn();
+ },true);
  function showError(message){const box=overlay()?.querySelector('.adib-chat-error');if(box){box.textContent=message;box.setAttribute('role','alert');}}
  function busy(value){for(const button of overlay()?.querySelectorAll('[data-chat-open-task]')||[]){button.setAttribute('aria-busy',String(value));button.disabled=value;}}
  function resolve(id){
@@ -208,6 +251,7 @@ root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,accept
  function open(id=activeId()){
   id=String(id||'');if(!id||id.startsWith('employee:'))return Promise.resolve(false);
   if(opening)return opening;
+  cancelReturn();const returnContext=rememberDiscussion(id);
   showError('');busy(true);
   opening=(async()=>{
    try{
@@ -215,7 +259,7 @@ root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,accept
     let found=resolve(id);
     if(!found){const failure=await refreshTasks();found=resolve(id);if(!found)throw failure||Error('Tapşırıq tapılmadı və ya ona giriş yoxdur.');}
     await openResolved(found);
-    root.closeCommentChat?.();return true;
+    root.closeCommentChat?.();watchReturn(returnContext);return true;
    }catch(error){
     // Never close the conversation on a cache miss or failed editor transition.
     const chat=overlay();if(chat){chat.hidden=false;document.body.classList.add('adib-chat-open');}
