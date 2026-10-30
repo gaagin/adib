@@ -80,6 +80,18 @@ document.addEventListener('click',e=>{const tab=e.target.closest?.('.adib-design
     ||typeof updatePinch!=='function'||typeof beginPinch!=='function')return;
   if(svg.dataset.smoothEquipmentZoom==='1')return;
   svg.dataset.smoothEquipmentZoom='1';
+  // Legacy mobile-canvas-mode CSS still declares pan-x !important. Without an
+  // inline override Chromium steals horizontal touches and emits pointercancel,
+  // while vertical drags continue to reach our camera handlers.
+  svg.style.setProperty('touch-action','none','important');
+  svg.style.setProperty('overscroll-behavior','none','important');
+  const canvasWrap=svg.closest('.canvas-wrap');
+  if(canvasWrap){
+   canvasWrap.style.setProperty('touch-action','none','important');
+   canvasWrap.style.setProperty('overflow','hidden','important');
+   canvasWrap.style.setProperty('overscroll-behavior','none','important');
+  }
+
   const animator=createCameraAnimator({
    read:()=>({scale:state.scale,ox:state.ox,oy:state.oy}),
    write:camera=>{state.scale=camera.scale;state.ox=camera.ox;state.oy=camera.oy;apply();},
