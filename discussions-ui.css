@@ -183,3 +183,24 @@ html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-conversation-head [data-chat-open-task]{order:3!important}
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-conversation-head .adib-discussion-hide{order:4!important}
 html body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-conversation-head [data-chat-close]{order:5!important}
+
+/* Chat palettes are stored per account; standard preserves the existing colors. */
+html[data-adib-chat-palette="lavender"]{--adib-chat-canvas:#f1f2fa;--adib-chat-outgoing:#e2e6ff}
+html[data-adib-chat-palette="mint"]{--adib-chat-canvas:#eff5f2;--adib-chat-outgoing:#d8eee3}
+html[data-adib-chat-palette="ice"]{--adib-chat-canvas:#edf3f8;--adib-chat-outgoing:#d8e9fa}
+html[data-adib-chat-palette="sand"]{--adib-chat-canvas:#f6f2eb;--adib-chat-outgoing:#eee0ca}
+html.dark[data-adib-chat-palette="lavender"]{--adib-chat-canvas:#1d2030;--adib-chat-outgoing:#3b4268}
+html.dark[data-adib-chat-palette="mint"]{--adib-chat-canvas:#182823;--adib-chat-outgoing:#285448}
+html.dark[data-adib-chat-palette="ice"]{--adib-chat-canvas:#192632;--adib-chat-outgoing:#2c4c69}
+html.dark[data-adib-chat-palette="sand"]{--adib-chat-canvas:#29251e;--adib-chat-outgoing:#5d4b32}
+html[data-adib-chat-palette] body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-messages{background-color:var(--adib-chat-canvas)!important}
+html[data-adib-chat-palette] body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.mine{background:var(--adib-chat-outgoing)!important;color:#253247!important}
+html.dark[data-adib-chat-palette] body.adib-chat-open #adibChatOverlay#adibChatOverlay#adibChatOverlay .adib-chat-bubble.mine{color:#eef3fa!important}
+html body #adibSettingsMenu .adib-chat-palette-setting{display:grid!important;gap:9px!important;min-width:0!important}
+html body #adibChatPaletteSelect{box-sizing:border-box;width:100%;min-height:44px;border:1px solid var(--line,#dce2ef);border-radius:10px;background:var(--surface,#fff);color:var(--text,#253247);padding:8px 12px;font:inherit}
+html body .adib-chat-palette-preview{display:flex;justify-content:space-between;gap:16px;padding:13px;border:1px solid var(--line,#dce2ef);border-radius:12px;background-color:var(--adib-chat-canvas,#f1f4fa)}
+html body .adib-chat-palette-preview span{padding:6px 9px;border-radius:8px 8px 8px 2px;background:#fff;color:#253247;font-size:13px;box-shadow:0 1px 2px #0001}
+html body .adib-chat-palette-preview span:last-child{border-radius:8px 8px 2px 8px;background:var(--adib-chat-outgoing,#dcf8c6)}
+html.dark body .adib-chat-palette-preview span{background:#242a38;color:#eef3fa}
+html.dark body .adib-chat-palette-preview span:last-child{background:var(--adib-chat-outgoing,#1d5148)}
+html body .adib-chat-palette-setting small{font-size:11px;color:var(--muted,#718097)}
