@@ -2,7 +2,7 @@
 // One persistent server is the authority. No client-supplied author/role is trusted.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {promisify}=require('node:util');const scrypt=promisify(crypto.scrypt);
-const SECTIONS=['personal','calendar','day','matrix','equipment','chat','widgets','settings'];
+const SECTIONS=['personal','calendar','day','matrix','team','equipment','chat','widgets','settings'];
 const ACTIONS=['create','edit','status','delete','comment','timer'];
 const fail=(message,statusCode=403)=>Object.assign(Error(message),{statusCode,code:statusCode===401?'LOGIN_REQUIRED':'ACCESS_DENIED'});
 const digest=s=>crypto.createHash('sha256').update(String(s)).digest('hex');
