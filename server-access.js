@@ -6,8 +6,8 @@ async function aiChat(body) {
   if(!message) throw context.requestError('üçün mesaj daxil edin Gemini', 400);
   if(message.length > 4000) throw context.requestError('Mesaj çox uzundur (maksimum 4000 simvol)', 413);
   if(!context.GEMINI_API_KEY){const error=new Error('Gemini konfiqurasiya edilməyib. əlavə et GEMINI_API_KEY və GEMINI_MODEL üçün .env serverdə.');error.statusCode=503;throw error}
-  const context=body?.context&&typeof body.context==='object'?body.context:{};
-  const safeContext=JSON.stringify(context).slice(0,12000);
+  const serviceContext=body?.context&&typeof body.context==='object'?body.context:{};
+  const safeContext=JSON.stringify(serviceContext).slice(0,12000);
   const system='Siz AI-xidmət köməkçisi ADIB tapşırıqların və avadanlıqların saxlanması üçün. İstifadəçinin dilində qısa və praktiki şəkildə cavab verin. Verilmiş konteksti təhlil edin, lakin məlumatları təşkil etməyin. Bu versiyada siz yalnız məsləhət görürsünüz: tapşırığı və ya verilənlər bazasını dəyişdirdiyinizi iddia etməyin.';
   const models=[...new Set([context.GEMINI_MODEL,context.GEMINI_MODEL_FALLBACK])];let data=null,usedModel=context.GEMINI_MODEL,lastStatus=0,lastError='';
   for(const model of models){

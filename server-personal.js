@@ -24,7 +24,7 @@ function restoreRawSnapshotCache(){if(!process.env.SNAPSHOT_RAW_CACHE_FILE)retur
 function checkbox(page, name) { return context.property(page, name)?.checkbox === true; }
 
 function mapPersonalTask(page) {
-  const context=context.taskManagement.getContext(page.id);
+  const taskContext=context.taskManagement.getContext(page.id);
   const parent = context.relationIds(page, 'Parent item')[0] || '';
   const children = context.relationIds(page, 'Sub-item');
   const status = context.select(page, 'Status') || 'Not started';
@@ -32,8 +32,8 @@ function mapPersonalTask(page) {
   const prioritet = context.select(page, 'Prioritet');
   return context.enrichCompletion({
     id: page.id,
-    machineId:context.machineId,
-    planId:context.planId,
+    machineId:taskContext.machineId,
+    planId:taskContext.planId,
     title: context.title(page, 'Adi') || 'Adsız',
     status,
     completed: checkbox(page, 'Status 1')||context.taskHistory.done({status}),
