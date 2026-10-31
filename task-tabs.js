@@ -11,7 +11,7 @@ function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteC
   for(const node of ordered){if(placed.has(node))continue;editor.insertBefore(node,before);placed.add(node);before=node.nextSibling;}
   const dateLabel=editor.querySelector('#taskDate')?.closest('label');if(dateLabel?.firstChild?.nodeType===3)dateLabel.firstChild.textContent='Tarix və vaxt ';const machineLabel=editor.querySelector('.task-machine-field');if(machineLabel?.firstChild?.nodeType===3)machineLabel.firstChild.textContent='Avadanlıq ';
  }
- const doneWorkField=editor.querySelector('#taskDoneWork');if(task.sourceKey==='gorulen'&&doneWorkField){const doneWorkLabel=doneWorkField.closest('label');if(doneWorkLabel){const labelText=[...doneWorkLabel.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(labelText)labelText.textContent='Gorulen is ';else doneWorkLabel.setAttribute('aria-label','Gorulen is');}}const title=editor.querySelector(personal?'#personalEditTitle':'#taskTitle');const host=document.createElement('section');host.className='adib-task-detail';host.innerHTML='<header class="adib-task-detail-header"><div class="adib-task-title-group"><strong></strong><small></small></div><div class="adib-task-header-tools"></div></header><nav class="adib-task-tabs" role="tablist" aria-label="Tapşırıq bölmələri"></nav><div class="adib-task-panes"></div><footer class="adib-task-footer"></footer>';
+ const doneWorkField=editor.querySelector('#taskDoneWork');if(task.sourceKey==='gorulen'&&doneWorkField){const doneWorkLabel=doneWorkField.closest('label');if(doneWorkLabel){const labelText=[...doneWorkLabel.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(labelText)labelText.textContent='Gorulen is ';else doneWorkLabel.setAttribute('aria-label','Gorulen is');}}const title=editor.querySelector(personal?'#personalEditTitle':'#taskTitle');const host=document.createElement('section');host.className='adib-task-detail adib-unified-task-chat';host.innerHTML='<header class="adib-task-detail-header"><div class="adib-task-title-group"><strong></strong><small></small></div><div class="adib-task-header-tools"></div></header><nav class="adib-task-tabs" role="tablist" aria-label="Tapşırıq bölmələri"></nav><div class="adib-task-panes"></div><footer class="adib-task-footer"></footer>';
  const heading=host.querySelector('header strong'),panel=list.closest('.modal,.kanban-task-editor-panel,.personal-kanban-editor-panel'),outerHeading=panel?.querySelector('.modal-head h2,.kanban-task-editor-head strong,.personal-kanban-editor-head strong');if(androidEquipment)host.classList.add('adib-android-equipment-task');if(outerHeading)host.querySelector('header').classList.add('unified-heading');const update=()=>{heading.textContent=title?.value||task.title||'Adsız';if(outerHeading)outerHeading.textContent=heading.textContent;};update();title?.addEventListener('input',update);const sourceName=task.source|| (task.sourceKey==='gorulen'?'Gorulen isler':'ToDo');host.querySelector('header small').textContent=personal?'Tapşırıqlarım':(root.ADIBAz?.label(sourceName)||sourceName);
  if(task.parentId&&onOpenParent){const back=document.createElement('button');back.type='button';back.className='adib-task-parent-link';back.dataset.taskOpenParent=String(task.parentId);back.textContent='← Valideyn tapşırığına';back.title=parentTitle?'Valideyn: '+parentTitle:'Valideyn tapşırığını açın';back.onclick=()=>navigate(onOpenParent);host.querySelector('.adib-task-title-group').append(back)}
  const keys=androidEquipment?['chat','task','description']:['chat','task','description','subtasks'],labels=['Söhbət','Tapşırıq','Təsvir','Alt tapşırıqlar'],panes={};keys.forEach((key,i)=>{const tab=document.createElement('button');tab.type='button';tab.setAttribute('role','tab');tab.textContent=labels[i];tab.dataset.taskTab=key;const pane=document.createElement('section');pane.setAttribute('role','tabpanel');pane.dataset.taskPane=key;pane.tabIndex=0;tab.id='task-tab-'+key+'-'+String(task.id).replace(/[^\w-]/g,'');pane.id=tab.id+'-pane';tab.setAttribute('aria-controls',pane.id);pane.setAttribute('aria-labelledby',tab.id);host.querySelector('nav').append(tab);host.querySelector('.adib-task-panes').append(pane);panes[key]=pane;tab.onclick=()=>select(key)});
@@ -28,7 +28,7 @@ function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteC
  const checklist=document.createElement('h3');checklist.textContent='Yoxlama siyahıları';const note=document.createElement('p');note.className='muted';note.textContent='Yoxlama nöqtələri və qeydlər tapşırığın təsvirindədir.';const desc=document.createElement('button');desc.type='button';desc.className='adib-task-link';desc.textContent='Təsviri açın';desc.onclick=()=>select('description');panes.subtasks.append(checklist,note,desc);
  }
  function activate(key){list.classList.toggle('adib-task-chat-active',key==='chat');keys.forEach(k=>{panes[k].hidden=k!==key;const tab=host.querySelector('[data-task-tab="'+k+'"]');tab.setAttribute('aria-selected',String(k===key));tab.tabIndex=k===key?0:-1});}
- function select(key){activate(key);if(key==='chat'){if(androidEquipment){if(task.id)root.loadTaskComments?.(task.id)}else if(root.openCommentChat)root.openCommentChat(task);}}
+ function select(key){activate(key);if(key==='chat'){if(androidEquipment){if(task.id)root.loadTaskComments?.(task.id)}/* Personal task comments stay in this pane, not a second overlay. */}}
  host.querySelector('nav').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();let i=keys.indexOf(document.activeElement?.dataset.taskTab);i=e.key==='Home'?0:e.key==='End'?keys.length-1:(i+(e.key==='ArrowRight'?1:keys.length-1))%keys.length;select(keys[i]);host.querySelector('[data-task-tab="'+keys[i]+'"]').focus()});
  if(androidEquipment){
   const normalizeChat=()=>{
@@ -42,7 +42,7 @@ function install(list,{task={},personal=false,isNew=false,onAddChild,onCompleteC
   };
   normalizeChat();
  }
- if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}select('task');return editor.__adibTaskTabs={panes,select,androidEquipment};
+ if(androidEquipment){const blurAutoFocus=()=>{const active=document.activeElement;if(editor.contains(active)&&active.matches('input:not([type=checkbox]):not([type=file]),textarea,[contenteditable="true"]'))active.blur()};blurAutoFocus();requestAnimationFrame(blurAutoFocus)}root.ADIBTaskChatStyle?.attach(panes.chat);select('task');return editor.__adibTaskTabs={panes,select,androidEquipment};
 }
 root.ADIBTaskTabs={install};
 /* The browser editor predates the desktop/Android tab entry point. Its existing
@@ -79,4 +79,72 @@ if(autosave?.bind){
   return bind.apply(this,arguments);
  };
 }
+})(window);
+
+/* One presentation for the same Notion comments; no new store or send endpoint. */
+(function(root){
+ const doc=document;
+ const icon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4Z"/></svg>';
+ function decorate(list,comments){
+  if(!list)return;
+  const user=root.ADIBAccount?.user||{name:doc.querySelector('#currentUser')?.selectedOptions?.[0]?.textContent};
+  const stamp=c=>root.ADIBZone?.parse(c.createdAt,root.ADIBClock?.timeZone)?.getTime();
+  const rows=[...comments].sort((a,b)=>{const x=stamp(a),y=stamp(b);return Number.isFinite(x)?(Number.isFinite(y)?x-y:-1):(Number.isFinite(y)?1:0)});
+  const bubbles=[...list.querySelectorAll('.adib-chat-bubble')];if(bubbles.length!==rows.length)return;
+  let previous=null;
+  bubbles.forEach((bubble,i)=>{
+   const c=rows[i],v=root.ADIBChatPresentation?.view(c,user);if(!v)return;
+   const t=stamp(c),before=previous&&stamp(previous.c);
+   const grouped=previous&&v.name&&v.name===previous.v.name&&v.mine===previous.v.mine&&Number.isFinite(t)&&Number.isFinite(before)&&Math.abs(t-before)<=300000&&new Date(t).toDateString()===new Date(before).toDateString();
+   bubble.classList.toggle('mine',v.mine);bubble.classList.toggle('grouped',!!grouped);bubble.dataset.direction=v.mine?'outgoing':'incoming';
+   bubble.querySelector(':scope > strong')?.remove();
+   if(!v.mine&&!grouped){const author=doc.createElement('strong');author.textContent=v.name||'İstifadəçi';bubble.prepend(author)}
+   const body=bubble.querySelector('.adib-chat-body');if(body)body.textContent=v.text;
+   previous={c,v};
+  });
+ }
+ function attach(pane){
+  if(!pane||pane.__chatStyle)return;pane.__chatStyle=true;
+  const normalize=()=>{
+   // Personal runtime appends its original controls after tabs.install(). Move,
+   // never clone, so upload state, drafts and existing send callbacks survive.
+   const history=pane.querySelector('.adib-task-comment-history');
+   const textarea=pane.querySelector('textarea');
+   if(history&&!pane.querySelector('.comments-section')&&textarea){
+    const section=doc.createElement('section');section.className='comments-section';
+    const composer=doc.createElement('div');composer.className='comment-compose';
+    const nodes=[...pane.children];pane.append(section);section.append(history,composer);
+    for(const node of nodes){if(node===history)continue;if(node.matches('button.adib-task-link')){node.classList.add('adib-task-chat-reload');section.insertBefore(node,history)}else composer.append(node)}
+   }
+   const compose=pane.querySelector('.comment-compose'),input=compose?.querySelector('textarea');
+   if(input){input.classList.add('adib-task-chat-input');input.placeholder='Mesaj yazın…';input.setAttribute('aria-label','Mesaj yazın');}
+   const send=compose&&[...compose.children].find(n=>n.matches('button')&&!n.classList.contains('adib-image-picker-add'));
+   if(send&&!send.classList.contains('adib-task-chat-send')){send.classList.add('adib-task-chat-send');send.setAttribute('aria-label','Mesajı göndər');send.title='Mesajı göndər';send.innerHTML=icon}
+   // An image picker may be recreated after a successful upload.
+   for(const picker of [...pane.querySelectorAll(':scope > .adib-image-picker')])compose?.prepend(picker);
+  };
+  let queued=false;const observer=new MutationObserver(()=>{if(!pane.isConnected){observer.disconnect();return}if(!queued){queued=true;queueMicrotask(()=>{queued=false;normalize()})}});
+  observer.observe(pane,{childList:true,subtree:true});normalize();
+ }
+ function init(){
+  const render=root.renderTaskComments;
+  if(render&&!render.__unified){const wrapped=function(comments){const result=render.apply(this,arguments);decorate(doc.getElementById('commentsList'),comments||[]);return result};wrapped.__unified=true;root.renderTaskComments=wrapped;}
+  const markup=root.ADIBTaskChatMarkup;
+  if(markup&&!markup.__unified){const wrapped=function(comments){const box=doc.createElement('div');box.innerHTML=markup.apply(this,arguments);decorate(box,comments||[]);return box.innerHTML};wrapped.__unified=true;root.ADIBTaskChatMarkup=wrapped;}
+ }
+ root.ADIBTaskChatStyle={attach,decorate};
+ if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',init,{once:true});else init();
+ // Use only the visible viewport, not keyboard-height guesses or scrollIntoView.
+ let frame=0;
+ function syncViewport(){frame=0;const vv=root.visualViewport;for(const modal of doc.querySelectorAll('[data-task-chat-viewport]')){modal.removeAttribute('data-task-chat-viewport');modal.style.removeProperty('--task-chat-top');modal.style.removeProperty('--task-chat-height')}
+  if(root.innerWidth>700||vv&&Math.abs((vv.scale||1)-1)>.05)return;
+  const pane=doc.querySelector('.task-list.adib-task-chat-active .adib-unified-task-chat [data-task-pane="chat"]:not([hidden])');
+  if(!pane||!pane.getClientRects().length)return;const modal=pane.closest('#taskModal.open,.kanban-task-editor-layer,.personal-kanban-editor-layer');if(!modal)return;
+  const top=Math.max(0,vv?.offsetTop||0);let height=vv?.height||root.innerHeight;const k=root.navigator?.virtualKeyboard?.boundingRect;if(k?.height>80)height=Math.min(height,k.top-top);
+  modal.dataset.taskChatViewport='true';modal.style.setProperty('--task-chat-top',top+'px');modal.style.setProperty('--task-chat-height',Math.max(1,height)+'px');
+ }
+ const schedule=()=>{if(!frame)frame=requestAnimationFrame(syncViewport)};
+ root.visualViewport?.addEventListener('resize',schedule);root.visualViewport?.addEventListener('scroll',schedule);root.navigator?.virtualKeyboard?.addEventListener('geometrychange',schedule);root.addEventListener('resize',schedule);doc.addEventListener('focusin',schedule);doc.addEventListener('focusout',schedule);
+ const watch=()=>{new MutationObserver(schedule).observe(doc.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});schedule()};
+ if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',watch,{once:true});else watch();
 })(window);
