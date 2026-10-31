@@ -36,6 +36,19 @@ class Accounts {
  if(p==='/api/admin/users'){if(req.method==='GET')return {ok:true,users:this.state.users.map(u=>this.public(u,true)),invites:this.state.invites.filter(i=>!i.used&&i.expires>this.now()).map(({hash,...i})=>i)};
  if(req.method==='DELETE'){const id=String(b.id||'').trim();if(!id)throw fail('İstifadəçi ID-si tələb olunur',400);const index=this.state.users.findIndex(x=>x.id===id);if(index<0)throw fail('İstifadəçi tapılmadı',404);const target=this.state.users[index];if(target.id===u.id)throw fail('Öz hesabınızı silə bilməzsiniz',409);if(target.role==='admin'&&!this.state.users.some(x=>x.id!==target.id&&x.role==='admin'&&!x.disabled))throw fail('Son administrator silinə bilməz',409);this.state.users.splice(index,1);this.state.sessions=this.state.sessions.filter(s=>s.userId!==target.id);this.save();this.closeStreams(target.id);return {ok:true,deleted:true,id:target.id};}
  if(req.method!=='PATCH')throw fail('Metod icazə verilmir',405);
+ if(b.action==='reset-password'){
+ const id=String(b.id||'').trim();if(!id)throw fail('İstifadəçi ID-si tələb olunur',400);
+ const target=this.state.users.find(x=>x.id===id);if(!target)throw fail('İstifadəçi tapılmadı',404);
+ if(target.id===u.id)throw fail('Öz parolunuzu "Şifrəni dəyiş" vasitəsilə dəyişin',409);
+ const revision=target.revision,hash=await password(b.password);
+ this.requireAdmin(this.user(req));
+ if(!this.state.users.includes(target)||target.revision!==revision)throw fail('Hesab dəyişib. Siyahını yeniləyin və təkrar edin',409);
+ target.password=hash;target.revision++;
+ this.state.sessions=this.state.sessions.filter(session=>session.userId!==target.id);
+ this.save();this.closeStreams(target.id);
+ return {ok:true,passwordReset:true,user:this.public(target)};
+ }
+
  const original=this.state.users.find(x=>x.id===b.id);const target=original&&structuredClone(original);if(!target)throw fail('İstifadəçi tapılmadı',404);if(target.role==='admin'&&((b.role&&b.role!=='admin')||b.disabled===true)&&!this.state.users.some(x=>x.id!==target.id&&x.role==='admin'&&!x.disabled))throw fail('Son administrator deaktiv edilə bilməz',409);
  if(b.name!==undefined)target.name=name(b.name);if(b.personalPageId!==undefined)target.personalPageId=personalPageId(b.personalPageId);if(b.role!==undefined){if(!['admin','manager','employee'].includes(b.role))throw fail('Yanlış rol',400);target.role=b.role;}if(b.rules!==undefined)target.rules=rules(b.rules);if(b.disabled!==undefined)target.disabled=b.disabled===true;target.revision++;Object.assign(original,target);this.state.sessions=this.state.sessions.filter(s=>s.userId!==target.id);this.save();this.closeStreams(target.id);return {ok:true,user:this.public(target)};}
  if(p==='/api/admin/invites'){if(req.method==='DELETE'){this.state.invites=this.state.invites.filter(i=>i.id!==b.id);this.save();return {ok:true};}if(!['manager','employee'].includes(b.role||'employee'))throw fail('Administrator dəvətlərinə icazə verilmir',400);const token=crypto.randomBytes(32).toString('base64url');const i={id:crypto.randomUUID(),hash:digest(token),name:name(b.name),role:b.role||'employee',rules:rules(b.rules||defaults(b.role)),personalPageId:personalPageId(b.personalPageId),expires:this.now()+7*86400000,used:false};this.state.invites=this.state.invites.filter(i=>!i.used&&i.expires>this.now());if(this.state.invites.length>=1000)throw fail('Dəvət limiti',429);this.state.invites.push(i);this.save();return {ok:true,invite:token,expires:i.expires,id:i.id};}
