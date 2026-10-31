@@ -1,3 +1,187 @@
+// Live shared bindings preserve cache invalidation and startup ordering across modules.
+const serverContext = {
+  get AI_RATE_WINDOW_MS() { return AI_RATE_WINDOW_MS; },
+  get AI_REQUESTS_PER_MINUTE() { return AI_REQUESTS_PER_MINUTE; },
+  get CORS_ORIGIN() { return CORS_ORIGIN; },
+  get FULL_RECONCILE_MS() { return FULL_RECONCILE_MS; },
+  get GEMINI_API_KEY() { return GEMINI_API_KEY; },
+  get GEMINI_API_URL() { return GEMINI_API_URL; },
+  get GEMINI_MODEL() { return GEMINI_MODEL; },
+  get GEMINI_MODEL_FALLBACK() { return GEMINI_MODEL_FALLBACK; },
+  get GEMINI_TIMEOUT_MS() { return GEMINI_TIMEOUT_MS; },
+  get GORULEN_DB() { return GORULEN_DB; },
+  get GORULEN_DS() { return GORULEN_DS; },
+  get LAYOUT_COLORS() { return LAYOUT_COLORS; },
+  get LINK_PROPERTY_DEFAULT() { return LINK_PROPERTY_DEFAULT; },
+  get LINK_SYNC_TTL_MS() { return LINK_SYNC_TTL_MS; },
+  get MAKINA_DB() { return MAKINA_DB; },
+  get MAKINA_DS() { return MAKINA_DS; },
+  get NOTION_VERSION() { return NOTION_VERSION; },
+  get PERSONAL_CONTAINERS_DB() { return PERSONAL_CONTAINERS_DB; },
+  get PERSONAL_CONTAINERS_DS() { return PERSONAL_CONTAINERS_DS; },
+  get PERSONAL_DIRECTORY_DB() { return PERSONAL_DIRECTORY_DB; },
+  get PERSONAL_DIRECTORY_DS() { return PERSONAL_DIRECTORY_DS; },
+  get PLAN_DB() { return PLAN_DB; },
+  get PLAN_DS() { return PLAN_DS; },
+  get PORT() { return PORT; },
+  get PUBLIC_APP_URL() { return PUBLIC_APP_URL; },
+  get SECURITY_HEADERS() { return SECURITY_HEADERS; },
+  get SNAPSHOT_CACHE_MS() { return SNAPSHOT_CACHE_MS; },
+  get TASKS_DB() { return TASKS_DB; },
+  get TASKS_DS() { return TASKS_DS; },
+  get TASK_LINK_PROPERTY_DEFAULT() { return TASK_LINK_PROPERTY_DEFAULT; },
+  get TODO_DB() { return TODO_DB; },
+  get TODO_DS() { return TODO_DS; },
+  get TOKEN() { return TOKEN; },
+  get URL() { return URL; },
+  get accessError() { return accessError; },
+  get accountKey() { return accountKey; },
+  get accountTask() { return accountTask; }, set accountTask(value) { accountTask = value; },
+  get accounts() { return accounts; },
+  get aiRequestTimes() { return aiRequestTimes; },
+  get appBaseUrl() { return appBaseUrl; }, set appBaseUrl(value) { appBaseUrl = value; },
+  get applyPersonalContainerDefaults() { return applyPersonalContainerDefaults; }, set applyPersonalContainerDefaults(value) { applyPersonalContainerDefaults = value; },
+  get archiveNotionPage() { return archiveNotionPage; }, set archiveNotionPage(value) { archiveNotionPage = value; },
+  get authorReads() { return authorReads; },
+  get autosaveCreates() { return autosaveCreates; },
+  get backgroundJobs() { return backgroundJobs; },
+  get backgroundProgress() { return backgroundProgress; },
+  get beginSnapshotProgress() { return beginSnapshotProgress; }, set beginSnapshotProgress(value) { beginSnapshotProgress = value; },
+  get browserPomodoroSessions() { return browserPomodoroSessions; },
+  get buildSnapshotFromRawCache() { return buildSnapshotFromRawCache; }, set buildSnapshotFromRawCache(value) { buildSnapshotFromRawCache = value; },
+  get buildTaskMap() { return buildTaskMap; }, set buildTaskMap(value) { buildTaskMap = value; },
+  get buildTeamDashboard() { return buildTeamDashboard; },
+  get cacheCall() { return cacheCall; }, set cacheCall(value) { cacheCall = value; },
+  get cacheHealth() { return cacheHealth; },
+  get cleanId() { return cleanId; }, set cleanId(value) { cleanId = value; },
+  get commentReads() { return commentReads; },
+  get completionHistory() { return completionHistory; },
+  get createText() { return createText; }, set createText(value) { createText = value; },
+  get crypto() { return crypto; },
+  get databaseParent() { return databaseParent; }, set databaseParent(value) { databaseParent = value; },
+  get dateStart() { return dateStart; }, set dateStart(value) { dateStart = value; },
+  get enrichCompletion() { return enrichCompletion; }, set enrichCompletion(value) { enrichCompletion = value; },
+  get fs() { return fs; },
+  get guardedAutosaveCreate() { return guardedAutosaveCreate; }, set guardedAutosaveCreate(value) { guardedAutosaveCreate = value; },
+  get invalidatePersonalTasks() { return invalidatePersonalTasks; }, set invalidatePersonalTasks(value) { invalidatePersonalTasks = value; },
+  get layoutColorSchemaFlights() { return layoutColorSchemaFlights; },
+  get layoutColorSchemaReady() { return layoutColorSchemaReady; },
+  get linkSyncState() { return linkSyncState; },
+  get listPageBlocks() { return listPageBlocks; }, set listPageBlocks(value) { listPageBlocks = value; },
+  get machineRelationProperty() { return machineRelationProperty; }, set machineRelationProperty(value) { machineRelationProperty = value; },
+  get mapEquipment() { return mapEquipment; }, set mapEquipment(value) { mapEquipment = value; },
+  get mapPersonalContainer() { return mapPersonalContainer; }, set mapPersonalContainer(value) { mapPersonalContainer = value; },
+  get mapPersonalTask() { return mapPersonalTask; }, set mapPersonalTask(value) { mapPersonalTask = value; },
+  get mapPlans() { return mapPlans; }, set mapPlans(value) { mapPlans = value; },
+  get mergePages() { return mergePages; }, set mergePages(value) { mergePages = value; },
+  get multiSelect() { return multiSelect; }, set multiSelect(value) { multiSelect = value; },
+  get networkTime() { return networkTime; },
+  get normalizeBaseUrl() { return normalizeBaseUrl; }, set normalizeBaseUrl(value) { normalizeBaseUrl = value; },
+  get notion() { return notion; }, set notion(value) { notion = value; },
+  get notionPomodoroSessionsAt() { return notionPomodoroSessionsAt; }, set notionPomodoroSessionsAt(value) { notionPomodoroSessionsAt = value; },
+  get notionPomodoroSessionsCache() { return notionPomodoroSessionsCache; }, set notionPomodoroSessionsCache(value) { notionPomodoroSessionsCache = value; },
+  get notionPomodoroSessionsPromise() { return notionPomodoroSessionsPromise; }, set notionPomodoroSessionsPromise(value) { notionPomodoroSessionsPromise = value; },
+  get notionRate() { return notionRate; },
+  get notionUsers() { return notionUsers; }, set notionUsers(value) { notionUsers = value; },
+  get number() { return number; }, set number(value) { number = value; },
+  get observeWrittenPage() { return observeWrittenPage; }, set observeWrittenPage(value) { observeWrittenPage = value; },
+  get pageUrl() { return pageUrl; }, set pageUrl(value) { pageUrl = value; },
+  get path() { return path; },
+  get persistTaskEstimate() { return persistTaskEstimate; }, set persistTaskEstimate(value) { persistTaskEstimate = value; },
+  get person() { return person; }, set person(value) { person = value; },
+  get personalCalendarDate() { return personalCalendarDate; }, set personalCalendarDate(value) { personalCalendarDate = value; },
+  get personalContainerRepairQueue() { return personalContainerRepairQueue; }, set personalContainerRepairQueue(value) { personalContainerRepairQueue = value; },
+  get personalContainerRepairs() { return personalContainerRepairs; },
+  get personalDirectory() { return personalDirectory; }, set personalDirectory(value) { personalDirectory = value; },
+  get personalDirectoryCache() { return personalDirectoryCache; }, set personalDirectoryCache(value) { personalDirectoryCache = value; },
+  get personalPomodoroLocks() { return personalPomodoroLocks; },
+  get personalRaw() { return personalRaw; },
+  get personalSnapshot() { return personalSnapshot; }, set personalSnapshot(value) { personalSnapshot = value; },
+  get personalSnapshotSpecs() { return personalSnapshotSpecs; }, set personalSnapshotSpecs(value) { personalSnapshotSpecs = value; },
+  get personalStatusWriteQueue() { return personalStatusWriteQueue; }, set personalStatusWriteQueue(value) { personalStatusWriteQueue = value; },
+  get personalTasksCache() { return personalTasksCache; }, set personalTasksCache(value) { personalTasksCache = value; },
+  get personalTasksCacheAt() { return personalTasksCacheAt; }, set personalTasksCacheAt(value) { personalTasksCacheAt = value; },
+  get personalTasksGeneration() { return personalTasksGeneration; }, set personalTasksGeneration(value) { personalTasksGeneration = value; },
+  get personalTasksInFlight() { return personalTasksInFlight; }, set personalTasksInFlight(value) { personalTasksInFlight = value; },
+  get personalTasksInFlightGeneration() { return personalTasksInFlightGeneration; }, set personalTasksInFlightGeneration(value) { personalTasksInFlightGeneration = value; },
+  get pomodoroModeDuration() { return pomodoroModeDuration; }, set pomodoroModeDuration(value) { pomodoroModeDuration = value; },
+  get pomodoroModeName() { return pomodoroModeName; }, set pomodoroModeName(value) { pomodoroModeName = value; },
+  get pomodoroRefreshAt() { return pomodoroRefreshAt; }, set pomodoroRefreshAt(value) { pomodoroRefreshAt = value; },
+  get pomodoroRefreshPromise() { return pomodoroRefreshPromise; }, set pomodoroRefreshPromise(value) { pomodoroRefreshPromise = value; },
+  get prepareNotionUpload() { return prepareNotionUpload; },
+  get projectAccount() { return projectAccount; }, set projectAccount(value) { projectAccount = value; },
+  get property() { return property; }, set property(value) { property = value; },
+  get queryDatabase() { return queryDatabase; }, set queryDatabase(value) { queryDatabase = value; },
+  get queryMetrics() { return queryMetrics; },
+  get queryPolicy() { return queryPolicy; },
+  get rawCache() { return rawCache; },
+  get realtime() { return realtime; },
+  get realtimeTombstones() { return realtimeTombstones; },
+  get recentTask() { return recentTask; }, set recentTask(value) { recentTask = value; },
+  get recordCompletion() { return recordCompletion; }, set recordCompletion(value) { recordCompletion = value; },
+  get relationIds() { return relationIds; }, set relationIds(value) { relationIds = value; },
+  get replacePersonalTaskBlocks() { return replacePersonalTaskBlocks; }, set replacePersonalTaskBlocks(value) { replacePersonalTaskBlocks = value; },
+  get replacePersonalTaskContent() { return replacePersonalTaskContent; }, set replacePersonalTaskContent(value) { replacePersonalTaskContent = value; },
+  get requestError() { return requestError; }, set requestError(value) { requestError = value; },
+  get resolveEquipmentTaskPlan() { return resolveEquipmentTaskPlan; },
+  get resolvePersonalTaskContainer() { return resolvePersonalTaskContainer; }, set resolvePersonalTaskContainer(value) { resolvePersonalTaskContainer = value; },
+  get richText() { return richText; }, set richText(value) { richText = value; },
+  get saveRawSnapshotCache() { return saveRawSnapshotCache; }, set saveRawSnapshotCache(value) { saveRawSnapshotCache = value; },
+  get select() { return select; }, set select(value) { select = value; },
+  get serviceLink() { return serviceLink; }, set serviceLink(value) { serviceLink = value; },
+  get sharedPomodoro() { return sharedPomodoro; },
+  get snapshot() { return snapshot; }, set snapshot(value) { snapshot = value; },
+  get snapshotCache() { return snapshotCache; }, set snapshotCache(value) { snapshotCache = value; },
+  get snapshotCacheAt() { return snapshotCacheAt; }, set snapshotCacheAt(value) { snapshotCacheAt = value; },
+  get snapshotCacheBaseUrl() { return snapshotCacheBaseUrl; }, set snapshotCacheBaseUrl(value) { snapshotCacheBaseUrl = value; },
+  get snapshotEtag() { return snapshotEtag; }, set snapshotEtag(value) { snapshotEtag = value; },
+  get snapshotInFlight() { return snapshotInFlight; }, set snapshotInFlight(value) { snapshotInFlight = value; },
+  get snapshotMetadata() { return snapshotMetadata; }, set snapshotMetadata(value) { snapshotMetadata = value; },
+  get snapshotProgress() { return snapshotProgress; },
+  get snapshotProgressRevision() { return snapshotProgressRevision; }, set snapshotProgressRevision(value) { snapshotProgressRevision = value; },
+  get snapshotScope() { return snapshotScope; }, set snapshotScope(value) { snapshotScope = value; },
+  get streamSnapshotPart() { return streamSnapshotPart; }, set streamSnapshotPart(value) { streamSnapshotPart = value; },
+  get syncTaskSessionTitle() { return syncTaskSessionTitle; }, set syncTaskSessionTitle(value) { syncTaskSessionTitle = value; },
+  get taskAppLink() { return taskAppLink; }, set taskAppLink(value) { taskAppLink = value; },
+  get taskCache() { return taskCache; },
+  get taskConfig() { return taskConfig; }, set taskConfig(value) { taskConfig = value; },
+  get taskEstimateModule() { return taskEstimateModule; },
+  get taskEstimates() { return taskEstimates; },
+  get taskHistory() { return taskHistory; },
+  get taskManagement() { return taskManagement; },
+  get taskOptionCache() { return taskOptionCache; },
+  get taskOptionFlights() { return taskOptionFlights; },
+  get taskSources() { return taskSources; }, set taskSources(value) { taskSources = value; },
+  get taskStatusOptions() { return taskStatusOptions; },
+  get timerFromTask() { return timerFromTask; },
+  get timerSessionLog() { return timerSessionLog; },
+  get title() { return title; }, set title(value) { title = value; },
+  get uiAssets() { return uiAssets; },
+  get userCache() { return userCache; },
+  get validateImage() { return validateImage; },
+  get validateTaskEstimate() { return validateTaskEstimate; }, set validateTaskEstimate(value) { validateTaskEstimate = value; },
+  get withTaskEstimates() { return withTaskEstimates; }, set withTaskEstimates(value) { withTaskEstimates = value; },
+  get workTimer() { return workTimer; }
+};
+
+let { loadDotEnv, cleanId, checkConfig, notion, commentText, mapComment, resolveCommentAuthor, cachedTaskComments, listTaskComments, listEmployeeChatComments, createEmployeeChatComment, requestedCommentAuthor, addTaskComment, imageUploadId, ensureUploadedImage, validatedCommentAttachments, uploadTaskImageFile, mappedTaskImage, listTaskImages, deleteTaskImage, attachTaskImage, listChatThreads, listCommentNotifications, taskSourceOptions, taskFieldOptions, queryEndpoint, queryDatabase } = require('./server-notion')(serverContext);
+
+let { property, title, richText, number, select, personalDirectory, multiSelect, relationIds, dateStart, pomodoroModeDuration, pomodoroModeName, person, pageUrl, normalizeBaseUrl, appBaseUrl, serviceLink, linkPropertyName, taskAppLink, mapPlans, mapEquipment, machineRelationProperty, taskConfig } = require('./server-models')(serverContext);
+
+let { enrichCompletion, recordCompletion, recentTask, taskIsCompleted, relationFilter, taskSources, combineFilters, editedSinceFilter, equipmentTaskWindowFilter, changedCursor, collectionNeedsFull, syncError, queryTaskPages, buildTaskMap, buildSnapshotFromRawCache, mergePages, beginSnapshotProgress, completeSnapshotPart, progressiveSnapshot, equipmentSnapshotSpecs, personalSnapshotSpecs, streamSnapshotPart, syncEquipmentCollections, reconcileSnapshot, fullSync, incrementalSync, snapshot, snapshotUnbounded, zeroTaskCounts, countTasks, attachTaskCounts } = require('./server-snapshots')(serverContext);
+
+let { isLocalBaseUrl, patchServiceLink, syncServiceLinks, json, file, requestError, readBody, enforceAiRateLimit, ensureLayoutColorSchema, updateLayoutCaches, saveLayoutColor, saveLayout, notionDateStart, personalCalendarDate, buildTaskProperties, databaseParent, createText, createSelect, createNumber, planCreateProperties, equipmentCreateProperties, createPlan, createEquipment, validateTaskEstimate, persistTaskEstimate, withTaskEstimates, saveTask, createTask, archiveNotionPage, archiveElement, deleteTask } = require('./server-equipment')(serverContext);
+
+let { invalidatePersonalTasks, snapshotScope, cacheCall, snapshotMetadata, snapshotCollections, saveRawSnapshotCache, restoreRawSnapshotCache, checkbox, mapPersonalTask, mapPersonalContainer, personalNumber, inboxContainerId, personalInboxId, resolvePersonalTaskContainer, applyPersonalContainerDefaults, schedulePersonalContainerRepair, personalSnapshot, personalSnapshotUnbounded, personalSnapshotAfterMutation, personalContainerProperties, createPersonalContainer, savePersonalLayout, deletePersonalContainer } = require('./server-personal')(serverContext);
+
+let { listPageBlocks, blockRichText, blockContentText, getPersonalTaskContent, contentBlocks, replacePersonalTaskContent, listStructuredPageBlocks, loadStructuredBlockTree, decodeHtmlText, htmlToNotionRichText, structuredTableRows, structuredSimpleBlock, getPersonalTaskBlocks, structuredTablePlan, replacePersonalTaskBlocks } = require('./server-content')(serverContext);
+
+let { guardedAutosaveCreate, validatePersonalTaskContext, createPersonalTask, deletePersonalTask, savePersonalTask, savePersonalTaskUnlocked } = require('./server-task-writes')(serverContext);
+
+let { loadNotionPomodoroSessions, sharedPomodoroSnapshot, savePersonalPomodoro, savePersonalPomodoroUnlocked } = require('./server-pomodoro')(serverContext);
+
+let { aiChat, notionUsers, observeWrittenPage, mutationScopes, realtimePersonal, managementSnapshotWithTaskEstimates, accountTasks, allowedAccountIds, projectAccount, accountTask, accountAuthorize, syncTaskSessionTitle, workActor, workClock, workAccountTask, workTasks, teamSnapshot } = require('./server-access')(serverContext);
+
 const {validateImage,prepareNotionUpload}=require('./image-upload');
 const http = require('node:http');
 const fs = require('node:fs');
@@ -72,277 +256,14 @@ const LINK_PROPERTY_DEFAULT = 'ADIB link';
 const TASK_LINK_PROPERTY_DEFAULT = 'URL';
 const linkSyncState = { baseUrl: '', at: 0, inFlight: null };
 
-function loadDotEnv(file) {
-  if (!fs.existsSync(file)) return;
-  for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
-    const i = line.indexOf('=');
-    if (i < 0) continue;
-    const key = line.slice(0, i).trim();
-    const value = line.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
-    if (!process.env[key]) process.env[key] = value;
-  }
-}
-
-function cleanId(value) {
-  if (!value) return '';
-  const match = value.match(/[0-9a-f]{32}/i);
-  return match ? match[0] : value.replace(/[^0-9a-f-]/gi, '');
-}
-
-function checkConfig() {
-  const missing = [];
-  if (!TOKEN) missing.push('NOTION_TOKEN');
-  if (!PLAN_DB && !PLAN_DS) missing.push('PLAN_DATABASE_ID or PLAN_DATA_SOURCE_ID');
-  if (!MAKINA_DB && !MAKINA_DS) missing.push('MAKINA_DATABASE_ID or MAKINA_DATA_SOURCE_ID');
-  if (missing.length) throw new Error('Dəyişənlər doldurulmayıb: ' + missing.join(', '));
-}
-
-async function notion(endpoint, options = {}, apiVersion = NOTION_VERSION) {
-  checkConfig();
-  if(endpoint.endsWith('/query'))queryMetrics.notionQueries++;
-  else if(['POST','PATCH','DELETE'].includes(options.method))queryMetrics.notionWrites++;
-  const uploadOptions=TOKEN==='native'?options:prepareNotionUpload('https://api.notion.com/v1'+endpoint,options);
-  const readStarted=Date.now();
-  const response = await notionRate.request('https://api.notion.com/v1' + endpoint, {
-    ...uploadOptions,
-    headers: {
-      Authorization: 'Bearer ' + TOKEN,
-      'Notion-Version': apiVersion,
-      'Content-Type': 'application/json',
-      ...(uploadOptions.headers || {})
-    }
-  });
-  const text = await response.text();
-  let body;
-  try { body = JSON.parse(text); } catch { body = { message: text }; }
-  const remoteDate=Date.parse(response.headers?.get?.('date')||'');
-  if(body&&typeof body==='object'&&Number.isFinite(remoteDate))Object.defineProperty(body,'__readBarrier',{value:new Date(remoteDate-Math.max(0,Date.now()-readStarted)).toISOString()});
-  if (!response.ok) {
-    const error = new Error('Notion API ' + response.status + ': ' + (body.message || text));
-    error.notionStatus = response.status;
-    error.notionCode = body.code || '';
-    throw error;
-  }
-  if(response.ok&&['PATCH','POST','DELETE'].includes(options.method))observeWrittenPage(endpoint,body);
-  return body;
-}
-
-function commentText(comment) {
-  return (comment.rich_text || []).map(part => part.plain_text || part.text?.content || '').join('');
-}
-
-function mapComment(comment) {
-  const author = comment.created_by || {};
-  const rawText = commentText(comment);
-  // Only integration-authored comments use ADIB's [name] prefix.
-  // A person's native Notion comment must retain its exact text.
-  const authored = author.type === 'bot' ? rawText.match(/^\[([^\]]{1,120})\]\s([\s\S]*)$/) : null;
-  return {
-    id: comment.id,
-    text: authored ? authored[2] : rawText,
-    createdAt: comment.created_time || '',
-    authorId: author.id || '',
-    discussionId: comment.discussion_id || '',
-    authorName: authored ? authored[1] : (author.name || comment.display_name?.resolved_name || 'İstifadəçi Notion'),
-    attachments: (comment.attachments||[]).filter(a=>a.category==='image').map(a=>({category:'image',url:a.file?.url||a.file?.file?.url||'',expiryTime:a.file?.expiry_time||'',name:a.file?.name||'Şəkil'})).filter(a=>/^https:\/\//.test(a.url))
-  };
-}
-
-async function resolveCommentAuthor(comment) {
-  const mapped = mapComment(comment);
-  // Do not replace the service sender with the integration bot's profile.
-  if (!mapped.authorId || (comment.created_by?.type === 'bot' && /^\[([^\]]{1,120})\]\s/.test(commentText(comment)))) return mapped;
-  if (comment.created_by?.name) return mapped;
-  try {
-    const cached=await authorReads.read(mapped.authorId,{ttlMs:1800000,load:()=>notion('/users/'+encodeURIComponent(mapped.authorId),{method:'GET'})});
-    const user=cached.value;
-    mapped.authorName = user.name || mapped.authorName;
-  } catch (error) {
-    console.warn('Comment author lookup failed:', mapped.authorId, error.message);
-  }
-  return mapped;
-}
-
-async function cachedTaskComments(pageId,foreground=false){
- return commentReads.read(accountKey(pageId),{ttlMs:foreground?30000:300000,load:async()=>{
-  const items=[];let cursor=null;const seen=new Set();
-  do{const result=await notion('/comments?block_id='+encodeURIComponent(pageId)+(cursor?'&start_cursor='+encodeURIComponent(cursor):''),{method:'GET'});
-   items.push(...(result.results||[]));cursor=result.has_more?result.next_cursor:null;
-   if(result.has_more&&!cursor)throw Error('Missing comments pagination cursor');
-   if(cursor&&seen.has(cursor))throw Error('Repeated comments cursor');if(cursor)seen.add(cursor);
-  }while(cursor);
-  return (await Promise.all(items.map(resolveCommentAuthor))).sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)));
- }});
-}
-async function listTaskComments(body){
- const pageId=cleanId(String(body.id||'').trim());if(!pageId)throw new Error('Müəyyən edilməyib ID tapşırıq səhifələri');
- const result=await cachedTaskComments(pageId,true);return {ok:true,id:pageId,comments:result.value,...(result.stale?{stale:true,error:result.error}: {})};
-}
-
-async function listEmployeeChatComments(pageId,discussionId){
- const id=cleanId(String(pageId||'')),thread=String(discussionId||'');if(!id||!thread)return[];
- const result=await cachedTaskComments(id,true);return result.value.filter(comment=>comment.discussionId===thread);
-}
-async function createEmployeeChatComment({pageId,discussionId,user,text,attachments=[]}){
- const id=cleanId(String(pageId||'')),thread=String(discussionId||''),value=String(text||'').trim(),notionAttachments=await validatedCommentAttachments(attachments);
- if(!id||(!value&&!notionAttachments.length)||value.length>1850)throw Object.assign(Error('Personal söhbəti üçün səhifə, mətn və ya şəkil tələb olunur; mətn 1850 simvoldan qısa olmalıdır'),{statusCode:400});
- const authorName=String(user?.name||'Əməkdaş').replace(/[\[\]]/g,'').slice(0,120)||'Əməkdaş',storedText='['+authorName+'] '+(value||'📷 Şəkil');
- const payload={rich_text:[{type:'text',text:{content:storedText}}],...(notionAttachments.length?{attachments:notionAttachments}:{})};if(thread)payload.discussion_id=thread;else payload.parent={page_id:id};
- const raw=await notion('/comments',{method:'POST',body:JSON.stringify(payload)});let mapped=await resolveCommentAuthor(raw),nextThread=String(raw.discussion_id||thread||'');
- if(!nextThread){const cached=await cachedTaskComments(id,true);nextThread=cached.value.find(comment=>comment.id===raw.id)?.discussionId||'';}
- if(!nextThread)throw Object.assign(Error('Notion şərh mövzusunun identifikatorini qaytarmadı'),{statusCode:502});
- mapped.discussionId=nextThread;commentReads.append(accountKey(id),mapped);return {discussionId:nextThread,comment:mapped};
-}
-
-async function requestedCommentAuthor(body) {
-  const requestedId = String(body.authorId || '').trim();
-  if (requestedId) {
-    try {
-      const user = (await notionUsers()).find(item => item.id === requestedId);
-      if (user) return user.name || user.email || 'Tətbiq istifadəçisi';
-    } catch (error) {
-      console.warn('Comment profile lookup failed:', error.message);
-    }
-  }
-  return String(body.authorName || 'ilqar mamedov').trim().slice(0, 120) || 'ilqar mamedov';
-}
-
-async function addTaskComment(body) {
-  const pageId = cleanId(String(body.id || '').trim());
-  const text = String(body.text || '').trim().slice(0, 1850);
-  const attachments=await validatedCommentAttachments(body.attachments);
-  if (!pageId || (!text&&!attachments.length)) throw new Error('Lazımdır ID tapşırıqlar və mətn və ya şəkil');
-  const authorName = body.__account?.name || await requestedCommentAuthor(body);
-  const storedText = '[' + authorName.replace(/[\\[\\]]/g, '') + '] ' + (text||'Şəkil');
-  const comment = await notion('/comments', {
-    method: 'POST',
-    body: JSON.stringify({
-      parent: { page_id: pageId },
-      rich_text: [{ type: 'text', text: { content: storedText } }],...(attachments.length?{attachments}:{})
-    })
-  });
-  const mapped=await resolveCommentAuthor(comment);commentReads.append(accountKey(pageId),mapped);
-  return {ok:true,comment:mapped,savedAt:new Date().toISOString()};
-}
-
-function imageUploadId(value){const id=String(value||'');if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id))throw Object.assign(new Error('Etibarsızdır ID '),{statusCode:400});return id}
-async function ensureUploadedImage(value){const id=imageUploadId(value),file=await notion('/file_uploads/'+id,{method:'GET'});if(file.status!=='uploaded'||!['image/jpeg','image/png','image/gif','image/webp'].includes(file.content_type))throw Object.assign(new Error('Şəkil hələ yüklənməyib və ya format dəstəklənmir'),{statusCode:400});return id}
-async function validatedCommentAttachments(value){if(value===undefined)return[];if(!Array.isArray(value)||value.length>3)throw Object.assign(new Error('Şərhə 3-ə qədər şəkil əlavə edə bilərsiniz'),{statusCode:400});const result=[];for(const a of value){const id=await ensureUploadedImage(a?.file_upload_id);if(!result.some(x=>x.file_upload_id===id))result.push({type:'file_upload',file_upload_id:id});}return result}
-async function uploadTaskImageFile(body){const image=validateImage(body.image);if(body.id&&image.bytes.length>200*1024)throw Object.assign(new Error('Tapşırıq şəkli göndərilməzdən əvvəl 200 KB-a qədər sıxılmalıdır'),{statusCode:400});const created=await notion('/file_uploads',{method:'POST',body:JSON.stringify({mode:'single_part',filename:image.name,content_type:image.mime})});const id=imageUploadId(created.id);const sent=await notion('/file_uploads/'+id+'/send',{method:'POST',body:JSON.stringify({__adibMultipart:{name:image.name,mime:image.mime,data:image.data}})});if(sent.status!=='uploaded')throw new Error('Notion yükləməni təsdiq etmədi. Şəkil əlavə edilməyib.');return {ok:true,fileUploadId:id,name:image.name,mime:image.mime};}
 const taskPhotos=require('./task-photos').create({notion,sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}]});
-function mappedTaskImage(block){const image=block.image||{},url=image.file?.url||image.external?.url||'';return {id:block.id,url:/^https:\/\//.test(url)?url:'',expiryTime:image.file?.expiry_time||'',caption:(image.caption||[]).map(x=>x.plain_text||x.text?.content||'').join('')}}
-async function listTaskImages(idValue){const id=cleanId(String(idValue||''));if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları');return {ok:true,id,images:(await listPageBlocks(id)).filter(b=>b.type==='image').map(mappedTaskImage)};}
-async function deleteTaskImage(body){const id=cleanId(String(body.id||'')),blockId=cleanId(String(body.blockId||''));if(!id||!blockId)throw Object.assign(new Error('Tapşırıq və şəkil ID-si tələb olunur'),{statusCode:400});const image=(await listPageBlocks(id)).find(block=>accountKey(block.id)===accountKey(blockId)&&block.type==='image');if(!image)throw Object.assign(new Error('Şəkil bu tapşırıqda tapılmadı'),{statusCode:404});await notion('/blocks/'+encodeURIComponent(image.id),{method:'DELETE'});return {ok:true,id,blockId:image.id,deleted:true};}
-async function attachTaskImage(body){const id=cleanId(String(body.id||''));if(!id)throw new Error('Əvvəlcə tapşırığı yadda saxlayın');const fileUploadId=await ensureUploadedImage(body.fileUploadId);let result;try{result=await notion('/blocks/'+encodeURIComponent(id)+'/children',{method:'PATCH',body:JSON.stringify({children:[{object:'block',type:'image',image:{type:'file_upload',file_upload:{id:fileUploadId},caption:createText(String(body.caption||'').slice(0,500))}}]})})}catch(error){error.message+=' · Qoşma uğur qazana bilər. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.';throw error;}const block=result.results?.[0];if(!block?.id)throw new Error('Qoşma təsdiqi yoxdur. Lütfən, yenidən göndərməzdən əvvəl şəkillərinizi yeniləyin.');return {ok:true,id,blockId:block.id,image:mappedTaskImage(block)};}
-
-async function listChatThreads(body) {
-  const raw = Array.isArray(body.tasks) ? body.tasks : [];
-  const tasks = [...new Map(raw.map(item => {
-    const id = cleanId(String(item?.id || '').trim());
-    return [id, id ? {
-      id,
-      title: String(item?.title || 'Tapşırıq').trim().slice(0, 240) || 'Tapşırıq',
-      source: String(item?.source || '').trim().slice(0, 80),
-      machineName: String(item?.machineName || '').trim().slice(0, 160)
-    } : null];
-  }).filter(([id, item]) => id && item))].map(([, item]) => item).slice(0, 120);
-  const threads = [],errors=[];
-  // Keep Notion API pressure low; two concurrent comment requests at a time.
-  for (let i = 0; i < tasks.length; i += 2) {
-    const batch = await Promise.all(tasks.slice(i, i + 2).map(async task => {
-      try {
-        const result=await cachedTaskComments(task.id);const comments=result.value;if(result.stale)errors.push({taskId:task.id,error:result.error});
-        return comments.length ? { taskId: task.id, title: task.title, source: task.source, machineName: task.machineName, comments } : null;
-      } catch (error) {
-        errors.push({taskId:task.id,error:error.message});console.warn('Chat thread lookup failed:',task.id,error.message);
-        return null;
-      }
-    }));
-    threads.push(...batch.filter(Boolean));
-  }
-  threads.sort((a, b) => String(b.comments.at(-1)?.createdAt || '').localeCompare(String(a.comments.at(-1)?.createdAt || '')));
-  return {ok:true,threads,...(errors.length?{partial:true,errors}: {})};
-}
-
-async function listCommentNotifications(body) {
-  const rawIds = Array.isArray(body.ids) ? body.ids : String(body.ids || '').split(',');
-  const ids = [...new Set(rawIds.map(value => cleanId(String(value || '').trim())).filter(Boolean))].slice(0, 120);
-  const comments=[],errors=[];
-  for (const taskId of ids) {
-    try {
-      const result=await cachedTaskComments(taskId);if(result.stale)errors.push({taskId,error:result.error});for(const item of result.value)comments.push({...item,taskId});
-    } catch (error) {
-      errors.push({taskId,error:error.message});console.warn('Comment notification lookup failed:',taskId,error.message);
-    }
-  }
-  return {ok:true,comments,...(errors.length?{partial:true,errors}: {})};
-}
 
 // Schema-only reads: never scan task pages or alter Notion data.
 const taskOptionCache = new Map(), taskOptionFlights = new Map();
 const taskStatusOptions=require('./task-status-options').create({notion:(...args)=>notion(...args),config:taskConfig});
-async function taskSourceOptions(key, force=false) {
-  const specs = {personal:[TASKS_DS,TASKS_DB,{tags:'Tag',assignees:'Tapsirildi'}],todo:[TODO_DS,TODO_DB,{tapsirildi:'Tapsirildi'}],gorulen:[GORULEN_DS,GORULEN_DB,{tapsirildi:'Tapsirildi'}]};
-  const spec=specs[key];if(!spec)throw Object.assign(new Error('Naməlum variant mənbəyi'),{statusCode:400});
-  const cached=taskOptionCache.get(key);if(!force&&cached&&Date.now()-cached.at<300000)return cached.value;
-  if(taskOptionFlights.has(key))return taskOptionFlights.get(key);
-  const job=(async()=>{let schema;if(key!=='personal')schema=await taskStatusOptions.schema(key,force);else try{schema=await notion('/data_sources/'+spec[0],{method:'GET'});}catch(e){if(!/Notion API (400|404):/.test(e.message||'')||!spec[1])throw e;schema=await notion('/databases/'+spec[1],{method:'GET'},'2022-06-28');}
-    const value={};for(const [field,name] of Object.entries(spec[2])){const prop=schema.properties?.[name];if(!prop||!['multi_select','select'].includes(prop.type))throw new Error('Sahə '+name+' yoxdur və ya seçim siyahısı deyil');value[field]={type:prop.type,options:[...new Set((prop[prop.type]?.options||[]).map(o=>o.name).filter(x=>typeof x==='string'&&x.trim()))]};}
-    if(key!=='personal')Object.assign(value,taskStatusOptions.fields(schema,key));taskOptionCache.set(key,{at:Date.now(),value});return value;})();
-  taskOptionFlights.set(key,job);try{return await job;}finally{taskOptionFlights.delete(key);}
-}
-async function taskFieldOptions(source='',force=false){
-  if(source)return {[source]:await taskSourceOptions(source,force)};
-  const result={};for(const key of ['personal','todo','gorulen']){try{result[key]=await taskSourceOptions(key,force);}catch(e){result.errors=result.errors||{};result.errors[key]=e.message;}}return result;
-}
 
-async function queryEndpoint(endpoint, apiVersion, query = {}, onPage=null, priority='', resume={}) {
-  const rows = [];
-  let cursor=resume.nextCursor||undefined;
-  do {
-    const body = await notion(endpoint, {
-      method: 'POST',
-      ...(TOKEN==='native'&&priority?{headers:{'X-ADIB-Queue':priority}}:{}),
-      body: JSON.stringify({ page_size: 100, ...query, ...(cursor ? { start_cursor: cursor } : {}) })
-    }, apiVersion);
-    rows.push(...(body.results || []));
-    if(onPage)onPage(body.results||[],{hasMore:!!body.has_more,nextCursor:body.next_cursor||null,readBarrier:body.__readBarrier||''});
-    cursor = body.has_more ? body.next_cursor : null;
-  } while (cursor);
-  console.log('Notion query:', endpoint, '=>', rows.length, 'rows');
-  return rows;
-}
-
-async function queryDatabase(databaseId, dataSourceId = '', query = {}, onPage=null, priority='', resume={}) {
-  if (!databaseId && !dataSourceId) return [];
-  const candidates = [];
-  if (dataSourceId) candidates.push({ endpoint: '/data_sources/' + dataSourceId + '/query', version: NOTION_VERSION });
-  if (databaseId) candidates.push({ endpoint: '/databases/' + databaseId + '/query', version: '2022-06-28' });
-  let lastError;
-  for (const candidate of candidates) {
-    try {
-      const rows = await queryEndpoint(candidate.endpoint, candidate.version, query,onPage,priority,resume);
-      return rows;
-    } catch (error) {
-      lastError = error;
-      console.error('Notion query failed:', candidate.endpoint, error.message);
-      if(resume.nextCursor&&/cursor|pagination/i.test(error.message||''))throw error;
-      if(!/Notion API (400|404):/.test(error.message||''))throw error;
-    }
-  }
-  if (lastError) throw lastError;
-  return [];
-}
-
-function property(page, name) { return page.properties?.[name] || null; }
-function title(page, name) { return (property(page, name)?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
-function richText(page, name) { const value = property(page, name); return (value?.rich_text || value?.title || []).map(x => x.plain_text || x.text?.content || '').join('').trim(); }
-function number(page, name) { return property(page, name)?.number ?? null; }
-function select(page, name) { const p = property(page, name); return p?.select?.name || p?.status?.name || ''; }
 let personalDirectoryCache={at:0,rows:null,flight:null};
-async function personalDirectory(force=false){if(!force&&personalDirectoryCache.rows&&Date.now()-personalDirectoryCache.at<60000)return personalDirectoryCache.rows;if(personalDirectoryCache.flight)return personalDirectoryCache.flight;personalDirectoryCache.flight=(async()=>{const pages=await queryDatabase(PERSONAL_DIRECTORY_DB,PERSONAL_DIRECTORY_DS),rows=pages.filter(p=>!p.archived&&!p.in_trash).map(p=>({id:cleanId(p.id),name:title(p,'Name'),department:select(p,'Bolme'),url:p.url||''})).filter(p=>p.id&&p.name).sort((a,b)=>a.name.localeCompare(b.name,'az'));personalDirectoryCache={at:Date.now(),rows,flight:null};return rows;})().catch(error=>{personalDirectoryCache.flight=null;throw error});return personalDirectoryCache.flight;}
+
 const userPreferences=new UserPreferencesStore({
  file:path.join(path.dirname(accounts.file),'user-preferences.json'),
  notion:(...args)=>notion(...args),
@@ -355,128 +276,6 @@ const userPreferences=new UserPreferencesStore({
   return matches.length===1?matches[0].id:'';
  },
 });
-function multiSelect(page, name) { return (property(page, name)?.multi_select || []).map(x => x.name).filter(Boolean); }
-function relationIds(page, name) { return (property(page, name)?.relation || []).map(x => x.id); }
-function dateStart(page, name) { return property(page, name)?.date?.start || ''; }
-function pomodoroModeDuration(mode) { const value=String(mode||''); if(value.includes('Короткий')) return 5; if(value.includes('Длинный')) return 15; return 25; }
-function pomodoroModeName(mode,duration) { if(mode==='break') return Number(duration)===15?'Длинный перерыв — 15 мин':'Короткий перерыв — 5 мин'; return Number(duration)===25?'Работа — 25 мин':'Работа — 25 мин'; }
-function person(page, name) { const value = (property(page, name)?.people || [])[0]; return { id: value?.id || '', name: value?.name || value?.person?.email || '' }; }
-function pageUrl(page) { return page.url || ''; }
-function normalizeBaseUrl(value) {
-  let base = String(value || '').trim();
-  if (!base) return '';
-  if (!/^https?:\/\//i.test(base)) base = 'https://' + base;
-  return base.replace(/\/+$/, '');
-}
-function appBaseUrl(request) {
-  const configured = normalizeBaseUrl(PUBLIC_APP_URL);
-  if (configured) return configured;
-  const forwardedProto = String(request?.headers?.['x-forwarded-proto'] || '').split(',')[0].trim();
-  const protocol = forwardedProto || (request?.socket?.encrypted ? 'https' : 'http');
-  const host = request?.headers?.host || `localhost:${PORT}`;
-  return `${protocol}://${host}`.replace(/\/+$/, '');
-}
-function serviceLink(baseUrl, element, id, extra = {}) {
-  const base = normalizeBaseUrl(baseUrl);
-  if (!base || !id) return '';
-  const params = new URLSearchParams({ element, id: String(id), zoom: '2' });
-  for (const [key, value] of Object.entries(extra)) if (value) params.set(key, String(value));
-  return `${base}/ela-nov-paketleme-dynamic.html#${params.toString()}`;
-}
-function linkPropertyName(sourceKey) {
-  if (sourceKey === 'gorulen') return process.env.GORULEN_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
-  if (sourceKey === 'todo') return process.env.TODO_APP_URL_PROPERTY || TASK_LINK_PROPERTY_DEFAULT;
-  return process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT;
-}
-function taskAppLink(baseUrl, id, machineId = '', planId = '') {
-  const extra = machineId ? { machine: machineId } : planId ? { plan: planId } : {};
-  return serviceLink(baseUrl, 'task', id, extra);
-}
-
-function mapPlans(pages, baseUrl = '') {
-  return pages.map(page => ({
-    id: page.id,
-    name: title(page, 'Plan') || 'Adsız',
-    parentId: relationIds(page, 'Parent Plan')[0] || null,
-    type: select(page, 'Tip'),
-    color: select(page, 'Color'),
-    x: number(page, 'X') || 0,
-    y: number(page, 'Y') || 0,
-    width: number(page, 'Eni') || 2400,
-    height: number(page, 'Uzunluğu') || 1400,
-    scale: number(page, 'Scale') || 1,
-    status: select(page, 'Status'),
-    notionUrl: pageUrl(page),
-    serviceUrl: serviceLink(baseUrl, 'plan', page.id)
-  }));
-}
-
-function mapEquipment(pages, tasks, baseUrl = '') {
-  return pages.map(page => ({
-    id: page.id,
-    name: title(page, 'Makina') || 'Adsız',
-    planId: relationIds(page, 'Plan')[0] || null,
-    type: select(page, 'Tip'),
-    status: select(page, 'Status'),
-    color: select(page, 'Color'),
-    x: number(page, 'X') || 0,
-    y: number(page, 'Y') || 0,
-    width: number(page, 'Eni') || 100,
-    height: number(page, 'Uzunluğu') || 100,
-    rotation: number(page, 'Dönmə bucağı') || 0,
-    notionUrl: pageUrl(page),
-    serviceUrl: serviceLink(baseUrl, 'equipment', page.id),
-    tasks: tasks.get(page.id) || []
-  }));
-}
-
-function machineRelationProperty() {
-  // Both machine task databases expose the equipment relation as Makina.
-  return 'Makina';
-}
-
-function taskConfig(sourceKey) {
-  if (sourceKey === 'gorulen') return {
-    title: process.env.GORULEN_TITLE_PROPERTY || 'Gorulmeli isler',
-    process: process.env.GORULEN_STATUS_PROPERTY || 'Proses',
-    priority: process.env.GORULEN_PRIORITY_PROPERTY || 'Prioritet',
-    date: process.env.GORULEN_DATE_PROPERTY || 'Tarix',
-    assignee: process.env.GORULEN_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
-    relation: machineRelationProperty(),
-    planRelation: process.env.GORULEN_PLAN_RELATION_PROPERTY || 'Plan',
-    tapsirildi: process.env.GORULEN_TAPSIRILDI_PROPERTY || 'Tapsirildi',
-    gtdProperty: process.env.GORULEN_GTD_PROPERTY || 'GTD',
-    workTypeProperty: process.env.GORULEN_WORK_TYPE_PROPERTY || 'Is',
-    tagProperty: process.env.GORULEN_TAG_PROPERTY || 'Tag',
-    doneWork: process.env.GORULEN_DONE_WORK_PROPERTY || 'Gorulen is',
-    doneWorkType: process.env.GORULEN_DONE_WORK_TYPE || 'rich_text',
-    periodicProperty: process.env.GORULEN_PERIODIC_PROPERTY || 'Is',
-    periodicValue: process.env.GORULEN_PERIODIC_VALUE || 'Periodik',
-    database: GORULEN_DB,
-    dataSourceId: GORULEN_DS,
-    complete: process.env.GORULEN_COMPLETE_PROPERTY || 'Status',
-    linkProperty: linkPropertyName('gorulen')
-  };
-  return {
-    title: process.env.TODO_TITLE_PROPERTY || 'Name',
-    process: process.env.TODO_STATUS_PROPERTY || 'Proses',
-    priority: process.env.TODO_PRIORITY_PROPERTY || 'Prioritet',
-    date: process.env.TODO_DUE_PROPERTY || 'Tarix',
-    assignee: process.env.TODO_ASSIGNEE_PROPERTY || 'Kime tapsirilib',
-    gtdProperty: process.env.TODO_GTD_PROPERTY || 'GTD',
-    isciTagProperty: process.env.TODO_ISCI_TAG_PROPERTY || 'Isci tag',
-    gtdValue: process.env.TODO_GTD_VALUE || 'Check list',
-    relation: machineRelationProperty(),
-    planRelation: process.env.TODO_PLAN_RELATION_PROPERTY || 'Plan',
-    tapsirildi: process.env.TODO_TAPSIRILDI_PROPERTY || 'Tapsirildi',
-    doneWork: process.env.TODO_DONE_WORK_PROPERTY || 'Gorulen is',
-    doneWorkType: process.env.TODO_DONE_WORK_TYPE || 'rich_text',
-    database: TODO_DB,
-    dataSourceId: TODO_DS,
-    complete: process.env.TODO_COMPLETE_PROPERTY || 'Status',
-    linkProperty: linkPropertyName('todo')
-  };
-}
 
 const taskEstimateModule=require('./task-estimate');
 const taskEstimates=taskEstimateModule.create({
@@ -490,95 +289,6 @@ const taskEstimates=taskEstimateModule.create({
 
 const taskHistory=require('./task-history');
 const completionHistory=new taskHistory.CompletionHistory(process.env.COMPLETION_HISTORY_FILE||path.join(process.env.TASK_MANAGEMENT_FILE?path.dirname(process.env.TASK_MANAGEMENT_FILE):path.join(__dirname,'data'),'completion-history.json'));
-function enrichCompletion(task,page){return completionHistory.enrich(task,page,taskManagement.state.tasks[task.id]||{});}
-function recordCompletion(id,completed){const known=completionHistory.rows[id];if(completed&&known?.ignoredMetaAt&&known.ignoredMetaAt===taskManagement.state.tasks[id]?.completedAt)taskManagement.update({type:'completion',id,completed:false});return taskManagement.update({type:'completion',id,completed,...(completed?{completedAt:known?.done&&known.completedAt||new Date(taskHistory.now()).toISOString(),completionDateSource:known?.done?known.source:'recorded'}:{})});}
-function recentTask(task){return taskHistory.visible(task);}
-function taskIsCompleted(page, source) {
-  const checkbox = property(page, source.completeName)?.checkbox;
-  if (checkbox === true) return true;
-  const process = source.statusNames.map(name => select(page, name)).find(Boolean) || '';
-  return /^(done|complete|completed|is goruldu|tamamlandi|bitdi|bitib)$/i.test(process.trim());
-}
-
-function relationFilter(propertyName, pageIds) {
-  const filters = pageIds.map(id => ({ property: propertyName, relation: { contains: id } }));
-  if (!filters.length) return null;
-  return filters.length === 1 ? filters[0] : { or: filters };
-}
-
-function taskSources() {
-  const sources = [];
-  const todo = taskConfig('todo');
-  const gorulen = taskConfig('gorulen');
-  if (TODO_DB || TODO_DS) sources.push({ key: 'todo', databaseId: TODO_DB, dataSourceId: TODO_DS, source: 'ToDo', relationName: machineRelationProperty(), planRelationName: todo.planRelation, titleNames: [todo.title, 'ToDo', 'Name'], statusNames: [todo.process, 'Proses', 'Status'], priorityName: todo.priority, dateName: todo.date, assigneeName: todo.assignee, tapsirildiName: todo.tapsirildi, doneWorkName: todo.doneWork, doneWorkType: todo.doneWorkType, gtdName: todo.gtdProperty, gtdValue: todo.gtdValue, isciTagName: todo.isciTagProperty, completeName: todo.complete, linkProperty: todo.linkProperty });
-  if (GORULEN_DB || GORULEN_DS) sources.push({ key: 'gorulen', databaseId: GORULEN_DB, dataSourceId: GORULEN_DS, source: 'Gorulen isler', relationName: machineRelationProperty(), planRelationName: gorulen.planRelation, titleNames: [gorulen.title, 'Gorulmeli is', 'Name'], statusNames: [gorulen.process, 'Proses', 'Status'], priorityName: gorulen.priority, dateName: gorulen.date, assigneeName: gorulen.assignee, tapsirildiName: gorulen.tapsirildi, gtdName: gorulen.gtdProperty, workTypeName: gorulen.workTypeProperty, tagName: gorulen.tagProperty, doneWorkName: gorulen.doneWork, doneWorkType: gorulen.doneWorkType, periodicName: gorulen.periodicProperty, periodicValue: gorulen.periodicValue, completeName: gorulen.complete, linkProperty: gorulen.linkProperty });
-  return sources;
-}
-
-function combineFilters(...filters) {
-  const list = filters.flat().filter(Boolean);
-  if (!list.length) return null;
-  return list.length === 1 ? list[0] : { and: list };
-}
-
-function editedSinceFilter(since) {
-  const date=Date.parse(since);return Number.isFinite(date)?{timestamp:'last_edited_time',last_edited_time:{on_or_after:new Date(Math.max(0,date-120000)).toISOString()}}:null;
-}
-function equipmentTaskWindowFilter(dateName){
- const cutoff=new Date(Date.now()-taskHistory.WINDOW).toISOString(),recentEdit={timestamp:'last_edited_time',last_edited_time:{on_or_after:cutoff}};
- return dateName?{or:[{property:dateName,date:{on_or_after:cutoff}},recentEdit]}:recentEdit;
-}
-function changedCursor(pages,previous=''){let max=Date.parse(previous)||0;for(const p of pages)max=Math.max(max,Date.parse(p.last_edited_time)||0);return max?new Date(max).toISOString():previous;}
-function collectionNeedsFull(cursor,force,windowVersion=0){return force||!cursor?.since||!cursor.fullAt||Date.now()-cursor.fullAt>=FULL_RECONCILE_MS||cursor.fullAt>Date.now()+60000||windowVersion>0&&cursor.windowVersion!==windowVersion;}
-function syncError(part,error){return {part,error:String(error?.message||error||'Cavab yoxdur Notion').slice(0,700)};}
-
-
-async function queryTaskPages(machineIds = [], since = '', restrictToMachines = true) {
-  const queried = await Promise.all(taskSources().map(async source => {
-    try {
-      const filter = combineFilters(
-        restrictToMachines ? relationFilter(source.relationName, machineIds) : null,
-        editedSinceFilter(since),
-        equipmentTaskWindowFilter(source.dateName)
-      );
-      return { source, pages: await queryDatabase(source.databaseId, source.dataSourceId, filter ? { filter } : {}) };
-    } catch (error) {
-      console.error('Task source unavailable:', source.source, error.message);
-      return { source, pages: [] };
-    }
-  }));
-  return queried;
-}
-
-function buildTaskMap(pageSets, machineIds = [], baseUrl = '', includeCompleted = false) {
-  const result = new Map();
-  for (const { source, pages } of pageSets) {
-    for (const page of pages) {
-      const linkedMachines = relationIds(page, source.relationName);
-      const linkedPlan = relationIds(page, source.planRelationName)[0] || '';
-      if (!linkedMachines.length && !linkedPlan) continue;
-      if (machineIds.length && !linkedMachines.some(id => machineIds.includes(id)) && !linkedPlan) continue;
-      if (source.key === 'gorulen' && select(page, source.periodicName).trim().toLowerCase() === String(source.periodicValue).trim().toLowerCase()) continue;
-      if (source.key === 'todo' && select(page, source.gtdName).trim().toLowerCase() === String(source.gtdValue).trim().toLowerCase()) continue;
-      if(page.archived||page.in_trash)continue;
-      const taskTitle = source.titleNames.map(name => title(page, name)).find(Boolean) || 'Tapşırıq';
-      const taskStatus = source.statusNames.map(name => select(page, name)).find(Boolean) || 'Açıq';
-      const assignee = person(page, source.assigneeName);
-      const taskPriority = select(page, source.priorityName); let task = { id: page.id, sourceKey: source.key, title: taskTitle, meta: taskStatus, status: taskStatus, process: taskStatus, priority: taskPriority, urgent: String(taskPriority).trim() === '!!!', assigneeId: assignee.id, assigneeName: assignee.name, tapsirildi: multiSelect(page, source.tapsirildiName), gtd: select(page, source.gtdName), workType: select(page, source.workTypeName), isciTag: select(page, source.isciTagName), tag: select(page, source.tagName), doneWork: richText(page, source.doneWorkName), source: source.source, date: dateStart(page, source.dateName), dateEnd: property(page,source.dateName)?.date?.end||'', createdAt:page.created_time||'', machineId:linkedMachines[0]||'',machineIds:linkedMachines,completed: taskIsCompleted(page,source), parentId:taskManagement.state.tasks[page.id]?.parentId||'', estimateMinutes:taskEstimates.read(page), pomodoroCount:number(page,'Pomodoro количество')||0,pomodoroMinutes:number(page,'Pomodoro всего минут')||0, planId: linkedPlan || null, url: pageUrl(page), serviceUrl: serviceLink(baseUrl, 'task', page.id, linkedMachines[0] ? { machine: linkedMachines[0] } : { plan: linkedPlan }) };
-      task=enrichCompletion({...task,updatedAt:page.last_edited_time||''},page);if(!includeCompleted&&!taskHistory.visibleEquipment(task))continue;
-      for (const machineId of linkedMachines) {
-        if (!result.has(machineId)) result.set(machineId, []);
-        result.get(machineId).push(task);
-      }
-      if (!linkedMachines.length && linkedPlan) {
-        const key = `plan:${linkedPlan}`;
-        if (!result.has(key)) result.set(key, []);
-        result.get(key).push(task);
-      }
-    }
-  }
-  return result;
-}
 
 const rawCache = {
   plans: new Map(),
@@ -595,201 +305,15 @@ let snapshotCacheBaseUrl = '';
 const SNAPSHOT_CACHE_MS = 5000;
 const FULL_RECONCILE_MS = 2 * 60 * 60 * 1000;
 
-function buildSnapshotFromRawCache(baseUrl = '') {
-  const machinePages = [...rawCache.machines.values()];
-  const machineIds = machinePages.map(page => page.id);
-  const taskSets = taskSources().map(source => ({ source, pages: [...(rawCache.tasks.get(source.key) || new Map()).values()] }));
-  const tasks = buildTaskMap(taskSets, machineIds, baseUrl);
-  const mappedPlans = mapPlans([...rawCache.plans.values()], baseUrl).map(plan => ({ ...plan, tasks: tasks.get(`plan:${plan.id}`) || [] }));
-  const mappedEquipment = mapEquipment(machinePages, tasks, baseUrl);
-  attachTaskCounts(mappedPlans, mappedEquipment);
-  return { fetchedAt: new Date().toISOString(), plans: mappedPlans, equipment: mappedEquipment, pomodoroTasks:[...buildTaskMap(taskSets,machineIds,baseUrl,true).values()].flat().filter(task=>taskHistory.visibleEquipment(task)) };
-}
-
 const realtimeTombstones=new Map();
-function mergePages(target, pages) {
-  for (const page of pages) {
-    const deletedUntil=realtimeTombstones.get(page.id)||0;if(deletedUntil>Date.now()&&!page.archived&&!page.in_trash)continue;if(deletedUntil&&deletedUntil<=Date.now())realtimeTombstones.delete(page.id);
-    if (page.archived||page.in_trash) {
-      target.delete(page.id);
-      continue;
-    }
-    const existing = target.get(page.id);
-    if (!existing || !existing.last_edited_time || !page.last_edited_time || page.last_edited_time >= existing.last_edited_time) target.set(page.id, page);
-  }
-}
 
 // Native progressive reads expose completed collections without waiting for the slowest one.
 const snapshotProgress={personal:null,equipment:null},backgroundProgress={personal:null,equipment:null};
 const backgroundJobs=new Map();
 let rawStreamSaveAt=0;
 let snapshotProgressRevision=0;
-function beginSnapshotProgress(scope,specs,full,background=false){
- const state={revision:++snapshotProgressRevision,running:true,mode:full?'full':'incremental',pending:specs.map(s=>({key:s.key,part:s.label})),successful:[],available:[],loaded:{},pages:{},fullReads:[],resumedRecords:0,errors:[]};
- (background?backgroundProgress:snapshotProgress)[scope]=state;return state;
-}
-function completeSnapshotPart(state,spec,error){
- state.pending=state.pending.filter(x=>x.key!==spec.key);
- if(error)state.errors.push(syncError(spec.label,error));else state.successful.push(spec.key);
- state.revision=++snapshotProgressRevision;
-}
-function progressiveSnapshot(scope){
- const state=snapshotProgress[scope];
- const pomodoroTasks=scope==='personal'?[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask):null;
- const data=scope==='personal'?{tasks:pomodoroTasks.filter(recentTask),containers:[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer),pomodoroTasks,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB}:buildSnapshotFromRawCache();
- if(scope==='personal')applyPersonalContainerDefaults(data.pomodoroTasks,data.containers);
- return {...data,cache:{...cacheHealth},sync:state?{...state,partial:state.pending.length>0||state.errors.length>0}:{revision:0,running:false,successful:[],errors:[],pending:[],partial:true}};
-}
-function equipmentSnapshotSpecs(){return [{key:'plans',label:'Planlar',db:PLAN_DB,ds:PLAN_DS},{key:'machines',label:'Avadanlıq',db:MAKINA_DB,ds:MAKINA_DS},...taskSources().map(source=>({key:source.key,label:source.source,db:source.databaseId,ds:source.dataSourceId,dateName:source.dateName,windowVersion:1}))];}
-function personalSnapshotSpecs(){return [{key:'tasks',label:'Tapşırıqlarım',db:TASKS_DB,ds:TASKS_DS},{key:'containers',label:'Qovluqlar',db:PERSONAL_CONTAINERS_DB,ds:PERSONAL_CONTAINERS_DS}];}
-function streamSnapshotPart(progress,spec,target,cursors,force,light=false,valid=()=>true,background=false){
- const cursor=cursors[spec.key]||{},scopeKey=(cursors===personalRaw.cursors?'personal:':'equipment:')+spec.key;
- const sql=typeof fs.snapshotBatch==='function',checkpointKey=background?'auditResume':'resume';
- const readStartedAt=new Date().toISOString();
- const windowVersion=spec.windowVersion||0;
- let scan=(!force||background)&&cursor[checkpointKey]?structuredClone(cursor[checkpointKey]):null;
- if(scan&&scan.windowVersion!==windowVersion)scan=null;
- const resumed=!!scan;
- const isFull=scan?!!scan.isFull:(force||!cursor.fullAt||windowVersion>0&&cursor.windowVersion!==windowVersion||!light&&collectionNeedsFull(cursor,false,windowVersion));
- if(isFull)progress.fullReads.push(spec.key);
- if(!scan)scan={startedAt:readStartedAt,isFull,id:isFull?crypto.randomUUID():'',nextCursor:null,done:false,loaded:0,maxEdited:cursor.since||'',filterSince:cursor.since||'',windowVersion,...(!sql&&isFull?{baseline:[...target].map(([id,page])=>[id,page.last_edited_time||'']),seen:[]}: {})};
- if(resumed)progress.resumedRecords+=scan.loaded||0;
- if(scan.loaded){progress.available.push(spec.key);progress.pages[spec.key]=1;}
- const metadataFor=value=>snapshotMetadata({key:scopeKey,cursor:value});
- const commitCheckpoint=(next,pages,begin=false)=>{
-  const state={...(cursors[spec.key]||cursor),[checkpointKey]:next};
-  if(sql){cacheCall(()=>begin?fs.snapshotBegin(snapshotScope(),scopeKey,next.id,metadataFor(state)):fs.snapshotBatch(snapshotScope(),scopeKey,pages,next.id,metadataFor(state)));cursors[spec.key]=state;}
-  else{cursors[spec.key]=state;mergePages(target,pages);saveRawSnapshotCache();}
- };
- if(!resumed){try{commitCheckpoint(scan,[],isFull);}catch(error){completeSnapshotPart(progress,spec,error);return Promise.reject(syncError(spec.label,error));}}
- const filter=combineFilters(isFull?null:editedSinceFilter(scan.filterSince),windowVersion?equipmentTaskWindowFilter(spec.dateName):null);
- const query={...(filter?{filter}:{}),sorts:[{timestamp:'last_edited_time',direction:'descending'}]};
- const read=scan.done?Promise.resolve([]):queryDatabase(spec.db,spec.ds,query,(page,info)=>{
-  if(!valid())return;
-  const next={...scan,nextCursor:info.nextCursor,done:!info.hasMore,loaded:scan.loaded+page.length,maxEdited:changedCursor(page,scan.maxEdited),readBarrier:scan.readBarrier||info.readBarrier||''};
-  if(!sql&&isFull)next.seen=[...new Set([...(scan.seen||[]),...page.map(p=>p.id)])];
-  // SQL commits each page and its next cursor atomically; never advance the completed-read watermark early.
-  commitCheckpoint(next,page);scan=next;mergePages(target,page);
-  progress.loaded[spec.key]=(progress.loaded[spec.key]||0)+page.length;
-  progress.pages[spec.key]=(progress.pages[spec.key]||0)+1;
-  if(!progress.available.includes(spec.key))progress.available.push(spec.key);
-  progress.revision=++snapshotProgressRevision;
- },background?'history':'interactive',scan);
- return read.then(()=>{
-  if(valid()){
-   const current=cursors[spec.key]||{};const finished={...current,...(windowVersion?{windowVersion}:{}),since:scan.readBarrier||scan.maxEdited||current.since||scan.startedAt||readStartedAt,fullAt:isFull?Date.now():current.fullAt,error:background?(current.error||''):'',auditError:''};delete finished[checkpointKey];
-   if(sql){const removed=cacheCall(()=>fs.snapshotFinish(snapshotScope(),scopeKey,scan.id,metadataFor(finished)))||[];for(const id of removed)target.delete(id);cursors[spec.key]=finished;}
-   else{if(isFull){const seen=new Set(scan.seen||[]);for(const [id,edited] of scan.baseline||[]){const live=target.get(id);if(!seen.has(id)&&live&&live.last_edited_time===edited)target.delete(id);}}cursors[spec.key]=finished;saveRawSnapshotCache();}
-  }
-  completeSnapshotPart(progress,spec);return spec.key;
- }).catch(error=>{if(valid()){const current=cursors[spec.key]||cursor;cursors[spec.key]={...current,[background?'auditError':'error']:String(error.message||error)};if(/Notion API 400:.*(?:cursor|pagination)/i.test(error.message||''))delete cursors[spec.key][checkpointKey];saveRawSnapshotCache();}completeSnapshotPart(progress,spec,error);throw syncError(spec.label,error);});
-}
-async function syncEquipmentCollections(full,startedAt,baseUrl='',retry=false,light=false){
- rawCache.cursors=rawCache.cursors||{};
- const specs=equipmentSnapshotSpecs(),failed=specs.filter(x=>rawCache.cursors[x.key]?.error),selected=retry&&failed.length?failed:specs;
- const progress=beginSnapshotProgress('equipment',selected,full);
- const results=await Promise.allSettled(selected.map(spec=>streamSnapshotPart(progress,spec,spec.key==='plans'?rawCache.plans:spec.key==='machines'?rawCache.machines:rawCache.tasks.get(spec.key),rawCache.cursors,full,light)));
- const errors=results.filter(x=>x.status==='rejected').map(x=>x.reason),successful=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
- progress.running=false;progress.revision=++snapshotProgressRevision;
- if(!successful.length&&errors.length)throw Object.assign(new Error(errors.map(x=>x.part+': '+x.error).join('; ')),{statusCode:503,code:'SNAPSHOT_READ_FAILED'});
- rawCache.lastSyncAt=startedAt;if(!errors.length)rawCache.lastFullSyncAt=Date.now();saveRawSnapshotCache();
- return {...buildSnapshotFromRawCache(baseUrl),sync:{mode:full?'full':'incremental',successful,errors,partial:errors.length>0}};
-}
+
 // Low-priority historical reconciliation has its own job; normal delta reads never join it.
-function reconcileSnapshot(scope){
- if(backgroundJobs.has(scope))return backgroundJobs.get(scope);
- const personal=scope==='personal',cursors=personal?personalRaw.cursors:(rawCache.cursors=rawCache.cursors||{});
- const specs=(personal?personalSnapshotSpecs():equipmentSnapshotSpecs()).filter(spec=>{const c=cursors[spec.key];return c?.fullAt&&!c.error&&collectionNeedsFull(c,false,spec.windowVersion||0);});
- if(!specs.length)return Promise.resolve(null);
- const generation=personalTasksGeneration,valid=()=>!personal||generation===personalTasksGeneration;
- const progress=beginSnapshotProgress(scope,specs,true,true);
- const work=(async()=>{for(const spec of specs){try{await streamSnapshotPart(progress,spec,personal?personalRaw[spec.key]:spec.key==='plans'?rawCache.plans:spec.key==='machines'?rawCache.machines:rawCache.tasks.get(spec.key),cursors,true,true,valid,true);}catch{/* Specific error is already recorded in the audit state. */}}
-  progress.running=false;progress.revision=++snapshotProgressRevision;
-  snapshotCache=null;personalTasksCache=null;saveRawSnapshotCache();return progress;
- })().finally(()=>backgroundJobs.delete(scope));backgroundJobs.set(scope,work);return work;
-}
-async function fullSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(true,startedAt,baseUrl,retry,light);}
-async function incrementalSync(startedAt,baseUrl='',retry=false,light=false){return syncEquipmentCollections(false,startedAt,baseUrl,retry,light);}
-
-function snapshot(full=false,baseUrl='',fresh=false,retry=false,light=false){return queryPolicy.run('equipment',{refresh:full||fresh||retry,cached:()=>snapshotCache?(snapshotCacheBaseUrl===baseUrl?snapshotCache:{...buildSnapshotFromRawCache(baseUrl),sync:snapshotCache.sync}):null,load:()=>snapshotUnbounded(full,baseUrl,fresh,retry,light)});}
-async function snapshotUnbounded(full = false, baseUrl = '', fresh=false,retry=false,light=false) {
-  if (snapshotCache && !full && !fresh && snapshotCacheBaseUrl === baseUrl && Date.now() - snapshotCacheAt < SNAPSHOT_CACHE_MS) return snapshotCache;
-  if (snapshotInFlight) return snapshotInFlight;
-  const startedAt = new Date().toISOString();
-  const needsFull = full || (!light&&!rawCache.lastSyncAt);
-  snapshotInFlight = (needsFull ? fullSync(startedAt, baseUrl,retry,light) : incrementalSync(startedAt, baseUrl,retry,light))
-    .then(result => { const payload = JSON.stringify({ plans: result.plans || [], equipment: result.equipment || [], pomodoroTasks:result.pomodoroTasks||[] }); snapshotEtag = '"' + crypto.createHash('sha1').update(payload).digest('hex') + '"'; result.etag = snapshotEtag; snapshotCache = result; snapshotCacheBaseUrl = baseUrl; snapshotCacheAt = Date.now(); return result; })
-    .finally(() => { snapshotInFlight = null; });
-  return snapshotInFlight;
-}
-
-function zeroTaskCounts() { return { gorulen: 0, todo: 0, total: 0, urgent: 0,open:0,done:0 }; }
-function countTasks(tasks) { return taskHistory.counts(tasks); }
-function attachTaskCounts(plans, equipment) {
-  const own = new Map();
-  for (const machine of equipment) { machine.taskCounts = countTasks(machine.tasks); const current = own.get(machine.planId) || zeroTaskCounts(); current.open+=machine.taskCounts.open;current.done+=machine.taskCounts.done;current.gorulen += machine.taskCounts.gorulen; current.todo += machine.taskCounts.todo; current.total += machine.taskCounts.total; current.urgent += machine.taskCounts.urgent || 0; own.set(machine.planId, current); }
-  for (const plan of plans) { const current = own.get(plan.id) || zeroTaskCounts(); const direct = countTasks(plan.tasks); current.open+=direct.open;current.done+=direct.done;current.gorulen += direct.gorulen; current.todo += direct.todo; current.total += direct.total; current.urgent += direct.urgent; own.set(plan.id, current); }
-  const children = new Map();
-  for (const plan of plans) { const list = children.get(plan.parentId || '') || []; list.push(plan); children.set(plan.parentId || '', list); }
-  const visit = plan => { const counts = own.get(plan.id) || zeroTaskCounts(); for (const child of children.get(plan.id) || []) { const childCounts = visit(child); counts.open+=childCounts.open;counts.done+=childCounts.done;counts.gorulen += childCounts.gorulen; counts.todo += childCounts.todo; counts.total += childCounts.total; } plan.taskCounts = counts; return counts; };
-  for (const plan of plans.filter(p => !p.parentId)) visit(plan);
-}
-
-function isLocalBaseUrl(baseUrl) {
-  try { return /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(new URL(baseUrl).host); }
-  catch { return true; }
-}
-
-async function patchServiceLink(page, propertyName, link) {
-  if (!page || !propertyName || !link) return false;
-  const current = property(page, propertyName)?.url || '';
-  if (current === link) return false;
-  await notion('/pages/' + encodeURIComponent(page.id), {
-    method: 'PATCH',
-    body: JSON.stringify({ properties: { [propertyName]: { url: link } } })
-  });
-  return true;
-}
-
-async function syncServiceLinks(baseUrl, force = false) {
-  const normalized = normalizeBaseUrl(baseUrl);
-  if (!normalized || (isLocalBaseUrl(normalized) && !PUBLIC_APP_URL)) {
-    return { ok: true, skipped: true, reason: 'İctimaiyyətə ehtiyac var PUBLIC_APP_URL' };
-  }
-  if (!force && linkSyncState.baseUrl === normalized && Date.now() - linkSyncState.at < LINK_SYNC_TTL_MS) {
-    return { ok: true, skipped: true, updated: 0 };
-  }
-  if (linkSyncState.inFlight) return linkSyncState.inFlight;
-  linkSyncState.inFlight = (async () => {
-    const targets = [];
-    const machines = await queryDatabase(MAKINA_DB, MAKINA_DS);
-    for (const page of machines) targets.push({ page, propertyName: process.env.MAKINA_LINK_PROPERTY || LINK_PROPERTY_DEFAULT, link: serviceLink(normalized, 'equipment', page.id) });
-    for (const source of taskSources()) {
-      const pages = await queryDatabase(source.databaseId, source.dataSourceId);
-      for (const page of pages) {
-        const machineId = relationIds(page, source.relationName)[0] || '';
-        const planId = relationIds(page, source.planRelationName)[0] || '';
-        if (!machineId && !planId) continue;
-        targets.push({ page, propertyName: source.linkProperty || TASK_LINK_PROPERTY_DEFAULT, link: taskAppLink(normalized, page.id, machineId, planId) });
-      }
-    }
-    let updated = 0;
-    let failed = 0;
-    for (let i = 0; i < targets.length; i += 8) {
-      const batch = targets.slice(i, i + 8);
-      const results = await Promise.all(batch.map(async target => {
-        try { return await patchServiceLink(target.page, target.propertyName, target.link); }
-        catch (error) { failed++; console.warn('Service link update failed:', target.page.id, error.message); return false; }
-      }));
-      updated += results.filter(Boolean).length;
-    }
-    linkSyncState.baseUrl = normalized;
-    linkSyncState.at = Date.now();
-    console.log('Service links synced:', updated, 'updated,', failed, 'failed');
-    return { ok: true, updated, failed, total: targets.length, baseUrl: normalized };
-  })().finally(() => { linkSyncState.inFlight = null; });
-  return linkSyncState.inFlight;
-}
 
 const taskCache = new Map();
 const userCache = { value: null, at: 0 };
@@ -800,73 +324,6 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
 };
-
-function json(response, status, body, extraHeaders = {}) {
-  if(status>=400&&typeof body?.error==='string'&&/^Notion API \d+:/i.test(body.error)){body={...body,technicalDetails:body.error,error:body.error.startsWith('Notion API 400:')?'Notion sahə xətası: '+body.error.slice('Notion API 400:'.length).trim():'Notion əməliyyatı alınmadı. HTTP '+(body.error.match(/Notion API (\d+)/)?.[1]||status)+'. Yenidən cəhd edin.'};}
-
-  if(response.__accountRequest&&status<300)accounts.user(response.__accountRequest);
-  if(response.__account&&status<300&&response.__account.disabled)throw accessError('Giriş qeyri-aktivdir',401);
-  if(response.__account&&status<300&&response.__accountScope)body=projectAccount(response.__account,response.__accountScope,body);
-  response.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': CORS_ORIGIN,
-    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization',
-    'Cache-Control': 'no-store',
-    ...SECURITY_HEADERS,
-    ...extraHeaders
-  });
-  response.end(JSON.stringify(body));
-  if(status>=200&&status<300&&body?.ok!==false&&response.__realtimeScopes?.length)realtime.invalidate(response.__realtimeScopes);
-}
-
-function file(response, filename, contentType = 'text/html; charset=utf-8', cacheControl = 'no-store', request = null) {
-  const encoded=contentType.startsWith('text/html')?uiAssets.encodeHtml(filename,request?.headers||{}):{body:fs.readFileSync(filename),headers:{}};
-  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl, ...SECURITY_HEADERS, ...encoded.headers });
-  response.end(encoded.body);
-}
-
-function requestError(message, statusCode) {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  return error;
-}
-
-function readBody(request) {
-  if(request.__accountBody!==undefined)return Promise.resolve(request.__accountBody);
-  return new Promise((resolve, reject) => {
-    let body = '';
-    let bytes = 0;
-    let settled = false;
-    request.on('data', chunk => {
-      if (settled) return;
-      bytes += Buffer.byteLength(chunk);
-      if (bytes > (String(request.url||'').split('?')[0]==='/api/image-upload'?8*1024*1024:100000)) {
-        settled = true;
-        reject(requestError('Sorğunun ölçüsü icazə verilən limiti keçir', 413));
-        request.resume();
-        return;
-      }
-      body += chunk;
-    });
-    request.on('end', () => {
-      if (settled) return;
-      try { resolve(JSON.parse(body || '{}')); }
-      catch { reject(requestError('Etibarsızdır JSON sorğuda', 400)); }
-    });
-    request.on('error', error => { if (!settled) reject(error); });
-  });
-}
-
-function enforceAiRateLimit() {
-  const now = Date.now();
-  while (aiRequestTimes.length && now - aiRequestTimes[0] >= AI_RATE_WINDOW_MS) aiRequestTimes.shift();
-  if (aiRequestTimes.length >= AI_REQUESTS_PER_MINUTE) {
-    const error = requestError('Çoxlu sorğular AI. Bir dəqiqə sonra yenidən cəhd edin.', 429);
-    error.retryAfter = Math.max(1, Math.ceil((AI_RATE_WINDOW_MS - (now - aiRequestTimes[0])) / 1000));
-    throw error;
-  }
-  aiRequestTimes.push(now);
-}
 
 const LAYOUT_COLORS = [
   { name: 'Mavi', color: 'blue', hex: '#dcecf8' },
@@ -880,286 +337,10 @@ const LAYOUT_COLORS = [
 const layoutColorSchemaFlights = new Map();
 const layoutColorSchemaReady = new Set();
 
-async function ensureLayoutColorSchema(kind) {
-  if (layoutColorSchemaReady.has(kind)) return;
-  if (layoutColorSchemaFlights.has(kind)) return layoutColorSchemaFlights.get(kind);
-  const config = kind === 'plan'
-    ? { database: PLAN_DB, dataSource: PLAN_DS }
-    : { database: MAKINA_DB, dataSource: MAKINA_DS };
-  const flight = (async () => {
-    let endpoint = config.dataSource ? '/data_sources/' + encodeURIComponent(config.dataSource) : '';
-    let version = NOTION_VERSION;
-    let schema;
-    try {
-      if (!endpoint) throw new Error('Data source is not configured');
-      schema = await notion(endpoint, { method: 'GET' });
-    } catch (error) {
-      if (!config.database || (endpoint && !/Notion API (400|404):/.test(error.message || ''))) throw error;
-      endpoint = '/databases/' + encodeURIComponent(config.database);
-      version = '2022-06-28';
-      schema = await notion(endpoint, { method: 'GET' }, version);
-    }
-    const existing = schema.properties?.Color;
-    if (existing && existing.type !== 'select') {
-      throw new Error('Notion sahəsi Color seçim siyahısı deyil; mövcud sahəni dəyişmədim.');
-    }
-    const existingOptions = (existing?.select?.options || []).map(option => ({
-      name: option.name,
-      ...(option.color ? { color: option.color } : {})
-    }));
-    const names = new Set(existingOptions.map(option => option.name));
-    const missing = LAYOUT_COLORS.filter(option => !names.has(option.name));
-    if (!existing || missing.length) {
-      const options = [...existingOptions, ...missing.map(({ name, color }) => ({ name, color }))];
-      await notion(endpoint, {
-        method: 'PATCH',
-        body: JSON.stringify({ properties: { Color: { select: { options } } } })
-      }, version);
-    }
-    layoutColorSchemaReady.add(kind);
-  })().finally(() => layoutColorSchemaFlights.delete(kind));
-  layoutColorSchemaFlights.set(kind, flight);
-  return flight;
-}
-
-function updateLayoutCaches(id, values) {
-  const page = rawCache.plans.get(id) || rawCache.machines.get(id);
-  if (page) {
-    page.properties = page.properties || {};
-    for (const [name, value] of Object.entries({ X: values.x, Y: values.y, Eni: values.width, Uzunluğu: values.height })) {
-      page.properties[name] = { ...(page.properties[name] || {}), type: 'number', number: value };
-    }
-    if (Object.prototype.hasOwnProperty.call(values, 'parentId')) page.properties['Parent Plan'] = { type: 'relation', relation: values.parentId ? [{ id: values.parentId }] : [] };
-    if (Object.prototype.hasOwnProperty.call(values, 'planId')) page.properties.Plan = { type: 'relation', relation: values.planId ? [{ id: values.planId }] : [] };
-    if (Object.prototype.hasOwnProperty.call(values, 'color')) page.properties.Color = { type: 'select', select: values.color ? { name: values.color } : null };
-    page.last_edited_time = new Date().toISOString();
-  }
-  if (snapshotCache) {
-    for (const item of [...(snapshotCache.plans || []), ...(snapshotCache.equipment || [])]) {
-      if (item.id === id) Object.assign(item, values);
-    }
-    snapshotCache.fetchedAt = new Date().toISOString();
-  }
-  // Keep Railway's mounted raw snapshot in step with a successful Notion PATCH;
-  // otherwise a process restart can restore the old coordinates from disk.
-  saveRawSnapshotCache();
-}
-
-async function saveLayoutColor(body) {
-  const id = cleanId(String(body.id || '').trim());
-  const color = String(body.color || '').trim();
-  if (!id) throw Object.assign(new Error('Element ID-si tələb olunur'), { statusCode: 400 });
-  if (color && !LAYOUT_COLORS.some(option => option.name === color)) {
-    throw Object.assign(new Error('Rəng siyahıdan seçilməlidir'), { statusCode: 400 });
-  }
-  const kind = rawCache.plans.has(id) ? 'plan' : rawCache.machines.has(id) ? 'equipment' : '';
-  if (!kind) throw Object.assign(new Error('Plan və ya avadanlıq tapılmadı'), { statusCode: 404 });
-  await ensureLayoutColorSchema(kind === 'plan' ? 'plan' : 'equipment');
-  await notion('/pages/' + encodeURIComponent(id), {
-    method: 'PATCH',
-    body: JSON.stringify({ properties: { Color: color ? { select: { name: color } } : { select: null } } })
-  });
-  const values = { color };
-  updateLayoutCaches(id, values);
-  realtime.invalidate(['equipment']);
-  console.log('Layout color saved:', id, color || '(automatic)');
-  return { ok: true, id, color, savedAt: new Date().toISOString() };
-}
-
-async function saveLayout(body) {
-  const id = String(body.id || '').trim();
-  const values = { x: Number(body.x), y: Number(body.y), width: Number(body.width), height: Number(body.height) };
-  if (body.planId !== undefined) values.planId = body.planId ? cleanId(String(body.planId)) : null;
-  if (!id || ['x', 'y', 'width', 'height'].some(key => !Number.isFinite(values[key]))) {
-    throw new Error('Lazımdır id, x, y, width və height');
-  }
-  const properties = {
-    X: { number: values.x },
-    Y: { number: values.y },
-    Eni: { number: values.width },
-    Uzunluğu: { number: values.height }
-  };
-  if (body.parentId !== undefined) {
-    const parentId = body.parentId ? cleanId(String(body.parentId)) : '';
-    if (parentId === id) throw new Error('Plan öz daxilində yerləşdirilə bilməz');
-    properties['Parent Plan'] = { relation: parentId ? [{ id: parentId }] : [] };
-    values.parentId = parentId || null;
-  }
-  if (body.planId !== undefined) properties.Plan = { relation: values.planId ? [{ id: values.planId }] : [] };
-  const writtenPage = await notion('/pages/' + encodeURIComponent(id), {
-    method: 'PATCH',
-    body: JSON.stringify({ properties })
-  });
-  const savedProperties = writtenPage?.properties || {};
-  const confirmed = {
-    x: savedProperties.X?.number,
-    y: savedProperties.Y?.number,
-    width: savedProperties.Eni?.number,
-    height: savedProperties['Uzunluğu']?.number
-  };
-  const mismatches = Object.entries({ x: values.x, y: values.y, width: values.width, height: values.height })
-    .filter(([key, expected]) => !Number.isFinite(confirmed[key]) || Math.abs(confirmed[key] - expected) > 0.001);
-  if (mismatches.length) {
-    const actual = mismatches.map(([key]) => key + '=' + String(confirmed[key])).join(', ');
-    const expected = mismatches.map(([key, value]) => key + '=' + String(value)).join(', ');
-    throw Object.assign(new Error('Notion координаттарды тастыкламады. Сақталуы керек: ' + expected + '; Notion қайтарды: ' + actual), {
-      statusCode: 502,
-      code: 'NOTION_LAYOUT_SAVE_UNCONFIRMED'
-    });
-  }
-  updateLayoutCaches(id, values);
-  realtime.invalidate(['equipment']);
-  console.log('Layout saved and confirmed by Notion:', id, confirmed);
-  return { ok: true, id, values, confirmedFromNotion: confirmed, savedAt: new Date().toISOString() };
-}
-
-function notionDateStart(value) {
-  const text = String(value ?? '').trim();
-  if (!text) return '';
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) ? text + ':00' : text;
-}
-
-
 // A calendar range lives in the existing Notion Tarix date property; no separate timer or estimate.
-function personalCalendarDate(body,previous={}) {
- const invalid=message=>{throw Object.assign(new Error(message),{statusCode:400,code:'INVALID_CALENDAR_RANGE'});};
- if(body.date===undefined){if(body.dateEnd!==undefined)invalid('Sonu ilə birlikdə başlanğıcı da göstərin');return undefined;}
- const start=notionDateStart(body.date);
- if(!start){if(body.dateEnd)invalid('Bitirmək üçün başlanğıc lazımdır');return null;}
- let end=body.dateEnd===undefined?null:body.dateEnd?notionDateStart(body.dateEnd):null;
- if(body.dateEnd===undefined&&start.includes('T')&&previous.date&&previous.dateEnd){const duration=Date.parse(previous.dateEnd)-Date.parse(previous.date);if(duration>0&&duration<=7*86400000&&Number.isFinite(Date.parse(start)))end=new Date(Date.parse(start)+duration).toISOString();}
- if(end){if(!start.includes('T')||!end.includes('T')||!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>7*86400000)invalid('Təqvim intervalı: başladıqdan sonra bitir, 7 gündən çox olmayaraq');}
- return {start,end};
-}
-
-function buildTaskProperties(body, config, includeMachine = false) {
-  const properties = {};
-  const textBlocks = value => { const content = String(value ?? '').trim().slice(0, 2000); return content ? [{ type: 'text', text: { content } }] : []; };
-  if (body.title !== undefined) properties[config.title] = { title: [{ type: 'text', text: { content: String(body.title).trim().slice(0, 2000) || 'Tapşırıq' } }] };
-  if (body.process !== undefined && String(body.process).trim()) properties[config.process] = { status: { name: String(body.process).trim() } };
-  if (body.priority !== undefined && String(body.priority).trim()) properties[config.priority] = { status: { name: String(body.priority).trim() } };
-  if (body.date !== undefined) properties[config.date] = { date: personalCalendarDate(body) };
-  if (body.assigneeId !== undefined) properties[config.assignee] = { people: body.assigneeId ? [{ object: 'user', id: String(body.assigneeId) }] : [] };
-  if (body.tapsirildi !== undefined) properties[config.tapsirildi] = { multi_select: (Array.isArray(body.tapsirildi) ? body.tapsirildi : []).filter(Boolean).map(name => ({ name: String(name) })) };
-  if (body.gtd !== undefined && config.gtdProperty) properties[config.gtdProperty] = body.gtd ? { status: { name: String(body.gtd).trim() } } : { status: null };
-  if (body.workType !== undefined && config.workTypeProperty) properties[config.workTypeProperty] = body.workType ? { status: { name: String(body.workType).trim() } } : { status: null };
-  if (body.isciTag !== undefined && config.isciTagProperty) properties[config.isciTagProperty] = body.isciTag ? { select: { name: String(body.isciTag).trim() } } : { select: null };
-  if (body.tag !== undefined && config.tagProperty) properties[config.tagProperty] = body.tag ? { select: { name: String(body.tag).trim() } } : { select: null };
-  if (body.doneWork !== undefined) properties[config.doneWork] = config.doneWorkType === 'title' ? { title: textBlocks(body.doneWork) } : { rich_text: textBlocks(body.doneWork) };
-  if (body.completed !== undefined) properties[config.complete] = { checkbox: Boolean(body.completed) };
-  if (includeMachine && body.machineId) properties[config.relation] = { relation: [{ id: String(body.machineId) }] };
-  if (body.planId) properties[config.planRelation] = { relation: [{ id: String(body.planId) }] };
-  return properties;
-}
-
-
-function databaseParent(databaseId, dataSourceId) {
-  return databaseId ? { database_id: databaseId } : { data_source_id: dataSourceId };
-}
-function createText(value) {
-  const content=String(value??'').trim().slice(0,2000);
-  return content ? [{type:'text',text:{content}}] : [];
-}
-function createSelect(name,value){const clean=String(value||'').trim();return clean?{[name]:{select:{name:clean}}}:{};}
-function createNumber(name,value,fallback){const n=Number(value);return {[name]:{number:Number.isFinite(n)?n:fallback}};}
-function planCreateProperties(body){
-  const name=String(body.name||'').trim(); if(!name) throw new Error('Plan adı tələb olunur');
-  return {Plan:{title:createText(name)},...createSelect('Tip',body.type||'Zona'),...createSelect('Status',body.status||'Aktiv'),...createNumber('X',body.x,0),...createNumber('Y',body.y,0),...createNumber('Eni',body.width,200),...createNumber('Uzunluğu',body.height,200),...createNumber('Scale',body.scale,1),...(body.object?{Obyekt:{rich_text:createText(body.object)}}:{}),...(body.parentId?{'Parent Plan':{relation:[{id:cleanId(String(body.parentId))}]}}:{})};
-}
-function equipmentCreateProperties(body){
-  const name=String(body.name||'').trim(),planId=cleanId(String(body.planId||'').trim()); if(!name||!planId) throw new Error('Avadanlığın adı və planı tələb olunur');
-  return {Makina:{title:createText(name)},...createSelect('Tip',body.type||'Maşın'),...createSelect('Status',body.status||'İşləyir'),...createNumber('X',body.x,0),...createNumber('Y',body.y,0),...createNumber('Eni',body.width,200),...createNumber('Uzunluğu',body.height,200),...createNumber('Dönmə bucağı',body.rotation,0),Plan:{relation:[{id:planId}]},...(body.zone?{Zona:{rich_text:createText(body.zone)}}:{})};
-}
-async function createPlan(body){
-  if(!PLAN_DB&&!PLAN_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Plan');
-  const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(PLAN_DB,PLAN_DS),properties:planCreateProperties(body)})}); snapshotCache=null;
-  return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
-}
-async function createEquipment(body){
-  if(!MAKINA_DB&&!MAKINA_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Makina');
-  const page=await notion('/pages',{method:'POST',body:JSON.stringify({parent:databaseParent(MAKINA_DB,MAKINA_DS),properties:equipmentCreateProperties(body)})}); snapshotCache=null;
-  return {ok:true,id:page.id,url:page.url||'',savedAt:new Date().toISOString()};
-}
-
-function validateTaskEstimate(body){if(body.estimateMinutes!==undefined&&body.estimateMinutes!==null&&(!Number.isInteger(body.estimateMinutes)||body.estimateMinutes<1||body.estimateMinutes>43200))throw Object.assign(new Error('Vaxt təxmini: 1-dən 43200 dəqiqəyə qədər tam ədəd və ya boş dəyər'),{statusCode:400,code:'INVALID_ESTIMATE'});}
-async function persistTaskEstimate(body,id,created=false){if(body.estimateMinutes===undefined&&body.parentId===undefined&&body.machineId===undefined&&body.planId===undefined)return;try{if(body.machineId!==undefined||body.planId!==undefined)taskManagement.update({type:'context',id,...(body.machineId!==undefined?{machineId:body.machineId}:{}),...(body.planId!==undefined?{planId:body.planId}:{})});if(body.estimateMinutes!==undefined){const sourceKey=body.sourceKey||'personal';await taskEstimates.save(sourceKey,id,body.estimateMinutes);taskManagement.update({type:'estimate',id,minutes:body.estimateMinutes});}else if(body.parentId!==undefined||body.machineId!==undefined||body.planId!==undefined){const saved=taskManagement.getEstimate(id);if(saved!==null){const sourceKey=body.sourceKey||'personal',page=await notion('/pages/'+encodeURIComponent(id),{method:'GET'});if(taskEstimates.read(page)===null)await taskEstimates.save(sourceKey,id,saved);}}if(body.parentId!==undefined&&body.sourceKey!=='personal')taskManagement.update({type:'parent',id,parentId:body.parentId})}catch(error){snapshotCache=null;invalidatePersonalTasks();taskCache.clear();if(created){try{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({archived:true})})}catch(rollback){error.code='TASK_CREATE_PARTIAL';error.createdTaskId=id;error.message='Tapşırıq yaradıldı ('+id+'), lakin qiymətləndirmə yadda saxlanmadı və yaradılması ləğv edilə bilmədi. Yaradıcılığı təkrarlamayın; mövcud tapşırığı açın. '+error.message;throw error}}else error.message='Tapşırıq sahələri saxlanılır, lakin vaxt təxmini qeyd olunmur. Yenidən saxla. '+error.message;throw error}}
-function withTaskEstimates(data){const metadata=taskManagement.state.tasks,visible=value=>!metadata[value.id]?.deleted,task=value=>({...value,parentId:value.sourceKey&&Object.prototype.hasOwnProperty.call(metadata[value.id]||{},'parentId')?metadata[value.id].parentId:(value.parentId||metadata[value.id]?.parentId||''),estimateMinutes:value.estimateMinutes??taskManagement.getEstimate(value.id)}),item=value=>({...value,...(Array.isArray(value.tasks)?{tasks:value.tasks.filter(visible).map(task)}:{})});return require('./pomodoro-rollup').attach({...data,historyNow:taskHistory.now(),...(Array.isArray(data.tasks)?{tasks:data.tasks.filter(visible).map(task)}:{}),...(Array.isArray(data.plans)?{plans:data.plans.map(item)}:{}),...(Array.isArray(data.equipment)?{equipment:data.equipment.map(item)}:{}),...(Array.isArray(data.pomodoroTasks)?{pomodoroTasks:data.pomodoroTasks.filter(visible).map(task)}:{})});}
-
-async function saveTask(body, baseUrl = '') {
-  validateTaskEstimate(body);
-  const id = String(body.id || '').trim();
-  const sourceKey = String(body.sourceKey || 'todo');
-  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
-  const config = taskConfig(sourceKey);
-  const properties = await taskStatusOptions.properties(body,sourceKey,buildTaskProperties(body, config, Boolean(body.machineId)));
-  const appLink = taskAppLink(baseUrl, id, body.machineId, body.planId);
-  if (appLink) properties[config.linkProperty || TASK_LINK_PROPERTY_DEFAULT] = { url: appLink };
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
-  const sessionTitleSync = body.title !== undefined
-    ? await syncTaskSessionTitle(id, sourceKey, String(body.title || '').trim())
-    : undefined;
-  await persistTaskEstimate({...body,sourceKey},id);
-  if(body.completed!==undefined||body.process!==undefined)recordCompletion(id,body.completed!==undefined?body.completed===true:taskHistory.done({process:body.process}));
-  if (body.machineId) taskCache.delete(String(body.machineId));
-  snapshotCache = null;
-  console.log('Task saved:', id, sourceKey);
-  return { ok: true, id, sourceKey,...(sessionTitleSync?{sessionTitleSync}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
-}
-
-async function createTask(body, baseUrl = '') {
- if(body.autosaveOperationId)return guardedAutosaveCreate('equipment',body,b=>createTask({...b,autosaveOperationId:undefined},baseUrl));
-  if(body.parentId){await notion('/pages/'+encodeURIComponent(String(body.parentId)),{method:'GET'});body={...body,sourceKey:'todo'};}
-  validateTaskEstimate(body);
-  const sourceKey = String(body.sourceKey || 'todo');
-  const machineId = String(body.machineId || '').trim();
-  const planId = String(body.planId || '').trim();
-  const titleValue = String(body.title || '').trim();
-  if ((!machineId && !planId) || !titleValue) throw new Error('Tapşırığın adını və avadanlıq və ya planı göstərin');
-  const config = taskConfig(sourceKey);
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(config.database, config.dataSourceId), properties: await taskStatusOptions.properties(body,sourceKey,buildTaskProperties({ ...body, machineId, planId, title: titleValue, completed: false }, config, Boolean(machineId)),{creating:true}) }) });
-  const appLink = taskAppLink(baseUrl, page.id, machineId, planId);
-  if (appLink) { try { await patchServiceLink(page, config.linkProperty || TASK_LINK_PROPERTY_DEFAULT, appLink); } catch (error) { console.warn('Task app link update failed:', page.id, error.message); } }
-  await persistTaskEstimate({...body,sourceKey},page.id,true);
-  if (machineId) taskCache.delete(machineId);
-  snapshotCache = null;
-  return { ok: true, id: page.id, estimateMinutes:taskManagement.getEstimate(page.id), url: page.url || '', serviceUrl: serviceLink(baseUrl, 'task', page.id, machineId ? { machine: machineId } : { plan: planId }), sourceKey, savedAt: new Date().toISOString() };
-}
 
 // Deletion is idempotent, but only after Notion confirms this page is archived.
 // Never unarchive a page, retry another write, or treat permission errors as success.
-async function archiveNotionPage(id) {
-  const endpoint = '/pages/' + encodeURIComponent(id);
-  try {
-    return await notion(endpoint, { method: 'PATCH', body: JSON.stringify({ archived: true }) });
-  } catch (error) {
-    if (error.notionStatus !== 400 || !/can't edit block that is archived/i.test(error.message || '')) throw error;
-    let page;
-    try { page = await notion(endpoint, { method: 'GET' }); } catch { throw error; }
-    if (!page || page.object !== 'page' || page.id?.replace(/-/g,'') !== id.replace(/-/g,'') || !(page.archived === true || page.in_trash === true)) throw error;
-    observeWrittenPage(endpoint, page);
-    return page;
-  }
-}
-
-async function archiveElement(body) {
-  const id = String(body.id || '').trim();
-  const kind = body.kind === 'plan' ? 'plan' : 'equipment';
-  if (!id) throw new Error('Müəyyən edilməyib ID elementi');
-  await archiveNotionPage(id);
-  if (kind === 'plan') rawCache.plans.delete(id); else rawCache.machines.delete(id);
-  snapshotCache = null;
-  return { ok: true, id, kind, deleted: true, savedAt: new Date().toISOString() };
-}
-
-async function deleteTask(body) {
-  const id = String(body.id || '').trim();
-  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları');
-  await archiveNotionPage(id);
-  if (body.machineId) taskCache.delete(String(body.machineId));
-  for (const pages of rawCache.tasks.values()) pages.delete(id);
-  taskManagement.update({type:'archive',id});saveRawSnapshotCache();snapshotCache = null;
-  return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
-}
 
 let personalTasksCache = null;
 let personalTasksCacheAt = 0;
@@ -1167,448 +348,20 @@ let personalTasksInFlight = null;
 let personalTasksGeneration = 0;
 let personalTasksInFlightGeneration = -1;
 const personalRaw={tasks:new Map(),containers:new Map(),cursors:{}};
-function invalidatePersonalTasks(){personalTasksGeneration++;personalTasksCache=null;}
-function snapshotScope(){return [PLAN_DS||PLAN_DB,MAKINA_DS||MAKINA_DB,TASKS_DS||TASKS_DB,PERSONAL_CONTAINERS_DS||PERSONAL_CONTAINERS_DB,...taskSources().map(x=>x.dataSourceId||x.databaseId)].join('|');}
+
 const cacheHealth={kind:typeof fs.snapshotBatch==='function'?'sqlite':'json',restored:false,error:''};
-function cacheCall(fn){try{const result=fn();cacheHealth.error='';return result;}catch(error){cacheHealth.error='Yerli keş saxlanılmadı: '+String(error.message||error);error.code='LOCAL_CACHE_WRITE';throw error;}}
-function snapshotMetadata(override=null){const meta={version:2,scope:snapshotScope(),equipment:{cursors:structuredClone(rawCache.cursors||{}),lastSyncAt:rawCache.lastSyncAt,lastFullSyncAt:rawCache.lastFullSyncAt},personal:{cursors:structuredClone(personalRaw.cursors)}};if(override){const [scope,key]=override.key.split(':');meta[scope].cursors[key]=override.cursor;}return meta;}
-function snapshotCollections(){return new Map([['equipment:plans',rawCache.plans],['equipment:machines',rawCache.machines],...[...rawCache.tasks].map(([key,map])=>['equipment:'+key,map]),['personal:tasks',personalRaw.tasks],['personal:containers',personalRaw.containers]]);}
-function saveRawSnapshotCache(){if(!process.env.SNAPSHOT_RAW_CACHE_FILE)return;try{
- if(fs.snapshotSave){cacheCall(()=>fs.snapshotSave(snapshotScope(),snapshotMetadata(),Object.fromEntries([...snapshotCollections()].map(([key,map])=>[key,[...map.keys()]]))));return;}
- const value={version:1,scope:snapshotScope(),equipment:{plans:[...rawCache.plans.values()],machines:[...rawCache.machines.values()],tasks:[...rawCache.tasks].map(([key,map])=>[key,[...map.values()]]),cursors:rawCache.cursors||{},lastSyncAt:rawCache.lastSyncAt,lastFullSyncAt:rawCache.lastFullSyncAt},personal:{tasks:[...personalRaw.tasks.values()],containers:[...personalRaw.containers.values()],cursors:personalRaw.cursors}};const file=process.env.SNAPSHOT_RAW_CACHE_FILE;fs.writeFileSync(file+'.tmp',JSON.stringify(value));fs.renameSync(file+'.tmp',file);cacheHealth.error='';
- }catch(error){cacheHealth.error='Yerli keş saxlanılmadı: '+String(error.message||error);console.warn('Local raw cache could not be saved:',error.message);}}
-function restoreRawSnapshotCache(){if(!process.env.SNAPSHOT_RAW_CACHE_FILE)return;try{
- if(fs.snapshotState){const meta=cacheCall(()=>fs.snapshotState(snapshotScope()));if(!meta)return;if(meta.version!==2||meta.scope!==snapshotScope())throw new Error('Uyğun olmayan keş SQLite');for(const [key,target] of snapshotCollections()){let after='';do{const batch=cacheCall(()=>fs.snapshotRows(snapshotScope(),key,after));mergePages(target,batch.pages||[]);if(!batch.hasMore)break;if(!batch.nextId||batch.nextId===after)throw new Error('Yanlış yerli keş səhifəsi');after=batch.nextId;}while(true);}rawCache.cursors=meta.equipment.cursors||{};rawCache.lastSyncAt=meta.equipment.lastSyncAt||'';rawCache.lastFullSyncAt=meta.equipment.lastFullSyncAt||0;personalRaw.cursors=meta.personal.cursors||{};cacheHealth.restored=true;return;}
- const value=JSON.parse(fs.readFileSync(process.env.SNAPSHOT_RAW_CACHE_FILE,'utf8'));if(value.version!==1||value.scope!==snapshotScope())return;const e=value.equipment,p=value.personal;rawCache.plans=new Map(e.plans.map(x=>[x.id,x]));rawCache.machines=new Map(e.machines.map(x=>[x.id,x]));rawCache.tasks=new Map(e.tasks.map(([key,pages])=>[key,new Map(pages.map(x=>[x.id,x]))]));rawCache.cursors=e.cursors||{};rawCache.lastSyncAt=e.lastSyncAt||'';rawCache.lastFullSyncAt=e.lastFullSyncAt||0;personalRaw.tasks=new Map(p.tasks.map(x=>[x.id,x]));personalRaw.containers=new Map(p.containers.map(x=>[x.id,x]));personalRaw.cursors=p.cursors||{};cacheHealth.restored=true;
- }catch(error){cacheHealth.error='Yerli keşi oxumaq alınmadı: '+String(error.message||error);}}
+
 restoreRawSnapshotCache();
 
-function checkbox(page, name) { return property(page, name)?.checkbox === true; }
-
-function mapPersonalTask(page) {
-  const context=taskManagement.getContext(page.id);
-  const parent = relationIds(page, 'Parent item')[0] || '';
-  const children = relationIds(page, 'Sub-item');
-  const status = select(page, 'Status') || 'Not started';
-  const priority = select(page, 'Priority');
-  const prioritet = select(page, 'Prioritet');
-  return enrichCompletion({
-    id: page.id,
-    machineId:context.machineId,
-    planId:context.planId,
-    title: title(page, 'Adi') || 'Adsız',
-    status,
-    completed: checkbox(page, 'Status 1')||taskHistory.done({status}),
-    parentId: parent,
-    childIds: children,
-    containerId: relationIds(page, 'Personal Container')[0] || '',
-    x: number(page, 'Personal X'),
-    y: number(page, 'Personal Y'),
-    width: number(page, 'Personal Width'),
-    height: number(page, 'Personal Height'),
-    order: number(page, 'Personal Order'),
-    priority,
-    prioritet,
-    urgent: priority === '!!!' || prioritet === '!!!',
-    category: select(page, 'Kateqoriya'),
-    url: page.url || '',
-    link: property(page, 'Link')?.url || '',
-    date: dateStart(page, 'Tarix'),
-    dateEnd: property(page, 'Tarix')?.date?.end || '',
-    assignees: multiSelect(page, 'Tapsirildi'),
-    tags: multiSelect(page, 'Tag'),
-    pomodoroCount: number(page, 'Pomodoro количество') ?? 0,
-    pomodoroMinutes: number(page, 'Pomodoro всего минут') ?? 0,
-    pomodoroRunning: checkbox(page, 'Отчет запущен'),
-    pomodoroStartedAt: dateStart(page, 'Начало отчета'),
-    pomodoroEndedAt: dateStart(page, 'Конец отчета'),
-    pomodoroMode: select(page, 'Pomodoro режим'),
-    pomodoroDuration: number(page, 'Pomodoro текущая длительность') ?? pomodoroModeDuration(select(page, 'Pomodoro режим')) ,
-    estimateMinutes: taskEstimates.read(page),
-    updatedAt: page.last_edited_time || ''
-  },page);
-}
-
-function mapPersonalContainer(page) {
-  return {
-    id: page.id,
-    name: title(page, 'Name') || 'Qovluq',
-    parentId: relationIds(page, 'Parent Container')[0] || null,
-    x: number(page, 'X') ?? 60,
-    y: number(page, 'Y') ?? 60,
-    width: number(page, 'Width') ?? 340,
-    height: number(page, 'Height') ?? 220,
-    order: number(page, 'Order') ?? 0,
-    color: select(page, 'Color') || 'Yellow',
-    url: page.url || ''
-  };
-}
-
-function personalNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-
 // Only independent personal tasks require a container. Subtasks may remain containerless.
-function inboxContainerId(containers) {
- const matches=containers.filter(c=>String(c.name||'').trim().toLowerCase()==='inbox'&&c.id);
- if(matches.length!==1)throw Object.assign(new Error(matches.length?'Bir neçə tapıldı INBOX. Bir konteyner göstərin INBOX.':'Qovluq INBOX mövcud deyil. Məlumatlarınızı yeniləyin və inteqrasiya girişinizi yoxlayın. Tapşırıq yaradılmayıb.'),{code:'INBOX_UNAVAILABLE',statusCode:409});
- return matches[0].id;
-}
-async function personalInboxId(){
- const cached=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
- if(cached.some(c=>String(c.name||'').trim().toLowerCase()==='inbox'))return inboxContainerId(cached);
- const pages=await queryDatabase(PERSONAL_CONTAINERS_DB,PERSONAL_CONTAINERS_DS);
- const live=pages.filter(p=>!p.archived&&!p.in_trash);for(const page of live)personalRaw.containers.set(page.id,page);
- return inboxContainerId(live.map(mapPersonalContainer));
-}
-async function resolvePersonalTaskContainer(body){
- if(String(body.containerId||'').trim())return cleanId(String(body.containerId).trim());
- if(String(body.parentId||'').trim())return '';
- return personalInboxId();
-}
+
 const personalContainerRepairs=new Set();let personalContainerRepairQueue=Promise.resolve();
-function applyPersonalContainerDefaults(tasks,containers){
- let inbox;try{inbox=inboxContainerId(containers)}catch{return tasks}
- for(const task of tasks){if(task.containerId||task.parentId||taskManagement.state.tasks[task.id]?.parentId||!recentTask(task))continue;task.containerId=inbox;task.containerAssignmentPending=true;schedulePersonalContainerRepair(task.id);}
- return tasks;
-}
-function schedulePersonalContainerRepair(id){
- if(personalContainerRepairs.has(id))return;personalContainerRepairs.add(id);
- personalContainerRepairQueue=personalContainerRepairQueue.then(async()=>{
-  // Re-read immediately before writing: never move a newly assigned task or a new subtask.
-  const page=await notion('/pages/'+encodeURIComponent(id));
-  if(page.archived||page.in_trash||taskManagement.state.tasks[id]?.parentId)return;
-  if(relationIds(page,'Personal Container').length||relationIds(page,'Parent item').length){personalRaw.tasks.set(id,page);personalTasksCache=null;return;}
-  const containerId=await personalInboxId();
-  const patched=await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties:{'Personal Container':{relation:[{id:containerId}]}}})});
-  personalRaw.tasks.set(id,patched);personalTasksCache=null;personalTasksCacheAt=0;saveRawSnapshotCache();
- }).catch(()=>{/* Keep pending presentation in INBOX; retry after the next refresh. */}).finally(()=>personalContainerRepairs.delete(id));
-}
-
-function personalSnapshot(force=false,fresh=false,retry=false,light=false){return queryPolicy.run('personal',{refresh:force||fresh||retry,cached:()=>personalTasksCache,load:()=>personalSnapshotUnbounded(force,fresh,retry,light)});}
-async function personalSnapshotUnbounded(force=false,fresh=false,retry=false,light=false){
- if(!force&&!fresh&&personalTasksCache&&Date.now()-personalTasksCacheAt<5000)return personalTasksCache;
- if(personalTasksInFlight){if(personalTasksInFlightGeneration===personalTasksGeneration)return personalTasksInFlight;await personalTasksInFlight.catch(()=>{});return personalSnapshotUnbounded(force,fresh,retry,light);}
- const generation=personalTasksGeneration;personalTasksInFlightGeneration=generation;
- personalTasksInFlight=(async()=>{
-  const specs=personalSnapshotSpecs(),failed=specs.filter(x=>personalRaw.cursors[x.key]?.error),selected=retry&&failed.length?failed:specs;
-  const progress=beginSnapshotProgress('personal',selected,force);
-  const results=await Promise.allSettled(selected.map(spec=>streamSnapshotPart(progress,spec,personalRaw[spec.key],personalRaw.cursors,force,light,()=>generation===personalTasksGeneration)));
-  progress.running=false;progress.revision=++snapshotProgressRevision;
-  if(generation!==personalTasksGeneration)return null;
-  const errors=results.filter(x=>x.status==='rejected').map(x=>x.reason),successful=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
-  if(!successful.length&&errors.length)throw Object.assign(new Error(errors.map(x=>x.part+': '+x.error).join('; ')),{statusCode:503,code:'SNAPSHOT_READ_FAILED'});
-  const pomodoroTasks=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),tasks=pomodoroTasks.filter(recentTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);
-  applyPersonalContainerDefaults(pomodoroTasks,containers);
-  const result={tasks,containers,pomodoroTasks,fetchedAt:new Date().toISOString(),database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB,sync:{mode:force?'full':'incremental',successful,errors,partial:errors.length>0}};personalTasksCache=result;personalTasksCacheAt=Date.now();saveRawSnapshotCache();return result;
- })().then(result=>result||personalSnapshotAfterMutation(force,fresh,retry,light)).finally(()=>{personalTasksInFlight=null;});
- return personalTasksInFlight;
-}
-async function personalSnapshotAfterMutation(force,fresh,retry,light){personalTasksInFlight=null;return personalSnapshotUnbounded(force,true,retry,light);}
-
-function personalContainerProperties(body, includeName = false) {
-  const properties = {
-    X: { number: personalNumber(body.x, 60) },
-    Y: { number: personalNumber(body.y, 60) },
-    Width: { number: personalNumber(body.width, 340) },
-    Height: { number: personalNumber(body.height, 220) },
-    Order: { number: personalNumber(body.order, 0) }
-  };
-  if (includeName) properties.Name = { title: [{ type: 'text', text: { content: String(body.name || 'Qovluq').trim().slice(0, 2000) || 'Qovluq' } }] };
-  if (body.parentId !== undefined) properties['Parent Container'] = { relation: body.parentId ? [{ id: cleanId(String(body.parentId)) }] : [] };
-  if (body.color !== undefined) properties.Color = body.color ? { select: { name: String(body.color) } } : { select: null };
-  return properties;
-}
-
-async function createPersonalContainer(body) {
-  if (!PERSONAL_CONTAINERS_DB && !PERSONAL_CONTAINERS_DS) throw new Error('Verilənlər bazası konfiqurasiya edilməyib Personal Containers');
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent: databaseParent(PERSONAL_CONTAINERS_DB, PERSONAL_CONTAINERS_DS), properties: personalContainerProperties(body, true) }) });
-  invalidatePersonalTasks();
-  return { ok: true, container: mapPersonalContainer(page), savedAt: new Date().toISOString() };
-}
-
-async function savePersonalLayout(body) {
-  const kind = body.kind === 'container' ? 'container' : 'task';
-  const id = cleanId(String(body.id || '').trim());
-  if (!id) throw new Error('Müəyyən edilməyib ID şəxsi element');
-  let properties;
-  if (kind === 'container') {
-    properties = personalContainerProperties(body, false);
-  } else {
-    properties = {
-      'Personal X': { number: personalNumber(body.x, 0) },
-      'Personal Y': { number: personalNumber(body.y, 0) },
-      'Personal Width': { number: personalNumber(body.width, 220) },
-      'Personal Height': { number: personalNumber(body.height, 105) },
-      'Personal Order': { number: personalNumber(body.order, 0) }
-    };
-    if (body.containerId !== undefined) { const parentId=relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
-  }
-  await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
-  invalidatePersonalTasks();
-  return { ok: true, kind, id, ...(kind==='task'&&properties['Personal Container']?{containerId:properties['Personal Container'].relation[0]?.id||''}:{}), savedAt: new Date().toISOString() };
-}
-
-async function deletePersonalContainer(id) {
-  const containerId = cleanId(String(id || '').trim());
-  if (!containerId) throw new Error('Müəyyən edilməyib ID konteyner');
-  try {
-    const taskPages = await queryDatabase(TASKS_DB, TASKS_DS);
-    const linked = taskPages.filter(page => relationIds(page, 'Personal Container').includes(containerId));
-    for (const page of linked) {
-      await notion('/pages/' + encodeURIComponent(page.id), { method: 'PATCH', body: JSON.stringify({ properties: { 'Personal Container': { relation: [] } } }) });
-    }
-  } catch (error) {
-    console.warn('Could not clear container task links:', error.message);
-  }
-  await notion('/pages/' + encodeURIComponent(containerId), { method: 'PATCH', body: JSON.stringify({ archived: true }) });
-  personalRaw.containers.delete(containerId);personalRaw.cursors.tasks={};saveRawSnapshotCache();invalidatePersonalTasks();
-  return { ok: true, id: containerId, deleted: true, savedAt: new Date().toISOString() };
-}
-
-async function listPageBlocks(pageId) {
-  const blocks = [];
-  let cursor = '';
-  do {
-    const suffix = cursor ? '&start_cursor=' + encodeURIComponent(cursor) : '';
-    const result = await notion('/blocks/' + encodeURIComponent(pageId) + '/children?page_size=100' + suffix, { method: 'GET' });
-    blocks.push(...(result.results || []));
-    cursor = result.has_more ? result.next_cursor : '';
-  } while (cursor);
-  return blocks;
-}
-function blockRichText(block) { const value = block?.[block?.type] || {}; return (value.rich_text || []).map(part => part.plain_text || part.text?.content || '').join(''); }
-async function blockContentText(block) {
-  const type = block?.type || '';
-  if (type === 'table_row') return (block.table_row?.cells || []).map(cell => (cell || []).map(part => part.plain_text || part.text?.content || '').join('')).join('\t');
-  let text = blockRichText(block);
-  if (type === 'to_do') text = (block.to_do?.checked ? '[x] ' : '[ ] ') + text;
-  if (type === 'bulleted_list_item') text = '- ' + text;
-  if (type === 'numbered_list_item') text = '1. ' + text;
-  if (type === 'code' && block.code?.language) text = '```' + block.code.language + '\n' + text + '\n```';
-  if (block.has_children) { const children = await listPageBlocks(block.id); const childText = (await Promise.all(children.map(blockContentText))).filter(Boolean).join('\n'); if (childText) text = text ? text + '\n' + childText : childText; }
-  return text;
-}
-async function getPersonalTaskContent(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); const blocks = await listPageBlocks(id); return { ok: true, id, content: (await Promise.all(blocks.map(blockContentText))).join('\n') }; }
-function contentBlocks(value) { return String(value ?? '').replace(/\r\n/g, '\n').split('\n').map(line => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: line ? [{ type: 'text', text: { content: line.slice(0, 2000) } }] : [] } })); }
-async function replacePersonalTaskContent(idValue, value) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); const oldBlocks = await listPageBlocks(id); for (const block of oldBlocks.filter(b=>!['image','file','video','audio','pdf','bookmark','embed','child_page','child_database'].includes(b.type))) await notion('/blocks/' + encodeURIComponent(block.id), { method: 'DELETE' }); const children = contentBlocks(value); for (let index = 0; index < children.length; index += 100) await notion('/blocks/' + encodeURIComponent(id) + '/children', { method: 'PATCH', body: JSON.stringify({ children: children.slice(index, index + 100) }) }); return { ok: true, id }; }
-
-async function listStructuredPageBlocks(pageId) {
-  const result = [];
-  let cursor = '';
-  do {
-    const suffix = cursor ? '&start_cursor=' + encodeURIComponent(cursor) : '';
-    const page = await notion('/blocks/' + encodeURIComponent(pageId) + '/children?page_size=100' + suffix, { method: 'GET' });
-    result.push(...(page.results || []));
-    cursor = page.has_more ? page.next_cursor : '';
-  } while (cursor);
-  return result;
-}
-async function loadStructuredBlockTree(pageId) {
-  const blocks = await listStructuredPageBlocks(pageId);
-  for (const block of blocks) if (block.has_children) block.children = await loadStructuredBlockTree(block.id);
-  return blocks;
-}
-function decodeHtmlText(value) { return String(value || '').replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
-function htmlToNotionRichText(html) {
-  const runs = [], stack = [];
-  const source = String(html || '').replace(/<div>/gi, '').replace(/<\/div>/gi, '\n');
-  for (const token of source.split(/(<[^>]+>)/g).filter(Boolean)) {
-    if (token[0] === '<') {
-      const tag = token.match(/^<\/?\s*([a-z0-9]+)/i)?.[1]?.toLowerCase() || '';
-      if (token[1] === '/') { const index = stack.lastIndexOf(tag); if (index >= 0) stack.splice(index, 1); continue; }
-      if (tag === 'br') { runs.push({ type: 'text', text: { content: '\n' } }); continue; }
-      if (['strong','b','em','i','u','s','strike','code','a','span'].includes(tag)) stack.push(tag);
-      continue;
-    }
-    const text = decodeHtmlText(token); if (!text) continue;
-    const annotations = { bold: stack.some(x => x === 'strong' || x === 'b'), italic: stack.some(x => x === 'em' || x === 'i'), underline: stack.includes('u'), strikethrough: stack.some(x => x === 's' || x === 'strike'), code: stack.includes('code'), color: 'default' };
-    const item = { type: 'text', text: { content: text }, annotations };
-    runs.push(item);
-  }
-  return runs.length ? runs : [];
-}
-function structuredTableRows(dto) { return (dto.rows || []).map(row => ({ object: 'block', type: 'table_row', table_row: { cells: (row || []).map(cell => htmlToNotionRichText(cell)) } })); }
-function structuredSimpleBlock(dto) {
-  const type = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','callout','code','to_do'].includes(dto.type) ? dto.type : 'paragraph';
-  const value = { rich_text: htmlToNotionRichText(dto.html || '') };
-  if (type === 'to_do') value.checked = Boolean(dto.checked);
-  if (type === 'code') value.language = String(dto.language || 'plain text');
-  if (type === 'callout') value.icon = { type: 'emoji', emoji: String(dto.icon || '💡') };
-  return { object: 'block', type, [type]: value };
-}
-async function getPersonalTaskBlocks(idValue) { const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks'); return { ok: true, id, blocks: await loadStructuredBlockTree(id) }; }
-function structuredTablePlan(dto) {
-  const inputRows = Array.isArray(dto.rows) && dto.rows.length ? dto.rows : [['']];
-  if (inputRows.some(row => !Array.isArray(row))) throw new Error('Cədvəl sətirləri xana massivləri olmalıdır');
-  const declaredWidth = Number(dto.width) || 0;
-  if (declaredWidth && (!Number.isInteger(declaredWidth) || declaredWidth < 1)) throw new Error('Yanlış cədvəl eni');
-  const width = Math.max(1, declaredWidth, ...inputRows.map(row => row.length));
-  if (width > 100) throw new Error('Cədvəldə 100-dən çox sütun ola bilməz');
-  const normalized = inputRows.map(row => Array.from({length: width}, (_, i) => row[i] ?? ''));
-  const rows = structuredTableRows({rows: normalized});
-  return {
-    block: {object: 'block', type: 'table', table: {
-      table_width: width, has_column_header: Boolean(dto.hasColumnHeader), has_row_header: false,
-      children: rows.slice(0, 100)
-    }}, extraRows: rows.slice(100)
-  };
-}
-async function replacePersonalTaskBlocks(idValue, blocks) {
-  const id = cleanId(String(idValue || '').trim()); if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  const items = Array.isArray(blocks) && blocks.length ? blocks : [{type: 'paragraph', html: ''}];
-  // Validate/build the entire payload before making changes in Notion.
-  const plan = items.filter(dto=>!dto?.preserveId).map(dto => {
-    if (!dto || typeof dto !== 'object') throw new Error('Etibarsız tapşırıq məzmun bloku');
-    return dto.type === 'table' ? structuredTablePlan(dto) : {block: structuredSimpleBlock(dto), extraRows: []};
-  });
-  const oldBlocks = await listStructuredPageBlocks(id), createdIds = [], archiveAttempted = [];
-  try {
-    // Stage all new content first. A rejected table must not erase existing content.
-    for (const item of plan) {
-      const created = await notion('/blocks/' + encodeURIComponent(id) + '/children', {method: 'PATCH', body: JSON.stringify({children: [item.block]})});
-      const blockId = created.results?.[0]?.id;
-      if (!blockId) throw new Error('Notion qaytarılmadı ID ; köhnə məzmun silinmir Yaradılmış tapşırığın');
-      createdIds.push(blockId);
-      for (let offset = 0; offset < item.extraRows.length; offset += 100) {
-        await notion('/blocks/' + encodeURIComponent(blockId) + '/children', {method: 'PATCH', body: JSON.stringify({children: item.extraRows.slice(offset, offset + 100)})});
-      }
-    }
-    for (const block of oldBlocks.filter(b=>!['image','file','video','audio','pdf','bookmark','embed','child_page','child_database'].includes(b.type))) {
-      archiveAttempted.push(block.id);
-      await notion('/blocks/' + encodeURIComponent(block.id), {method: 'DELETE'});
-    }
-  } catch (error) {
-    const recoveryErrors = [];
-    // Best-effort rollback: Notion has no atomic replace API.
-    for (const blockId of archiveAttempted) {
-      try {await notion('/blocks/' + encodeURIComponent(blockId), {method: 'PATCH', body: JSON.stringify({archived: false})});}
-      catch (recovery) {recoveryErrors.push(recovery.message);}
-    }
-    for (const blockId of createdIds.reverse()) {
-      try {await notion('/blocks/' + encodeURIComponent(blockId), {method: 'DELETE'});}
-      catch (recovery) {recoveryErrors.push(recovery.message);}
-    }
-    if (recoveryErrors.length) error.message += ' · Qismən qənaəti tamamilə geri qaytarmaq mümkün olmadı. Redaktoru açıq saxlayın və mətnin surətini saxlayın.';
-    throw error;
-  }
-  return {ok: true, id};
-}
 
 const autosaveCreates=new Map();
-async function guardedAutosaveCreate(kind,body,create){
- const op=String(body.autosaveOperationId||'');if(!op)return create(body);
- if(!/^[a-zA-Z0-9-]{16,100}$/.test(op))throw Error('Yaradılma açarı etibarsızdır');
- const key=kind+'-'+op,file=path.join(__dirname,'data','autosave-'+key+'.json');
- if(autosaveCreates.has(key))return autosaveCreates.get(key);
- const operation=(async()=>{let prior;try{prior=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}if(prior?.result)return prior.result;if(prior&&!prior.rejected){const e=Error('Yaradılma artıq təqdim edilib. Yenidən yaratmazdan əvvəl tapşırıq siyahısını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
- fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify({pending:true,at:Date.now()}));
- if(prior?.rejected){/* Explicit validation rejection: no page was created. */}else if(prior){const e=Error('Yaradılma cavabı məlum deyil. Siyahını yoxlayın.');e.code='TASK_CREATE_PARTIAL';e.statusCode=409;throw e}
- try{const result=await create(body);fs.writeFileSync(file,JSON.stringify({result}));return result;}catch(error){if(error.notionStatus===400&&error.notionCode==='validation_error'||['TASK_STATUS_INVALID','TASK_SCHEMA_INVALID'].includes(error.code)){fs.writeFileSync(file,JSON.stringify({rejected:true,at:Date.now()}));error.code='TASK_CREATE_REJECTED';error.statusCode=400;}throw error;}})();autosaveCreates.set(key,operation);try{return await operation}finally{autosaveCreates.delete(key)}
-}
-async function validatePersonalTaskContext(body){
- if(body.machineId===undefined&&body.planId===undefined)return;
- const old=taskManagement.getContext(body.id||'');
- const next={...old};for(const key of ['machineId','planId'])if(body[key]!==undefined){const raw=String(body[key]??'').trim(),id=raw?cleanId(raw):'';if(raw&&!id)throw Object.assign(Error('Etibarsız əlaqə: '+key),{statusCode:400});next[key]=id;body[key]=id;}
- if(next.machineId===old.machineId&&next.planId===old.planId)return;
- if(!next.machineId&&!next.planId)return;
- if(body.__account&&typeof accounts!=='undefined'&&!accounts.section(body.__account,'equipment'))throw Object.assign(Error('Avadanlıq bölməsinə giriş yoxdur'),{statusCode:403});
- let data=await snapshot(false);if(body.__account&&typeof projectAccount==='function')data=projectAccount(body.__account,'equipment',data);
- const equipment=data.equipment||[],plans=data.plans||[];
- if(next.machineId){const machine=equipment.find(e=>cleanId(e.id)===next.machineId);if(!machine)throw Object.assign(Error('Avadanlıq mövcud deyil və ya ona giriş yoxdur'),{statusCode:400});const machinePlan=cleanId(machine.planId||'');if(next.planId&&machinePlan&&next.planId!==machinePlan)throw Object.assign(Error('Plan seçilmiş avadanlığa uyğun deyil'),{statusCode:400});if(machinePlan){next.planId=machinePlan;body.planId=machinePlan;}}
- if(next.planId&&!plans.some(p=>cleanId(p.id)===next.planId))throw Object.assign(Error('Plan mövcud deyil və ya ona giriş yoxdur'),{statusCode:400});
-}
-
-async function createPersonalTask(body) {
- if(body.autosaveOperationId)return guardedAutosaveCreate('personal',body,b=>createPersonalTask({...b,autosaveOperationId:undefined}));
-  validateTaskEstimate(body);
-  await validatePersonalTaskContext(body);
-  const titleValue = String(body.title || '').trim().slice(0, 2000);
-  if (!titleValue) throw new Error('Tapşırığın adını daxil edin');
-  const properties = {
-    Adi: { title: createText(titleValue) },
-    Status: { status: { name: String(body.status || 'Not started').trim() || 'Not started' } },
-    'Status 1': { checkbox: Boolean(body.completed) }
-  };
-  if (body.priority) properties.Priority = { select: { name: String(body.priority).trim() } };
-  if (body.prioritet) properties.Prioritet = { status: { name: String(body.prioritet).trim() } };
-  if (body.category) properties.Kateqoriya = { select: { name: String(body.category).trim() } };
-  if(body.date!==undefined||body.dateEnd!==undefined) properties.Tarix={date:personalCalendarDate(body)};
-  if (Array.isArray(body.tags) && body.tags.length) properties.Tag = { multi_select: body.tags.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
-  if (Array.isArray(body.assignees) && body.assignees.length) properties.Tapsirildi = { multi_select: body.assignees.map(value => ({ name: String(value).trim() })).filter(item => item.name).slice(0, 100) };
-  if (body.parentId) properties['Parent item'] = { relation: [{ id: cleanId(String(body.parentId)) }] };
-  if (body.containerId) properties['Personal Container'] = { relation: [{ id: cleanId(String(body.containerId)) }] };
-  const destination=await resolvePersonalTaskContainer(body);properties['Personal Container']={relation:destination?[{id:destination}]:[]};
-  const parent = TASKS_DS ? { data_source_id: TASKS_DS } : { database_id: TASKS_DB };
-  const page = await notion('/pages', { method: 'POST', body: JSON.stringify({ parent, properties }) });
-  await persistTaskEstimate({...body,sourceKey:'personal'},page.id,true);
-  if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(page.id, body.pageBlocks);
-  else if (body.pageContent !== undefined) await replacePersonalTaskContent(page.id, body.pageContent);
-  invalidatePersonalTasks();
-  return { ok: true, id: page.id, task:{...mapPersonalTask(page),estimateMinutes:taskManagement.getEstimate(page.id)}, estimateMinutes:taskManagement.getEstimate(page.id), url: page.url || '', savedAt: new Date().toISOString() };
-}
-
-async function deletePersonalTask(idValue) {
-  const id = cleanId(String(idValue || '').trim());
-  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  await archiveNotionPage(id);
-  personalRaw.tasks.delete(id);taskManagement.update({type:'archive',id});saveRawSnapshotCache();invalidatePersonalTasks();
-  return { ok: true, id, deleted: true, savedAt: new Date().toISOString() };
-}
 
 const {TaskManagementStore}=require('./task-management');
 const taskManagement=new TaskManagementStore(process.env.TASK_MANAGEMENT_FILE||path.join(process.env.POMODORO_STATE_FILE?path.dirname(process.env.POMODORO_STATE_FILE):path.join(__dirname,'data'),'task-management.json'));
 let personalStatusWriteQueue=Promise.resolve();
-async function savePersonalTask(body){
- if(String(body.status||'').trim().toLowerCase()==='in progress'){
-  const operation=personalStatusWriteQueue.then(async()=>{const pages=await queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Status 1',checkbox:{equals:false}}});taskManagement.checkWip(pages.map(mapPersonalTask),cleanId(String(body.id||'')),body.wipOverride);return savePersonalTaskUnlocked(body)});
-  personalStatusWriteQueue=operation.catch(()=>{});return operation;
- }
- return savePersonalTaskUnlocked(body);
-}
-
-async function savePersonalTaskUnlocked(body) {
-  validateTaskEstimate(body);
-  await validatePersonalTaskContext(body);
-  const id = cleanId(String(body.id || '').trim());
-  if (!id) throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  if(body.autosaveBase&&typeof body.autosaveBase==='object'){
-    const current=mapPersonalTask(await notion('/pages/'+encodeURIComponent(id)));
-    for(const [key,expected]of Object.entries(body.autosaveBase)){
-      if(['pageBlocks','pageContent','estimateMinutes'].includes(key)||current[key]===undefined)continue;
-      const normalize=value=>{if(['date','dateEnd'].includes(key)&&typeof value==='string'&&value.includes('T')&&Number.isFinite(Date.parse(value)))return 'instant:'+Date.parse(value);return Array.isArray(value)?JSON.stringify([...value].sort()):String(value??'');};
-      if(normalize(current[key])!==normalize(expected)&&normalize(current[key])!==normalize(body[key])){const e=Error('Sahəsi “'+key+'» başqa cihazda dəyişdirildi. Tapşırığı yeniləyin və dəyişiklikləri yoxlayın.');e.code='AUTOSAVE_CONFLICT';e.statusCode=409;throw e}
-    }
-  }
-  const properties = {};
-  if (body.title !== undefined) properties.Adi = { title: [{ type: 'text', text: { content: String(body.title || '').trim().slice(0, 2000) } }] };
-  if (body.status !== undefined && String(body.status).trim()) properties.Status = { status: { name: String(body.status).trim() } };
-  if (body.completed !== undefined) properties['Status 1'] = { checkbox: Boolean(body.completed) };
-  if (body.priority !== undefined) properties.Priority = body.priority ? { select: { name: String(body.priority).trim() } } : { select: null };
-  if (body.prioritet !== undefined) properties.Prioritet = body.prioritet ? { status: { name: String(body.prioritet).trim() } } : { status: null };
-  if (body.category !== undefined) properties.Kateqoriya = body.category ? { select: { name: String(body.category).trim() } } : { select: null };
-  if(body.date!==undefined||body.dateEnd!==undefined){const previous=body.dateEnd===undefined&&body.date?mapPersonalTask(await notion('/pages/'+encodeURIComponent(id))):{};properties.Tarix={date:personalCalendarDate(body,previous)};}
-  if (body.tags !== undefined) properties.Tag = { multi_select: (Array.isArray(body.tags) ? body.tags : String(body.tags || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
-  if (body.assignees !== undefined) properties.Tapsirildi = { multi_select: (Array.isArray(body.assignees) ? body.assignees : String(body.assignees || '').split(',')).map(value => String(value).trim()).filter(Boolean).slice(0, 100).map(name => ({ name })) };
-  if (body.parentId !== undefined) {
-    const parentId = cleanId(String(body.parentId || '').trim());
-    properties['Parent item'] = { relation: parentId ? [{ id: parentId }] : [] };
-  }
-  if (body.containerId !== undefined) { const parentId=body.parentId!==undefined?body.parentId:relationIds(await notion('/pages/'+encodeURIComponent(id)),'Parent item')[0]||'';const destination=await resolvePersonalTaskContainer({...body,parentId});properties['Personal Container']={relation:destination?[{id:destination}]:[]}; }
-  if (!Object.keys(properties).length && body.estimateMinutes===undefined && body.pageBlocks===undefined && body.pageContent===undefined && body.machineId===undefined && body.planId===undefined) throw new Error('Tapşırıq dəyişikliyi yoxdur');
-  if(Object.keys(properties).length) await notion('/pages/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ properties }) });
-  const sessionTitleSync = body.title !== undefined
-    ? await syncTaskSessionTitle(id, 'personal', String(body.title || '').trim())
-    : undefined;
-  if (body.pageBlocks !== undefined) await replacePersonalTaskBlocks(id, body.pageBlocks);
-  else if (body.pageContent !== undefined) await replacePersonalTaskContent(id, body.pageContent);
-  await persistTaskEstimate({...body,sourceKey:'personal'},id);
-  if(body.completed!==undefined||body.status!==undefined){const completed=body.completed!==undefined?body.completed===true:taskHistory.done({status:body.status});recordCompletion(id,completed);if(completed)taskManagement.update({type:'finish',id});}
-  invalidatePersonalTasks();
-  return { ok: true, id,...(sessionTitleSync?{sessionTitleSync}:{}),...taskManagement.getContext(id),...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||'',task:{id,date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}}:{}),...(properties['Personal Container']?{task:{id,containerId:properties['Personal Container'].relation[0]?.id||'',...(properties.Tarix?{date:properties.Tarix.date?.start||'',dateEnd:properties.Tarix.date?.end||''}:{})}}:{}),completedAt:taskManagement.state.tasks[id]?.completedAt||null, estimateMinutes:taskManagement.getEstimate(id), savedAt: new Date().toISOString() };
-}
 
 const {SharedPomodoroStore,timerFromTask}=require('./pomodoro-shared');
 const pomodoroStateDirectory=process.env.RAILWAY_PROJECT_ID?'/data':path.join(__dirname,'data');
@@ -1623,11 +376,7 @@ const {PomodoroSessions}=require('./pomodoro-sessions');
 const {TimerSessionLog}=require('./timer-session-log');
 const timerSessionLog=new TimerSessionLog({notion,queryDatabase,dataSourceId:TIMER_SESSIONS_DS});
 let notionPomodoroSessionsCache=[],notionPomodoroSessionsAt=0,notionPomodoroSessionsPromise=null;
-async function loadNotionPomodoroSessions(){
- if(Date.now()-notionPomodoroSessionsAt<60000)return notionPomodoroSessionsCache;
- if(!notionPomodoroSessionsPromise)notionPomodoroSessionsPromise=timerSessionLog.listPomodoro().then(rows=>{notionPomodoroSessionsCache=rows;notionPomodoroSessionsAt=Date.now();return rows;}).catch(error=>{console.warn('Pomodoro journal read deferred:',error.message);notionPomodoroSessionsAt=Date.now();return notionPomodoroSessionsCache;}).finally(()=>{notionPomodoroSessionsPromise=null});
- return notionPomodoroSessionsPromise;
-}
+
 const browserPomodoroSessions=new PomodoroSessions({store:sharedPomodoro,loadTask:async id=>mapPersonalTask(await notion('/pages/'+encodeURIComponent(id),{method:'GET'})),patchTask:async(id,properties)=>{await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});if(taskEstimateModule.validMinutes(properties[taskEstimateModule.FIELD]?.number)){taskManagement.update({type:'estimate',id,minutes:properties[taskEstimateModule.FIELD].number});snapshotCache=null;taskCache.clear();}invalidatePersonalTasks();},saveSession:async session=>{const result=await timerSessionLog.record(session);notionPomodoroSessionsAt=0;return result;},authorizeOther:async(u,id)=>{if(u&&u.role!=='admin')await accountTask(u,id)},changed:()=>{if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal'])}});
 const legacyPomodoroCutoff=Date.now()-7*24*60*60*1000,knownPomodoroSessionIds=new Set(sharedPomodoro.sessions.map(session=>session.id));
 let legacyPomodoroSessionsAdded=0;
@@ -1641,260 +390,17 @@ for(const timer of sharedPomodoro.timers.values()){
 setInterval(()=>void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session retry deferred:',e.message)),60000).unref();
 if(legacyPomodoroSessionsAdded)void browserPomodoroSessions.retryDue().catch(e=>console.warn('Pomodoro session backfill deferred:',e.message));
 let pomodoroRefreshAt=0,pomodoroRefreshPromise=null;
-async function sharedPomodoroSnapshot(){
-  if(Date.now()-pomodoroRefreshAt>(TOKEN==='native'?30000:Math.max(300000,Number(process.env.ADIB_POMODORO_DISCOVERY_MS)||300000))){
-    if(!pomodoroRefreshPromise){const requestedAt=Date.now();pomodoroRefreshPromise=queryDatabase(TASKS_DB,TASKS_DS,{filter:{property:'Отчет запущен',checkbox:{equals:true}}}).then(pages=>{const found=new Set();for(const page of pages){const timer=timerFromTask(mapPersonalTask(page));found.add(timer.id);const current=sharedPomodoro.get(timer.id);if(current&&current.revision>=requestedAt)continue;if(current&&!current.discovered&&(current.startedAt===timer.startedAt||Date.parse(timer.startedAt)<=Date.parse(current.startedAt||'1970-01-01')))continue;if(current?.running&&current.startedAt===timer.startedAt)continue;if(!current||current.sessionId!==timer.sessionId||!current.running)sharedPomodoro.put({...timer,discovered:true,openedAt:current?.openedAt||0})}for(const current of [...sharedPomodoro.timers.values()])if(current.discovered&&current.running&&!found.has(current.id)&&current.revision<requestedAt)sharedPomodoro.put({...current,running:false,status:'stopped',endsAt:0,remainingSeconds:0});pomodoroRefreshAt=Date.now()}).catch(error=>{console.warn("Pomodoro discovery temporarily unavailable:",error.message);pomodoroRefreshAt=Date.now()}).finally(()=>{pomodoroRefreshPromise=null})}
-    await pomodoroRefreshPromise;
-  }
-  const snapshot=sharedPomodoro.snapshot();
-  const durableSessions=await loadNotionPomodoroSessions();
-  const sessionsById=new Map((snapshot.sessions||[]).map(session=>[String(session.id),session]));
-  for(const session of durableSessions){const id=String(session.id),local=sessionsById.get(id);sessionsById.set(id,{...local,...session,taskId:session.taskId||local?.taskId||''})}
-  return {...snapshot,sessions:[...sessionsById.values()]};
-}
+
 const personalPomodoroLocks = new Map();
-async function savePersonalPomodoro(body) {
-  const id=cleanId(String(body.id||'').trim());if(!id)throw new Error('Müəyyən edilməyib ID tapşırıqları Tasks');
-  const action=String(body.action||'').trim();
-  const request={...body,id,browserSessions:true};
-  // Old Android clients do not send an operation ID. Give those requests an
-  // idempotency key too, and use the same session logger for every client.
-  if(action==='start'&&!request.operationId)request.operationId=crypto.randomUUID();
-  const lockId='all-timers';const previous=personalPomodoroLocks.get(lockId)||Promise.resolve();let release;const current=new Promise(resolve=>{release=resolve});personalPomodoroLocks.set(lockId,current);await previous;
-  try{if(['start','open'].includes(action))await sharedPomodoroSnapshot();return await browserPomodoroSessions.handle({...request,__account:body.__account});}finally{release();if(personalPomodoroLocks.get(lockId)===current)personalPomodoroLocks.delete(lockId)}
-}
-async function savePersonalPomodoroUnlocked(body){
- const id=cleanId(String(body.id||'').trim()),action=String(body.action||'').trim();
- if(!['open','hide','start','pause','finish','break-finish','reset'].includes(action))throw new Error('Naməlum əməliyyat Pomodoro');
- const global=id==='00000000-0000-4000-8000-000000000001',existing=sharedPomodoro.get(id),now=Date.now(),page=global?null:await notion('/pages/'+encodeURIComponent(id),{method:'GET'}),task=global?{id,title:'Pomodoro',pomodoroRunning:existing?.running||false,pomodoroStartedAt:existing?.startedAt||'',pomodoroCount:existing?.pomodoroCount||0,pomodoroMinutes:existing?.pomodoroMinutes||0}:mapPersonalTask(page);
- let timer=existing||timerFromTask(task,now);
- const answer=(timer,extra={})=>({ok:true,id,action,...extra,timer,serverNow:Date.now(),pomodoroCount:timer.pomodoroCount,pomodoroMinutes:timer.pomodoroMinutes,startedAt:timer.startedAt||'',savedAt:new Date().toISOString()});
- if(body.sessionId&&timer.sessionId&&body.sessionId!==timer.sessionId&&action!=='open')return answer(timer,{duplicate:true,stale:true});
- if(action==='hide'&&Object.prototype.hasOwnProperty.call(body,'expectedVisibilityId')&&body.expectedVisibilityId!==(timer.windowVisibilityId||''))return answer(timer,{duplicate:true,stale:true});
- if(action==='open'||action==='start'){
-  await sharedPomodoroSnapshot();
-  const others=[...sharedPomodoro.timers.values()].filter(t=>t.running&&t.id!==id);
-  if(others.length){
-   const confirmationToken=crypto.createHash('sha256').update(JSON.stringify(others.map(t=>[t.id,t.sessionId,t.revision]).sort((a,b)=>a[0].localeCompare(b[0])))).digest('hex');
-   if(body.__account&&body.__account.role!=='admin')for(const other of others)await accountTask(body.__account,other.id);
-   if(body.confirmationToken!==confirmationToken){const error=requestError('Pomodoro artıq işləyir. Onu dayandırıb yenisini açmaq?',409);error.code='POMODORO_ACTIVE';error.confirmationToken=confirmationToken;throw error;}
-   for(const other of others){if(other.id!=='00000000-0000-4000-8000-000000000001')await notion('/pages/'+encodeURIComponent(other.id),{method:'PATCH',body:JSON.stringify({properties:{'Отчет запущен':{checkbox:false}}})});sharedPomodoro.put({...other,discovered:false,running:false,status:'paused',endsAt:0,remainingSeconds:Math.max(0,Math.ceil((other.endsAt-Date.now())/1000)),pausedBy:id});}
-   if(typeof realtime!=='undefined')realtime.invalidate(['pomodoro','personal','equipment']);
-  }
- }
- if(action==='hide'){timer=sharedPomodoro.put({...timer,windowHidden:true,windowVisibilityId:'hide:'+now+':'+timer.revision});return answer(timer)}
- if(action==='open'){if(!timer.running&&timer.status!=='paused'){const openMode=body.mode==='break'?'break':'work',openDuration=Math.max(1,Math.min(openMode==='break'?60:180,Math.round(Number(body.duration))||timer.duration||25));timer={...timer,mode:openMode,duration:openDuration,plannedDuration:openDuration,remainingSeconds:openDuration*60};}timer=sharedPomodoro.put({...timer,discovered:false,openedAt:now,windowHidden:false,windowVisibilityId:'open:'+now+':'+timer.revision,status:timer.running?'running':timer.status==='paused'?'paused':'ready',remainingSeconds:timer.remainingSeconds||timer.duration*60});return answer(timer)}
- if(action==='start'&&task.pomodoroRunning&&task.pomodoroStartedAt&&(!existing||existing.running)){if(!existing||!existing.running)timer=timerFromTask(task,now);timer=sharedPomodoro.put({...timer,discovered:false,windowHidden:false,openedAt:now,windowVisibilityId:'start:'+now+':'+timer.revision});return answer(timer,{duplicate:true})}
- if((action==='finish'||action==='break-finish')&&!timer.running&&timer.status!=='paused')return answer(timer,{duplicate:true});
- if(action==='pause'&&!timer.running)return answer(timer,{duplicate:true});
- const mode=body.mode==='break'?'break':'work',duration=Math.max(1,Math.min(mode==='break'?60:180,Math.round(timer.status==='paused'&&timer.mode===mode?timer.plannedDuration||timer.duration:Number(body.plannedDuration||body.duration))||(mode==='break'?5:25))),iso=new Date(now).toISOString(),properties={};
- if(action==='start'){
-  const requested=Number(body.remainingSeconds),remaining=Number.isFinite(requested)&&requested>0?Math.min(duration*60,Math.ceil(requested)):timer.status==='paused'&&timer.mode===mode?timer.remainingSeconds:duration*60;
-  const effectiveStart=new Date(now-(duration*60-remaining)*1000).toISOString();
-  properties['Отчет запущен']={checkbox:true};properties['Начало отчета']={date:{start:effectiveStart}};properties['Конец отчета']={date:null};properties['Pomodoro режим']={select:{name:pomodoroModeName(mode,duration)}};properties['Pomodoro текущая длительность']={number:duration};
-  timer={...timer,mode,duration,plannedDuration:duration,running:true,status:'running',windowHidden:false,windowVisibilityId:'start:'+now+':'+timer.revision,startedAt:effectiveStart,endsAt:now+remaining*1000,remainingSeconds:remaining,sessionId:timer.status==='paused'&&timer.mode===mode&&timer.sessionId?timer.sessionId:id+':'+effectiveStart,completedAt:null,completionReason:null,creditedMinutes:null};
- }else if(action==='pause'){
-  const remaining=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Math.min(duration*60,Number(body.remainingSeconds)||timer.remainingSeconds||duration*60));
-  properties['Отчет запущен']={checkbox:false};timer={...timer,running:false,status:'paused',endsAt:0,remainingSeconds:remaining};
- }else if(action==='finish'||action==='break-finish'){
-  const fullMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||duration)),left=timer.running?Math.max(0,Math.ceil((timer.endsAt-now)/1000)):Math.max(0,Number(timer.remainingSeconds)||0),workedSeconds=Math.max(0,Math.min(fullMinutes*60,fullMinutes*60-left)),early=body.early===true&&left>0,credited=early?Math.round(workedSeconds/60):fullMinutes;properties['Отчет запущен']={checkbox:false};properties['Конец отчета']={date:{start:iso}};
-  if(action==='finish'){const totalPomodoroMinutes=Math.round(Number(task.pomodoroMinutes)||0)+credited,adjustedEstimate=Math.ceil(totalPomodoroMinutes);properties['Pomodoro количество']={number:task.pomodoroCount+1};properties['Pomodoro всего минут']={number:totalPomodoroMinutes};if(!global&&mode!=='break'&&credited>0&&Number.isInteger(Number(task.estimateMinutes))&&Number(task.estimateMinutes)>0&&taskEstimateModule.validMinutes(adjustedEstimate)&&adjustedEstimate>Number(task.estimateMinutes))properties[taskEstimateModule.FIELD]={number:adjustedEstimate}}
-  timer={...timer,running:false,status:'completed',endsAt:0,remainingSeconds:0,completedAt:iso,completionReason:early?'early':'elapsed',creditedMinutes:action==='finish'?credited:0,pomodoroCount:action==='finish'?task.pomodoroCount+1:task.pomodoroCount,pomodoroMinutes:action==='finish'?Math.round(Number(task.pomodoroMinutes)||0)+credited:task.pomodoroMinutes};
- }else{
-  properties['Отчет запущен']={checkbox:false};properties['Начало отчета']={date:null};properties['Конец отчета']={date:null};properties['Pomodoro текущая длительность']={number:null};timer={...timer,running:false,status:'stopped',endsAt:0,remainingSeconds:0,completedAt:null,completionReason:'reset',creditedMinutes:null};
- }
- const startedAtMs=Date.parse(timer.startedAt),endedAtMs=Date.parse(iso),plannedMinutes=Math.max(1,Math.round(Number(timer.plannedDuration||timer.duration)||duration)),actualSeconds=Number.isFinite(startedAtMs)?Math.max(0,Math.min(plannedMinutes*60,(endedAtMs-startedAtMs)/1000)):0,finishedEarly=body.early===true;
- const completedSession=action==='finish'&&!global&&mode!=='break'?{id:timer.sessionId||id+':'+(timer.startedAt||iso),taskId:id,title:task.title||timer.title||'Pomodoro',sourceKey:'personal',kind:'pomodoro',mode:'work',actorId:body.__account?.id||'unidentified',worker:body.__account?.name||timer.worker||'İstifadəçi',status:'saved',startedAt:Number.isFinite(startedAtMs)?startedAtMs:endedAtMs-actualSeconds*1000,endedAt:endedAtMs,seconds:actualSeconds,plannedMinutes,fullPomodoro:!finishedEarly,completionReason:finishedEarly?'early':'elapsed',startOperation:body.operationId||'',notionLogEligible:true,notionSyncPending:true}:null;
- if(!global)await notion('/pages/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({properties})});if(taskEstimateModule.validMinutes(properties[taskEstimateModule.FIELD]?.number)){taskManagement.update({type:'estimate',id,minutes:properties[taskEstimateModule.FIELD].number});snapshotCache=null;taskCache.clear();}invalidatePersonalTasks();
- const savedTimer={...timer,discovered:false};
- if(completedSession){timer=sharedPomodoro.commit(savedTimer,completedSession,null);await browserPomodoroSessions.flushSessionLog(completedSession);timer=sharedPomodoro.get(id);}
- else timer=sharedPomodoro.put(savedTimer);
- return answer(timer);
-}
 
-async function aiChat(body) {
-  const message=String(body?.message||'').trim();
-  if(!message) throw requestError('üçün mesaj daxil edin Gemini', 400);
-  if(message.length > 4000) throw requestError('Mesaj çox uzundur (maksimum 4000 simvol)', 413);
-  if(!GEMINI_API_KEY){const error=new Error('Gemini konfiqurasiya edilməyib. əlavə et GEMINI_API_KEY və GEMINI_MODEL üçün .env serverdə.');error.statusCode=503;throw error}
-  const context=body?.context&&typeof body.context==='object'?body.context:{};
-  const safeContext=JSON.stringify(context).slice(0,12000);
-  const system='Siz AI-xidmət köməkçisi ADIB tapşırıqların və avadanlıqların saxlanması üçün. İstifadəçinin dilində qısa və praktiki şəkildə cavab verin. Verilmiş konteksti təhlil edin, lakin məlumatları təşkil etməyin. Bu versiyada siz yalnız məsləhət görürsünüz: tapşırığı və ya verilənlər bazasını dəyişdirdiyinizi iddia etməyin.';
-  const models=[...new Set([GEMINI_MODEL,GEMINI_MODEL_FALLBACK])];let data=null,usedModel=GEMINI_MODEL,lastStatus=0,lastError='';
-  for(const model of models){
-    const endpoint=GEMINI_API_URL+'/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
-    let response;
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),GEMINI_TIMEOUT_MS);
-    try {
-      response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:message+'\n\nXidmət konteksti:\n'+safeContext}]}],generationConfig:{temperature:0.2,maxOutputTokens:1000}})});
-    } catch(error) {
-      if(error.name==='AbortError') throw requestError('Gemini vaxtında cavab vermədi. Yenidən cəhd edin.',504);
-      throw error;
-    } finally { clearTimeout(timeout); }
-    const text=await response.text();try{data=JSON.parse(text)}catch{data={error:{message:text}}}
-    if(response.ok){usedModel=model;break}
-    lastStatus=response.status;lastError=data.error?.message||data.message||text;
-    if(response.status!==404||model===models.at(-1))throw new Error('Gemini API '+response.status+': '+lastError);
-  }
-  const reply=(data?.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
-  if(!reply)throw new Error('Gemini cavab vermədi'+(lastStatus?' ('+lastStatus+')':''));
-  return {reply,model:usedModel,provider:'gemini'};
-}
-
-async function notionUsers(force = false) {
-  if (!force && userCache.value && Date.now() - userCache.at < 300000) return userCache.value;
-  const users = [];
-  let cursor = '';
-  do {
-    const suffix = cursor ? '&start_cursor=' + encodeURIComponent(cursor) : '';
-    const page = await notion('/users?page_size=100' + suffix, { method: 'GET' });
-    users.push(...(page.results || []));
-    cursor = page.has_more ? page.next_cursor : '';
-  } while (cursor);
-  userCache.value = users.filter(user => user.type === 'person').map(user => ({ id: user.id, name: user.name || user.person?.email || 'Adsız', email: user.person?.email || '' }));
-  userCache.at = Date.now();
-  return userCache.value;
-}
-
-
-function observeWrittenPage(endpoint,page){
- if(!page?.id||page.object!=='page'||!page.properties)return;
- const parent=page.parent||{},parentId=parent.data_source_id||parent.database_id||'';
- if(page.archived||page.in_trash)realtimeTombstones.set(page.id,Date.now()+10*60*1000);else realtimeTombstones.delete(page.id);
- let targets=[];
- if(personalRaw.tasks.has(page.id)||[TASKS_DS,TASKS_DB].includes(parentId))targets.push(personalRaw.tasks);
- if(personalRaw.containers.has(page.id)||[PERSONAL_CONTAINERS_DS,PERSONAL_CONTAINERS_DB].includes(parentId))targets.push(personalRaw.containers);
- if(rawCache.plans.has(page.id)||[PLAN_DS,PLAN_DB].filter(Boolean).includes(parentId))targets.push(rawCache.plans);
- if(rawCache.machines.has(page.id)||[MAKINA_DS,MAKINA_DB].filter(Boolean).includes(parentId))targets.push(rawCache.machines);
- for(const source of taskSources())if(rawCache.tasks.get(source.key)?.has(page.id)||[source.dataSourceId,source.databaseId].filter(Boolean).includes(parentId)){if(!rawCache.tasks.has(source.key))rawCache.tasks.set(source.key,new Map());targets.push(rawCache.tasks.get(source.key));}
- for(const target of targets)mergePages(target,[page]);
- if(targets.length){snapshotCache=null;personalTasksCache=null;taskCache.clear();saveRawSnapshotCache();}
-}
-function mutationScopes(method,p){
- if(!['POST','PATCH','DELETE'].includes(method))return [];
- if(p==='/api/task-management')return ['management','personal','equipment'];
- if(p==='/api/personal-pomodoro')return ['personal','equipment','pomodoro'];
- if(['/api/personal-task','/api/personal-container','/api/personal-layout','/api/personal-task-blocks'].includes(p))return ['personal'];
- if(['/api/task','/api/plan','/api/equipment','/api/layout','/api/layout-color'].includes(p))return ['equipment'];
- return [];
-}
-function realtimePersonal(){const all=[...personalRaw.tasks.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalTask),containers=[...personalRaw.containers.values()].filter(p=>!p.archived&&!p.in_trash).map(mapPersonalContainer);applyPersonalContainerDefaults(all,containers);return withTaskEstimates({tasks:all.filter(recentTask),containers,pomodoroTasks:all,database:TASKS_DB,containersDatabase:PERSONAL_CONTAINERS_DB});}
-function managementSnapshotWithTaskEstimates(){const data=taskManagement.snapshot();for(const page of personalRaw.tasks.values()){if(page.archived||page.in_trash||!Object.prototype.hasOwnProperty.call(page.properties||{},taskEstimateModule.FIELD))continue;const value=taskEstimates.read(page);if(value===null){if(data.tasks[page.id]){data.tasks[page.id]={...data.tasks[page.id]};delete data.tasks[page.id].estimateMinutes;}}else data.tasks[page.id]={...data.tasks[page.id],estimateMinutes:value};}return data;}
 const realtime=new RealtimeHub({origin:CORS_ORIGIN,pollMs:EXTERNAL_SYNC_MS,
  load:async scope=>scope==='pomodoro'?await sharedPomodoroSnapshot():scope==='personal'?withTaskEstimates(await personalSnapshot(false,false)):scope==='equipment'?withTaskEstimates(await snapshot(false,normalizeBaseUrl(PUBLIC_APP_URL),false)):{ok:true,...managementSnapshotWithTaskEstimates()},
  local:async scope=>scope==='pomodoro'?sharedPomodoro.snapshot():scope==='personal'?realtimePersonal():scope==='equipment'?withTaskEstimates(buildSnapshotFromRawCache(normalizeBaseUrl(PUBLIC_APP_URL))):{ok:true,...managementSnapshotWithTaskEstimates()}
 });
 
-
-function accountTasks(){const data=buildSnapshotFromRawCache(),machines=new Map(data.equipment.map(e=>[accountKey(e.id),e.planId]));return {personal:realtimePersonal().pomodoroTasks||[],equipment:(data.pomodoroTasks||[]).map(t=>({...t,planId:t.planId||machines.get(accountKey(t.machineId))||''}))};}
-function allowedAccountIds(u){const t=accountTasks();return new Set([...t.personal.filter(t=>accounts.task(u,t,'personal')),...t.equipment.filter(t=>accounts.task(u,t,'equipment'))].map(t=>accountKey(t.id)));}
-function projectAccount(u,scope,d){
- if(u.role==='admin')return d;
- if(scope==='options'){const tasks=accountTasks(),result={};for(const k of ['personal','todo','gorulen']){if(!d[k])continue;const list=k==='personal'?tasks.personal.filter(t=>accounts.task(u,t,'personal')):tasks.equipment.filter(t=>t.sourceKey===k&&accounts.task(u,t,'equipment'));result[k]={};for(const field of Object.keys(d[k])){const values=[...new Set(list.flatMap(t=>t[field]||[]))];result[k][field]={type:d[k][field].type,options:values};}}return result;}
- if(scope==='users')return {users:(d.users||[]).filter(x=>[u.rules.assignee,u.name].includes(x.id)||[u.rules.assignee,u.name].includes(x.name)).map(({id,name})=>({id,name}))};
- if(scope==='realtime'){return {...d,kind:'full',data:projectAccount(u,d.scope,d.data),baseRevision:undefined};}
- if(scope==='personal'||scope==='equipment')return accounts.filter(u,scope,d);
- const ids=allowedAccountIds(u);
- if(scope==='pomodoro'){const result={...d,sessions:(d.sessions||[]).filter(s=>ids.has(accountKey(s.taskId))),timers:(d.timers||[]).filter(t=>t.id!=='__global__'&&ids.has(accountKey(t.id)))};if(d.timer&&!ids.has(accountKey(d.timer.id)))delete result.timer;return result;}
- if(scope==='management'){const v=structuredClone(d);v.tasks=Object.fromEntries(Object.entries(v.tasks||{}).filter(([id])=>ids.has(accountKey(id))));for(const t of Object.values(v.tasks))if(t.parentId&&!ids.has(accountKey(t.parentId)))t.parentId='';for(const day of Object.values(v.days||{})){day.ids=(day.ids||[]).filter(id=>ids.has(accountKey(id)));if(!ids.has(accountKey(day.mainId)))day.mainId='';}return v;}
- return d;
-}
-async function accountTask(u,id,kind){
- let found;const find=()=>{const tasks=accountTasks();for(const k of kind?[kind]:['personal','equipment']){const t=tasks[k].find(t=>accountKey(t.id)===accountKey(id));if(t){found={task:t,kind:k};return;}}};find();
- if(!found){if(!kind||kind==='personal')await personalSnapshot(false);if(!found&&(!kind||kind==='equipment'))await snapshot(false);find();}
- if(!found||!accounts.task(u,found.task,found.kind))throw accessError('Tapşırıq mövcud deyil');return found;
-}
-async function accountAuthorize(req,res,url,u,b){
- res.__account=u;res.__accountRequest=req;const p=url.pathname,method=req.method;if(u.role==='admin')return;
- const deny=()=>{throw accessError('Bu bölmə və ya fəaliyyətə daxil olmaq mümkün deyil');};const need=a=>{if(!accounts.action(u,a))deny();};
- if(p==='/api/user/preferences'){if(!['GET','PUT'].includes(method))deny();res.__accountScope='preferences';return;}
- const scopes={ '/api/personal-snapshot':'personal','/api/plan-snapshot':'equipment','/api/pomodoro-state':'pomodoro','/api/personal-pomodoro':'pomodoro','/api/task-management':'management'};
- if(scopes[p])res.__accountScope=scopes[p];
- if(['/api/time','/api/health','/api/realtime/status'].includes(p))return;
- if(p==='/api/events'){const requested=(url.searchParams.get('scopes')||'personal,equipment,management,pomodoro').split(',');const allowed=requested.filter(s=>s!=='equipment'||accounts.section(u,'equipment'));url.searchParams.set('scopes',allowed.join(','));accounts.track(req,res,u);return;}
- if(p==='/api/realtime/state'){const scope=url.searchParams.get('scope')||'personal';if(scope==='equipment'&&!accounts.section(u,'equipment'))deny();res.__accountScope='realtime';url.searchParams.delete('revision');url.searchParams.delete('epoch');return;}
- if(p==='/api/personal-snapshot')return;
- if(p==='/api/plan-snapshot'){if(!accounts.section(u,'equipment'))deny();return;}
- if(p==='/api/team-snapshot'){if(method!=='GET'||!['admin','manager'].includes(u.role))deny();return;}
- if(p==='/api/calendar-capabilities'){if(!accounts.section(u,'calendar'))deny();return;}
- if(p==='/api/task-options'){if(!['personal','calendar','day','matrix','equipment'].some(s=>accounts.section(u,s)))deny();res.__accountScope='options';return;}
- if(p==='/api/users'){res.__accountScope='users';return;}
- if(p==='/api/pomodoro-state')return;
- if(p==='/api/task-management'){if(method==='GET')return;if(!['parent','estimate','day-add','day-remove','main','review','completion','finish'].includes(b.type))deny();need(['completion','finish'].includes(b.type)?'status':'edit');await accountTask(u,b.id);if(b.parentId)await accountTask(u,b.parentId);return;}
- if(['/api/chat-threads','/api/comment-notifications'].includes(p)){if(!accounts.section(u,'chat'))deny();const ids=p==='/api/chat-threads'?(b.tasks||[]).map(t=>t.id):(Array.isArray(b.ids)?b.ids:String(b.ids||'').split(','));if(ids.length>120)throw accessError('Həddindən artıq tapşırıq',400);for(const id of ids)await accountTask(u,id);return;}
- if(p==='/api/image-upload'){
-  if(b.peerId){
-   const peer=accounts.state.users.find(v=>v.id===String(b.peerId)&&!v.disabled&&v.id!==u.id&&accounts.section(v,'chat'));
-   if(!accounts.section(u,'chat')||!accounts.action(u,'comment')||!peer||!(u.personalPageId||peer.personalPageId))deny();
-  }else{need('edit');if(b.id)await accountTask(u,b.id);}
-  return;
- }
- if(p==='/api/task-photos'&&method==='GET'){await accountTask(u,url.searchParams.get('id'));return;}
- if(p==='/api/task-photo'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
- if(p==='/api/task-photo-schema')deny();
- if(p==='/api/work-state'){if(!accounts.section(u,'equipment')&&!accounts.section(u,'calendar'))deny();return;}
- if(p==='/api/work-schema')deny();
- if(p==='/api/work-timer'){need('timer');const id=b.action==='start'?b.id:workTimer.data.sessions.find(s=>s.id===b.sessionId)?.taskId;if(!id)deny();req.__workTarget=await workAccountTask(u,id);return;}
- const reads=['/api/task-comments','/api/task-images','/api/personal-task-content','/api/personal-task-blocks'];
- if(reads.includes(p)&&method==='GET'){if(p==='/api/task-comments'&&!accounts.section(u,'chat'))deny();await accountTask(u,url.searchParams.get('id'));return;}
- if(p==='/api/task-comments'&&method==='POST'){if(!accounts.section(u,'chat'))deny();need('comment');await accountTask(u,b.id);return;}
- if(p==='/api/task-image'){need(b.remove?'delete':'edit');await accountTask(u,b.id);return;}
- if(p==='/api/personal-task-blocks'){need('edit');await accountTask(u,b.id);return;}
- if(p==='/api/personal-pomodoro'){need('timer');await accountTask(u,b.id);return;}
- if(['/api/personal-task','/api/task'].includes(p)){
- const kind=p==='/api/personal-task'?'personal':'equipment';
- if(method==='POST'){need('create');if(kind==='personal'){if(u.rules.containers!=='*'&&!u.rules.containers.includes(accountKey(b.containerId)))deny();if(u.rules.assignedOnly&&!(b.assignees||[]).includes(u.rules.assignee))deny();}else{if(!accounts.section(u,'equipment'))deny();let equipment=buildSnapshotFromRawCache().equipment;if(b.machineId&&!equipment.some(e=>accountKey(e.id)===accountKey(b.machineId))){const refreshed=await snapshot(true);equipment=refreshed.equipment||equipment;}const target=resolveEquipmentTaskPlan({machineId:b.machineId,planId:b.planId,allowedPlans:u.rules.plans},equipment);if(!target.ok)deny();b.planId=target.planId;if(u.rules.assignedOnly&&![b.assigneeId,b.assigneeName,...(b.tapsirildi||[])].includes(u.rules.assignee))deny();}if(b.parentId)await accountTask(u,b.parentId,kind);return;}
- const found=await accountTask(u,method==='DELETE'?url.searchParams.get('id'):b.id,kind),t=found.task;
- if(method==='DELETE'){need('delete');if((accountTasks()[kind]||[]).some(x=>accountKey(x.parentId)===accountKey(t.id)))deny();return;}
- if(method!=='PATCH')deny();
- if(!accounts.action(u,'edit')){need('status');const safe=['id','status','completed','process','sourceKey','autosaveBase','autosaveOperationId','overrideWip'];for(const k of Object.keys(b))if(!safe.includes(k)&&JSON.stringify(b[k])!==JSON.stringify(t[k]))deny();}
- if(kind==='equipment'){if(b.sourceKey&&b.sourceKey!==t.sourceKey)deny();if(b.machineId&&!(t.machineIds||[t.machineId]).some(id=>accountKey(id)===accountKey(b.machineId)))deny();if(b.planId&&accountKey(b.planId)!==accountKey(t.planId))deny();}
- const changed={...t,...b};if(!accounts.task(u,changed,kind))deny();if(b.parentId)await accountTask(u,b.parentId,kind);return;
- }
- deny(); // New endpoints are denied until explicitly reviewed.
-}
-
 const {WorkTimerStore}=require('./work-timer');
 const workTimer=new WorkTimerStore({file:path.join(path.dirname(accounts.file||process.env.ADIB_ACCOUNTS_FILE||process.env.TASK_MANAGEMENT_FILE||path.join(__dirname,'data','accounts.json')),'work-sessions.json'),now:()=>networkTime.snapshot().now??NaN,notion,saveSession:session=>timerSessionLog.record(session),deleteSession:session=>timerSessionLog.remove(session),sources:()=>[{key:'todo',ds:TODO_DS,db:TODO_DB},{key:'gorulen',ds:GORULEN_DS,db:GORULEN_DB}],changed:()=>{try{realtime.send('work-changed',{revision:workTimer.data.revision});}catch{}}});
-async function syncTaskSessionTitle(taskId,sourceKey,title){
- const result={workTimer:0,pomodoro:0,notion:0};
- try{result.workTimer=workTimer.renameTask(taskId,title)}catch(error){console.warn('Work timer session title update failed:',taskId,error.message)}
- try{result.pomodoro=sharedPomodoro.renameTask(taskId,title);if(result.pomodoro)realtime.invalidate(['pomodoro','personal'])}catch(error){console.warn('Pomodoro session title update failed:',taskId,error.message)}
- try{const updated=await timerSessionLog.renameTask(taskId,sourceKey,title);result.notion=updated.updated||0}catch(error){result.notionError=String(error.message||error).slice(0,300);console.warn('Notion session title update failed:',taskId,error.message)}
- return result;
-}
-function workActor(request){if(accounts.enabled){const u=accounts.user(request);return {...u,assignee:u.rules?.assignee||u.name};}return {id:'owner',name:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov',role:'admin',assignee:process.env.ADIB_ADMIN_NAME||'Ilqar Mamedov'};}
-async function workClock(){if(Number.isFinite(networkTime.snapshot().now)){void networkTime.sync().catch(()=>{});return;}await networkTime.sync();if(!Number.isFinite(networkTime.snapshot().now))throw Object.assign(Error("Şəbəkə vaxtı təsdiqlənməyib"),{statusCode:503,code:"WORK_CLOCK_UNAVAILABLE"});}
-async function workAccountTask(u,id){const cached=accountTasks().equipment.find(t=>accountKey(t.id)===accountKey(id));if(cached){if(!accounts.task(u,cached,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task:cached};}const prepared=await workTimer.page(id),spec=taskSources().find(s=>s.key===prepared.source.key);const task=[...buildTaskMap([{source:spec,pages:[prepared.p]}],[], '',true).values()].flat()[0];if(!task)throw accessError('Tapşırıq mövcud deyil');if(!task.planId&&task.machineId){const machine=buildSnapshotFromRawCache().equipment.find(m=>accountKey(m.id)===accountKey(task.machineId));task.planId=machine?.planId||'';if(!task.planId&&u.role!=='admin'&&u.rules.plans!=='*'){const page=await notion('/pages/'+task.machineId,{method:'GET'});if(page.archived||page.in_trash)throw accessError('Tapşırıq mövcud deyil');task.planId=relationIds(page,'Plan')[0]||'';}}if(!accounts.task(u,task,'equipment'))throw accessError('Tapşırıq mövcud deyil');return {task,prepared};}
-function workTasks(actor){return accountTasks().equipment.filter(t=>actor.role==='admin'||accounts.task(actor,t,'equipment'));}
-async function teamSnapshot(request){
- const baseUrl=appBaseUrl(request);
- const [personalData,equipmentData]=await Promise.all([
-  personalSnapshot(false,false,false),
-  snapshot(false,baseUrl,false)
- ]);
- const personalRows=withTaskEstimates(personalData).tasks||[];
- const equipmentRows=withTaskEstimates(equipmentData).pomodoroTasks||[];
- const machines=new Map((equipmentData.equipment||[]).map(item=>[accountKey(item.id),item]));
- let tasks=[
-  ...personalRows.map(task=>({...task,kind:'personal',source:'Tapşırıqlarım'})),
-  ...equipmentRows.map(task=>({...task,kind:'equipment',machineName:machines.get(accountKey(task.machineId))?.name||'',source:task.source||'Avadanlıq'}))
- ];
- const actor=request.__accountBody?.__account;
- if(accounts.enabled&&actor?.role!=='admin')tasks=tasks.filter(task=>accounts.task(actor,task,task.kind==='equipment'?'equipment':'personal'));
- let directory=[];
- try{directory=await personalDirectory();}catch(error){console.warn('Team directory lookup deferred:',error.message);}
- const users=accounts.enabled?accounts.state.users.filter(user=>!user.disabled):[];
- const sessions=workTimer.data.sessions.filter(session=>['running','pending'].includes(session.status)).map(session=>({
-  taskId:session.taskId,worker:session.worker,status:session.status,startedAt:session.startedAt
- }));
- return {ok:true,...buildTeamDashboard({
-  users,directory,tasks,sessions,
-  now:networkTime.snapshot().now||Date.now(),
-  timeZone:process.env.ADIB_TIME_ZONE||'Asia/Baku'
- }),refreshedAt:new Date().toISOString()};
-}
+
 const workFlush=setInterval(()=>void workTimer.flush().catch(e=>console.warn('Work timer sync:',e.message)),30000);workFlush.unref();
 
 const server = http.createServer(async (request, response) => {
