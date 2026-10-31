@@ -120,8 +120,12 @@
     root.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
   }
 
+  function canOpenTeam() {
+    return !!user && (user.role === 'admin' || user.rules?.sections?.includes('team'));
+  }
+
   function mountSidebarNavigation() {
-    if (!user || !['admin', 'manager'].includes(user.role)) return;
+    if (!canOpenTeam()) return;
     const side = document.getElementById('adibPersistentSide');
     if (!side || document.getElementById('teamSidebarButton')) return;
     const button = el('button', 'adib-home-nav');
@@ -244,7 +248,7 @@
   }
 
   function show() {
-    if (!root) return;
+    if (!root || !canOpenTeam()) return;
     root.hidden = false;
     document.documentElement.classList.add('adib-team-open');
     document.body.classList.add('adib-team-open');
@@ -745,7 +749,7 @@
     try {
       const auth = await request('/api/auth/me');
       user = auth.user;
-      if (!user || !['admin', 'manager'].includes(user.role)) return;
+      if (!canOpenTeam()) return;
     } catch {
       return;
     }
