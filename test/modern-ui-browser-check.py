@@ -39,15 +39,24 @@ with sync_playwright() as pw:
    p.evaluate('()=>{ADIBHome.open();ADIBHomeBridge.closeViews();}')
    if width <= 750:
     assert not p.locator('.adib-home-intro-add').is_visible()
-    assert p.locator('.adib-home-fab').is_visible()
+    assert p.locator('#adibHome .adib-home-fab').is_visible()
     assert p.locator('.adib-home-intro').bounding_box()['height'] < 90
     assert p.locator('.adib-home-quick-scopes').is_visible()
-    p.locator('.adib-home-fab').click();p.locator('#taskModal.open').wait_for(state='visible');p.evaluate('()=>ADIBHomeBridge.closeViews()')
+    p.locator('#adibHome .adib-home-fab').click();p.locator('#taskModal.open').wait_for(state='visible');p.evaluate('()=>ADIBHomeBridge.closeViews()')
    else:
-    p.locator('.adib-home-intro-add').click();assert p.locator('dialog.adib-home-add-menu').is_visible();p.keyboard.press('Escape')
+    assert not p.locator('.adib-home-intro-add').is_visible()
+    assert p.locator('#adibHome .adib-home-fab').is_visible()
+    assert p.locator('.adib-home-intro').bounding_box()['height'] <= 100
+    assert p.locator('#adibHome .adib-home-fab').bounding_box()['x'] > width - 110
    p.locator('#adibHome [data-home-open="cached-t1"]:visible').first.click()
    p.locator('#taskModal.open').wait_for(state='visible')
    assert p.locator('#taskModal').get_by_text('Saxlanmış tapşırıq').count() or p.locator('#taskModal input').count()
+   if width > 750:
+    proxy=p.locator('.adib-desktop-fab');proxy.wait_for(state='visible')
+    assert proxy.bounding_box()['x'] > width - 110
+    actions=p.locator('#taskModal .editor-actions:visible').first
+    assert actions.bounding_box()['x'] + actions.bounding_box()['width'] <= proxy.bounding_box()['x']
+    proxy.click();p.locator('#taskModal.open').wait_for(state='visible')
    p.evaluate('()=>{ADIBHomeBridge.closeViews();ADIBHome.open();ADIBHomeBridge.day()}')
    p.locator('.tm-layer').wait_for(state='visible')
    if width > 700:

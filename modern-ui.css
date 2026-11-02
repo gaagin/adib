@@ -170,3 +170,18 @@ html body #adibSettingsMenu .adib-accent-hint { color:var(--muted); line-height:
  html body.adib-home-open.adib-focused-views .adib-home-quick-scopes { flex-wrap:nowrap; overflow-x:auto; margin:0; }
  html body.adib-home-open .adib-home-scope { padding-top:8px; padding-bottom:8px; }
 }
+
+/* Compact desktop heading and right-aligned quick-create action. */
+html body .adib-desktop-fab { display:none!important; }
+@media (min-width:751px) {
+ html body.adib-home-open .adib-home-intro { box-sizing:border-box; min-height:96px; padding:10px 34px; }
+ html body.adib-home-open .adib-home-intro-text h2 { font-size:24px; margin:4px 0 2px; }
+ html body.adib-home-open .adib-home-intro-text p { font-size:13px; line-height:1.3; }
+ html body.adib-home-open .adib-home-intro-add { display:none!important; }
+ html body.adib-home-open #adibHome .adib-home-fab { right:40px!important; bottom:40px!important; }
+ html body.adib-home-open #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:calc(var(--adib-home-top-height) + 96px)!important; }
+ html body.adib-home-open.adib-focused-views #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:148px!important; }
+ html body.adib-home-open.adib-focused-views.adib-window-overlay #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:calc(148px + var(--adib-window-inset, 0px))!important; }
+ html body.adib-home-open #taskModal.adib-home-docked:not(.adib-properties-expanded).open > .adib-desktop-fab { display:grid!important; position:fixed!important; right:40px!important; bottom:40px!important; z-index:300; }
+ html body.adib-home-open #taskModal.adib-home-docked:not(.adib-properties-expanded) :is(.adib-task-footer,.adib-personal-create-footer,.adib-elegant-footer) { padding-right:110px!important; }
+}
