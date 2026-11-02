@@ -33,3 +33,37 @@ window.ADIBAz={label:value=>({"Not started":"Başlanmayıb","In progress":"İcra
  root.addEventListener('storage',event=>{if(event.key===key||event.key==='adib-user-preferences-v1'||event.key===null)apply(read());});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })(window);
+
+/* Interface accent is a separate per-account preference from light/dark and chat colors. */
+(function interfaceAccent(root){
+ 'use strict';
+ const key='adib-interface-accent-v1';
+ const choices=[['teal','Firuzəyi'],['blue','Mavi'],['green','Yaşıl'],['violet','Bənövşəyi'],['orange','Narıncı'],['graphite','Göy-boz']];
+ const valid=value=>choices.some(([id])=>id===value)?value:'teal';
+ function read(){try{return valid(root.ADIBFilters?.getValue(key)||localStorage.getItem(key));}catch{return 'teal';}}
+ function apply(value){
+  value=valid(value);
+  if(value==='teal')document.documentElement.removeAttribute('data-adib-accent');
+  else document.documentElement.dataset.adibAccent=value;
+  const select=document.getElementById('adibInterfaceAccentSelect');if(select)select.value=value;
+ }
+ function mount(){
+  const host=document.getElementById('adibSettingsAdditionalItems')||document.getElementById('adibSettingsMenu');
+  if(host&&!document.getElementById('adibInterfaceAccentSelect')){
+   const section=document.createElement('section');section.className='adib-settings-item adib-interface-accent-setting';
+   const label=document.createElement('label');label.className='adib-settings-label';label.htmlFor='adibInterfaceAccentSelect';label.textContent='İnterfeys rəngi';
+   const row=document.createElement('div');row.className='adib-accent-row';
+   const swatch=document.createElement('span');swatch.className='adib-accent-swatch';swatch.setAttribute('aria-hidden','true');
+   const select=document.createElement('select');select.id='adibInterfaceAccentSelect';
+   for(const [value,text] of choices){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+   select.addEventListener('change',()=>{const value=valid(select.value);apply(value);try{if(root.ADIBFilters)root.ADIBFilters.setValue(key,value);else localStorage.setItem(key,value);}catch{}});
+   const hint=document.createElement('small');hint.className='adib-accent-hint';hint.textContent='Açıq və tünd mövzularda tətbiq olunur.';
+   row.append(swatch,select);section.append(label,row,hint);host.prepend(section);
+  }
+  apply(read());
+ }
+ apply(read());
+ root.addEventListener('storage',event=>{if(event.key===key||event.key==='adib-user-preferences-v1'||event.key===null)apply(read());});
+ function start(){mount();root.ADIBAccount?.ready?.then(mount,()=>{});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})(window);

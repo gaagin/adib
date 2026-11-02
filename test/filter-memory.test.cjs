@@ -45,6 +45,7 @@ test('filter state and whitelisted view settings are cached locally and synced t
   vm.runInNewContext(source, context);
   window.ADIBFilters.write('calendar', { view: 'week', status: 'open' });
   window.ADIBFilters.setValue('ela-theme', 'dark');
+  window.ADIBFilters.setValue('adib-interface-accent-v1', 'blue');
 
   assert.deepEqual(JSON.parse(localStorage.getItem('adib-user-preferences-v1')).filters.calendar, {
     view: 'week',
@@ -56,4 +57,5 @@ test('filter state and whitelisted view settings are cached locally and synced t
   await window.ADIBFilters.sync();
   assert.equal(sent.settings.filters.calendar.view, 'week');
   assert.equal(sent.settings.values['ela-theme'], 'dark');
+  assert.equal(sent.settings.values['adib-interface-accent-v1'], 'blue');
 });

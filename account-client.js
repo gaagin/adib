@@ -8,6 +8,7 @@
   const VALUE_KEYS = new Set([
     'ela-theme',
     'adib-chat-palette-v1',
+    'adib-interface-accent-v1',
     'adib-side-collapsed',
     'adib-completed-collapsed',
     'adib-home-hide-details',
