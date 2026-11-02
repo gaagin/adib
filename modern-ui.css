@@ -1,0 +1,160 @@
+/* ADIB visual refresh — shared tokens and presentation only.
+   Preserve original DOM, permissions, handlers and user chat palettes. */
+html:not(.dark) {
+  --bg:#f2f4f5; --surface:#fff; --soft:#f7f9f9; --text:#1b303c;
+  --adib-brand:#0d7078; --muted:#5d7280; --line:#dbe5e8; --blue:#0d7078; --blue-soft:#e2f1ef;
+  --shadow:0 8px 24px rgba(19,44,50,.06);
+  --wa-app:#f2f4f5; --wa-header:#fff; --wa-sidebar:#fff; --wa-wallpaper:#f8fafa;
+  --wa-text:#1b303c; --wa-muted:#5d7280; --wa-border:#dbe5e8; --wa-separator:#e8eeef;
+  --wa-hover:#f1f7f6; --wa-selected:#e2f1ef; --wa-search:#f7f9f9;
+  --wa-chip-active:#e2f1ef; --wa-chip-text:#086b72; --wa-accent:#0d7078;
+  --wa-incoming:#fff; --wa-outgoing:#e2f1ef; --wa-name:#086b72; --wa-time:#5d7280;
+  --wa-avatar:#d5eeea; --wa-avatar-text:#086b72; --wa-input:#f7f9f9; --wa-date-pill:#f2f4f5;
+  --wa-pattern:none;
+}
+html.dark {
+  --bg:#0f1d22; --surface:#1a2a30; --soft:#203238; --text:#edf5f5;
+  --adib-brand:#0d7078; --muted:#b2c3c5; --line:#3a5056; --blue:#79d4cb; --blue-soft:#284f50;
+  --shadow:0 8px 24px rgba(0,0,0,.2);
+  --wa-app:#0f1d22; --wa-header:#1a2a30; --wa-sidebar:#1a2a30; --wa-wallpaper:#122329;
+  --wa-text:#edf5f5; --wa-muted:#b2c3c5; --wa-border:#3a5056; --wa-separator:#30454a;
+  --wa-hover:#20383c; --wa-selected:#284f50; --wa-search:#203238;
+  --wa-chip-active:#284f50; --wa-chip-text:#a1eee4; --wa-accent:#0d7078;
+  --wa-incoming:#203238; --wa-outgoing:#284f50; --wa-name:#9be7dd; --wa-time:#b2c3c5;
+  --wa-avatar:#284f50; --wa-avatar-text:#a1eee4; --wa-input:#203238; --wa-date-pill:#203238;
+  --wa-pattern:none;
+}
+html body { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; letter-spacing:normal; }
+html body :is(#adibPersistentSide,.adib-side-top,.adib-side-bottom) { background:var(--surface)!important; border-color:var(--line)!important; }
+html body :is(.adib-home-top,.adib-calendar-bar,#adibWorkspaceHeader) { background:var(--surface)!important; border-color:var(--line)!important; }
+html body .adib-home-nav { border-radius:8px!important; font-weight:550!important; }
+html body .adib-design-group { border:1px solid var(--line); border-radius:12px!important; box-shadow:none!important; }
+html body .adib-home-search { border-radius:8px!important; }
+html body .adib-design-group>h3 { letter-spacing:.035em; }
+html body :is(.modal,.personal-kanban-editor-panel,.kanban-task-editor-panel) { border-radius:12px!important; }
+html body .adib-elegant-form :is(input:not([type=checkbox]):not([type=radio]),select,textarea,.personal-property-picker>summary,.adib-notion-date-trigger) { border-radius:8px!important; }
+html body .adib-home-top-actions .adib-home-add.adib-home-add,
+html body.adib-focused-views .adib-task-fab { background:var(--adib-brand)!important; color:#fff!important; }
+html body.adib-chat-open #adibChatOverlay .adib-chat-search input,
+html body.adib-chat-open #adibChatOverlay .adib-chat-compose textarea { border:1px solid var(--line)!important; border-radius:8px!important; }
+html body.adib-chat-open #adibChatOverlay .adib-chat-avatar { border-radius:10px!important; }
+html body.adib-chat-open #adibChatOverlay .adib-chat-compose button[type=submit] { border-radius:9px!important; }
+html body.adib-chat-open #adibChatOverlay button.adib-chat-thread.active { border-radius:8px!important; }
+html body .adib-team-view { --team-bg:var(--bg); --team-surface:var(--surface); --team-soft:var(--soft); --team-text:var(--text); --team-muted:var(--muted); --team-line:var(--line); --team-blue:var(--adib-brand); --team-blue-soft:var(--blue-soft); }
+html.dark body .adib-team-view { --team-bg:var(--bg); --team-surface:var(--surface); --team-soft:var(--soft); --team-text:var(--text); --team-muted:var(--muted); --team-line:var(--line); --team-blue:var(--adib-brand); --team-blue-soft:var(--blue-soft); }
+html body #adibPersistentSide .adib-side-brand>span { background:var(--adib-brand)!important; color:#fff!important; }
+html body.adib-focused-views #adibHome .adib-home-add.adib-home-add { background:var(--adib-brand)!important; color:#fff!important; }
+/* The month date is an action, not a decorative label: keep it visible. */
+html body #adibCalendar#adibCalendar .adib-calendar-cell header button.calendar-day-plan-trigger { display:inline-flex!important; color:var(--text)!important; }
+html body #adibCalendar#adibCalendar .adib-calendar-cell header button.calendar-day-plan-trigger.is-today { background:var(--adib-brand)!important; color:#fff!important; }
+html.dark body #adibCalendar#adibCalendar .adib-calendar-cell.outside { background:var(--soft)!important; color:var(--muted)!important; }
+html.dark body #adibCalendar#adibCalendar .adib-calendar-cell { border-color:var(--line)!important; }
+html body button.adib-home-add.adib-home-add.adib-home-add { background:var(--adib-brand)!important; color:#fff!important; }
+/* Wider list and detail panes on a desktop, while retaining the existing editor. */
+@media (min-width:1000px) {
+  html body.adib-side-ready { --adib-home-list-width:clamp(340px, calc((100vw - var(--adib-side-width)) * .52), 640px); }
+  html body.adib-side-ready .adib-home-list { padding:20px 24px 0!important; }
+}
+html body .adib-home-fab, html body button.adib-home-add.adib-home-add.adib-home-add,
+html body :is(button.primary,button.tm-primary,#saveTask,#personalEditorSave) { background:var(--adib-brand)!important; border-color:var(--adib-brand)!important; color:#fff!important; }
+html body .adib-task-card.adib-task-card .adib-card-title { font-weight:600!important; }
+html body .adib-design-group .adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.adib-task-card.active { background:var(--blue-soft)!important; border-radius:8px!important; }
+html body .adib-design-group>h3 { text-transform:uppercase; font-size:12px!important; }
+html body .adib-calendar-grid { border-color:var(--line)!important; }
+html body .adib-home-quick-scopes button[aria-pressed=true] { color:var(--blue)!important; }
+/* Consistent team controls without depending on platform glyph availability. */
+html body .team-search>span { display:inline-block; flex:0 0 18px; width:18px; height:18px; font-size:0; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E") center/contain no-repeat; }
+html body .team-icon-button[data-team-refresh] { font-size:0!important; }
+html body .team-icon-button[data-team-refresh]::before { content:''; display:block; width:19px; height:19px; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 7v5h-5M4 17v-5h5'/%3E%3Cpath d='M5.6 8a7 7 0 0 1 11.6-2L20 12M4 12l2.8 6a7 7 0 0 0 11.6-2'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 7v5h-5M4 17v-5h5'/%3E%3Cpath d='M5.6 8a7 7 0 0 1 11.6-2L20 12M4 12l2.8 6a7 7 0 0 0 11.6-2'/%3E%3C/svg%3E") center/contain no-repeat; }
+html.dark body .team-view-switch button.active { color:var(--blue)!important; }
+html body .adib-team-view :is(.team-search,.team-icon-button,.team-close,.team-back,.team-view-switch) { border-radius:8px; }
+/* Current route is reflected in the existing sidebar, without changing navigation. */
+html body:is(.adib-chat-open,:has(#adibCalendar:not([hidden])),:has(.tm-layer),:not(.adib-home-open)) #adibPersistentSide [data-home-nav=tasks].active { background:transparent!important; color:var(--text)!important; }
+html body.adib-chat-open #adibPersistentSide [data-home-nav=chat],
+html body:not(.adib-chat-open):not(.adib-team-open):has(#adibCalendar:not([hidden])) #adibPersistentSide [data-home-nav=calendar],
+html body:not(.adib-chat-open):not(.adib-team-open):has(.tm-layer) #adibPersistentSide [data-home-nav=day],
+html body:not(.adib-home-open):not(.adib-chat-open):not(.adib-team-open):not(:has(#adibCalendar:not([hidden]))):not(:has(.personal-kanban-modal,.personal-eisenhower-modal,.tm-layer)) #adibPersistentSide [data-home-nav=equipment] { background:var(--blue-soft)!important; color:var(--blue)!important; font-weight:600!important; }
+/* Keep the compact search input focusable on phones; hidden-by-display cannot receive focus. */
+@media (max-width:700px) {
+  html body .team-search { position:relative; }
+  html body .team-search input:not(:focus):placeholder-shown { display:block!important; position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:text; }
+  html body .team-search input:focus { position:fixed; top:66px; left:12px; right:12px; width:calc(100% - 24px); opacity:1; }
+}
+
+/* Matrix surfaces match the shared palette in both themes. */
+html.dark body :is(.personal-eisenhower-dialog,.personal-eisenhower-head,.personal-eisenhower-grid) { background:var(--bg)!important; color:var(--text)!important; border-color:var(--line)!important; }
+html.dark body .personal-eisenhower-modal .eisenhower-quadrant { background:var(--surface)!important; border:1px solid var(--line)!important; }
+html.dark body .personal-eisenhower-modal .eisenhower-q1 h3 { color:#ff9393!important; }
+html.dark body .personal-eisenhower-modal .eisenhower-q2 h3 { color:#ffd18b!important; }
+html.dark body .personal-eisenhower-modal .eisenhower-q3 h3 { color:#a9c5ff!important; }
+html.dark body .personal-eisenhower-modal .eisenhower-q4 h3 { color:#84e4d2!important; }
+/* Use vector theme icons where the system font has no moon glyph. */
+html body #adibSettingsMenu #themeToggle { display:flex; align-items:center; gap:8px; font-size:0!important; }
+html body #adibSettingsMenu #themeToggle::before { content:''; width:16px; height:16px; flex:none; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.9 13.2A8.5 8.5 0 0 1 10.8 3.1a8.5 8.5 0 1 0 10.1 10.1Z'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.9 13.2A8.5 8.5 0 0 1 10.8 3.1a8.5 8.5 0 1 0 10.1 10.1Z'/%3E%3C/svg%3E") center/contain no-repeat; }
+html body #adibSettingsMenu #themeToggle::after { content:'Tünd mövzu'; font-size:14px; }
+html.dark body #adibSettingsMenu #themeToggle::after { content:'Açıq mövzu'; }
+html.dark body #adibSettingsMenu #themeToggle::before { -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19'/%3E%3C/svg%3E") center/contain no-repeat; }
+/* Redesigned task workspace: a clear page heading and one contained work area. */
+html body .adib-home-intro { flex:none; min-height:126px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 34px; background:var(--bg); }
+html body .adib-home-intro-text small { display:block; color:var(--blue); font-size:11px; letter-spacing:.12em; font-weight:750; }
+html body .adib-home-intro-text h2 { color:var(--text); font-size:28px; line-height:1.2; margin:8px 0 4px; letter-spacing:-.025em; }
+html body .adib-home-intro-text p { margin:0; color:var(--muted); font-size:14px; }
+html body .adib-home-intro-add { background:var(--adib-brand)!important; border-color:var(--adib-brand)!important; color:#fff!important; font-weight:650; min-height:44px; padding:0 16px; border-radius:8px; }
+@media (min-width:751px) {
+ html body.adib-side-ready .adib-home-layout { margin:0 24px 24px; border:1px solid var(--line); border-radius:12px; background:var(--surface); overflow:hidden; }
+ html body.adib-side-ready.adib-focused-views .adib-home-list { background:var(--surface)!important; padding:18px 22px 0!important; }
+ html body.adib-focused-views .adib-home-quick-scopes { display:flex!important; flex-wrap:wrap; gap:4px; margin:12px 0 0; }
+ html body .adib-home-quick-scopes button { min-height:38px; background:var(--soft); border-color:var(--line); }
+ html body .adib-home-quick-scopes button[aria-pressed=true] { color:var(--blue)!important; background:var(--blue-soft)!important; font-weight:650; }
+ html body.adib-side-ready.adib-home-open #taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:178px!important; right:25px!important; bottom:25px!important; }
+ html body .adib-home-detail { background:var(--surface)!important; }
+}
+@media (max-width:750px) {
+ html body .adib-home-intro { min-height:102px; padding:16px 18px 12px; }
+ html body .adib-home-intro-text h2 { font-size:24px; margin:6px 0 3px; }
+ html body .adib-home-intro-text p { font-size:14px; }
+ html body .adib-home-intro-add { display:none; }
+ html body.adib-focused-views .adib-home-quick-scopes { display:flex!important; flex-wrap:wrap; gap:4px; margin:8px 0 0; }
+ html body .adib-home-quick-scopes button { min-height:38px; background:var(--surface); border-color:var(--line); }
+ html body .adib-home-quick-scopes button[aria-pressed=true] { color:var(--blue)!important; background:var(--blue-soft)!important; font-weight:650; }
+ html body.adib-focused-views .adib-home-list { padding-top:12px!important; }
+}
+@media (min-width:751px) {
+ html body.adib-home-open #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { inset:178px 25px 25px calc(var(--adib-side-width) + var(--adib-home-list-width) + 24px)!important; border-left:1px solid var(--line); border-radius:0 12px 12px 0; overflow:hidden; }
+ html body.adib-home-open .adib-home-rows { background:var(--surface)!important; padding:8px 0 90px!important; }
+}
+/* The heading action replaces the identical add-menu control; the separate quick-create action remains. */
+html body.adib-home-open #adibHome .adib-home-top-actions .adib-home-add { display:none!important; }
+@media (min-width:751px) {
+ html body.adib-home-open .adib-home-fab { right:calc(100% - var(--adib-home-list-width) - 8px)!important; bottom:40px!important; }
+}
+@media (max-width:750px) {
+ html body .adib-home-intro-add { display:grid!important; place-items:center; width:44px; min-width:44px; height:44px; padding:0; font-size:0; }
+ html body .adib-home-intro-add::before { content:'+'; font-size:26px; font-weight:400; line-height:1; }
+}
+html body .adib-home-intro-add { font-size:20px!important; line-height:1; }
+html body .adib-home-intro-add::before { content:none!important; }
+@media (min-width:751px) { html body .adib-home-intro-add::after { content:'Tapşırıq'; font-size:14px; margin-left:6px; } }
+@media (max-width:750px) { html body.adib-home-open .adib-home-fab { bottom:calc(74px + env(safe-area-inset-bottom))!important; } }
+@media (min-width:751px) {
+ html body.adib-home-open:not(.adib-focused-views) #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:calc(var(--adib-home-top-height) + 126px)!important; }
+ html body.adib-home-open.adib-window-overlay #taskModal#taskModal.adib-home-docked:not(.adib-properties-expanded).open { top:calc(178px + var(--adib-window-inset))!important; }
+}
+
+/* Interface accent only; chat-bubble palette remains independently selectable. */
+html:not(.dark)[data-adib-accent="blue"] { --adib-brand:#2865bd; --blue:#2865bd; --blue-soft:#e9f1fc; }
+html.dark[data-adib-accent="blue"] { --adib-brand:#2865bd; --blue:#a8c9ff; --blue-soft:#273f5e; }
+html:not(.dark)[data-adib-accent="green"] { --adib-brand:#16805a; --blue:#16805a; --blue-soft:#e6f5ee; }
+html.dark[data-adib-accent="green"] { --adib-brand:#16805a; --blue:#8ddfb7; --blue-soft:#25513f; }
+html:not(.dark)[data-adib-accent="violet"] { --adib-brand:#7653ac; --blue:#7653ac; --blue-soft:#f1ebf9; }
+html.dark[data-adib-accent="violet"] { --adib-brand:#7653ac; --blue:#d0b9f5; --blue-soft:#45385a; }
+html:not(.dark)[data-adib-accent="orange"] { --adib-brand:#b65c22; --blue:#b65c22; --blue-soft:#fff0e4; }
+html.dark[data-adib-accent="orange"] { --adib-brand:#b65c22; --blue:#ffc28a; --blue-soft:#563b2b; }
+html:not(.dark)[data-adib-accent="graphite"] { --adib-brand:#435f78; --blue:#435f78; --blue-soft:#eaf0f4; }
+html.dark[data-adib-accent="graphite"] { --adib-brand:#435f78; --blue:#b8d3e6; --blue-soft:#304651; }
+
+html body #adibSettingsMenu.adib-settings-menu { max-height:calc(100dvh - 24px)!important; overflow-y:auto!important; overscroll-behavior:contain; }
+html body #adibSettingsMenu .adib-accent-row { display:flex; align-items:center; gap:9px; min-width:0; }
+html body #adibSettingsMenu .adib-accent-swatch { flex:0 0 24px; width:24px; height:24px; border-radius:50%; background:var(--adib-brand); border:1px solid rgba(0,0,0,.12); }
+html body #adibSettingsMenu #adibInterfaceAccentSelect { flex:1; min-width:0; width:100%; min-height:40px; border:1px solid var(--line); border-radius:9px; padding:8px 10px; color:var(--text); background:var(--soft); font:inherit; }
+html body #adibSettingsMenu .adib-accent-hint { color:var(--muted); line-height:1.35; }
