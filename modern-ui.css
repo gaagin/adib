@@ -158,3 +158,15 @@ html body #adibSettingsMenu .adib-accent-row { display:flex; align-items:center;
 html body #adibSettingsMenu .adib-accent-swatch { flex:0 0 24px; width:24px; height:24px; border-radius:50%; background:var(--adib-brand); border:1px solid rgba(0,0,0,.12); }
 html body #adibSettingsMenu #adibInterfaceAccentSelect { flex:1; min-width:0; width:100%; min-height:40px; border:1px solid var(--line); border-radius:9px; padding:8px 10px; color:var(--text); background:var(--soft); font:inherit; }
 html body #adibSettingsMenu .adib-accent-hint { color:var(--muted); line-height:1.35; }
+
+/* Compact mobile task header; keep the floating quick-create button. */
+@media (max-width:750px) {
+ html body.adib-home-open .adib-home-intro { min-height:0; padding:10px 18px 6px; }
+ html body.adib-home-open .adib-home-intro-text small { font-size:10px; }
+ html body.adib-home-open .adib-home-intro-text h2 { font-size:21px; margin:3px 0 2px; }
+ html body.adib-home-open .adib-home-intro-text p { font-size:12px; line-height:1.35; }
+ html body.adib-home-open .adib-home-intro-add { display:none!important; }
+ html body.adib-home-open.adib-focused-views .adib-home-list { padding-top:4px!important; }
+ html body.adib-home-open.adib-focused-views .adib-home-quick-scopes { flex-wrap:nowrap; overflow-x:auto; margin:0; }
+ html body.adib-home-open .adib-home-scope { padding-top:8px; padding-bottom:8px; }
+}

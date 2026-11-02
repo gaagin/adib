@@ -37,7 +37,14 @@ with sync_playwright() as pw:
     toggle=p.locator('.adib-home-top .adib-global-menu').first;toggle.click();p.wait_for_function("!document.body.classList.contains('adib-side-collapsed')")
     p.keyboard.press('Escape');p.wait_for_function("document.body.classList.contains('adib-side-collapsed')")
    p.evaluate('()=>{ADIBHome.open();ADIBHomeBridge.closeViews();}')
-   p.locator('.adib-home-intro-add').click();assert p.locator('dialog.adib-home-add-menu').is_visible();p.keyboard.press('Escape')
+   if width <= 750:
+    assert not p.locator('.adib-home-intro-add').is_visible()
+    assert p.locator('.adib-home-fab').is_visible()
+    assert p.locator('.adib-home-intro').bounding_box()['height'] < 90
+    assert p.locator('.adib-home-quick-scopes').is_visible()
+    p.locator('.adib-home-fab').click();p.locator('#taskModal.open').wait_for(state='visible');p.evaluate('()=>ADIBHomeBridge.closeViews()')
+   else:
+    p.locator('.adib-home-intro-add').click();assert p.locator('dialog.adib-home-add-menu').is_visible();p.keyboard.press('Escape')
    p.locator('#adibHome [data-home-open="cached-t1"]:visible').first.click()
    p.locator('#taskModal.open').wait_for(state='visible')
    assert p.locator('#taskModal').get_by_text('Saxlanmış tapşırıq').count() or p.locator('#taskModal input').count()
