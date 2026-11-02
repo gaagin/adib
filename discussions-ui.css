@@ -217,3 +217,9 @@ html body dialog.adib-discussion-archive-confirm button:focus-visible{outline:3p
 html.dark body dialog.adib-discussion-archive-confirm{background:#1d2532;border-color:#39455a;color:#eef3fa}
 html.dark body dialog.adib-discussion-archive-confirm p{color:#aebbd0}
 html.dark body dialog.adib-discussion-archive-confirm button:not(.primary){background:#263247;border-color:#45516a;color:#eef3fa}
+
+/* Employee suggestions stay above the composer and inside the visible chat. */
+#adibChatOverlay .adib-chat-compose .adib-mention-menu{position:absolute;z-index:30;left:12px;right:12px;bottom:calc(100% + 4px);max-height:min(220px,38vh);overflow:auto;overscroll-behavior:contain;padding:5px;background:var(--wa-header,var(--surface,#fff));color:var(--wa-text,var(--text,#202020));border:1px solid var(--wa-border,var(--line,#d5d5d5));border-radius:12px;box-shadow:0 5px 18px #0003}
+#adibChatOverlay .adib-chat-compose .adib-mention-option{display:block!important;width:100%!important;min-height:42px!important;height:auto!important;padding:9px 12px!important;text-align:left!important;border:0!important;border-radius:7px!important;background:transparent!important;color:inherit!important;font:inherit!important}
+#adibChatOverlay .adib-chat-compose .adib-mention-option:hover,#adibChatOverlay .adib-chat-compose .adib-mention-option[aria-selected=true]{background:var(--wa-hover,var(--line,#eee))!important}
+#adibChatOverlay .adib-chat-compose .adib-mention-empty{padding:10px 12px;color:var(--wa-muted,#777);font-size:13px}

@@ -85,7 +85,7 @@ let created=null,messageSaved=false,busy=false;form.onsubmit=async event=>{event
 d.addEventListener('keydown',event=>{if(event.key==='Escape')event.stopPropagation();});d.addEventListener('cancel',event=>{if(busy)event.preventDefault();});d.addEventListener('close',()=>{d.remove();const current=trigger?.isConnected?trigger:document.querySelector('#adibChatOverlay [data-discussion-task-add]');current?.focus({preventScroll:true});});document.body.append(d);d.showModal();task.focus();}
 
 async function choose(){await refresh(true);const d=document.createElement('dialog');d.className='adib-employee-picker';const title=document.createElement('h2');title.textContent='Əməkdaşla söhbət';const list=document.createElement('div'),input=document.createElement('input');input.type='search';input.placeholder='Əməkdaşı axtarın';input.setAttribute('aria-label','Əməkdaşı axtarın');const paint=()=>{list.replaceChildren();for(const p of peers.filter(p=>p.name.toLocaleLowerCase('az-AZ').includes(input.value.trim().toLocaleLowerCase('az-AZ')))){const b=document.createElement('button');b.type='button';b.textContent=p.name;b.onclick=()=>{d.close();upsert({taskId:'employee:'+p.id,title:p.name,source:'Əməkdaş',isEmployee:true,peerId:p.id,comments:[],unreadCount:0});bridge.open({id:'employee:'+p.id});};list.append(b);}if(!list.childElementCount){const empty=document.createElement('p');empty.textContent=available?'Əməkdaş tapılmadı. ADIB-ə dəvət olunmuş aktiv istifadəçilər burada görünür.':'Əməkdaşlarla söhbət üçün ADIB hesabına daxil olun.';list.append(empty);}};input.oninput=paint;const close=document.createElement('button');close.type='button';close.textContent='Bağla';close.onclick=()=>d.close();d.append(title,input,list,close);d.addEventListener('close',()=>d.remove());document.body.append(d);paint();d.showModal();input.focus();}
-root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,acceptRow,decorate,bind:v=>bridge=v};
+root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,acceptRow,decorate,mentionCandidates:()=>peers.map(p=>({id:p.id,name:p.name})),bind:v=>bridge=v};
 })(window);
 
 /* Keep mobile chat inside the visible viewport, not the keyboard-covered 100dvh. */
@@ -291,4 +291,46 @@ root.ADIBDiscussions={enabled,isEmployee,isHidden,merge,refresh,load,send,accept
  },true);
  root.addEventListener('blur',()=>{press=null;});
  root.ADIBChatTaskOpening={open};
+})(window);
+
+/* Plain-text employee addressing in discussion composers. It does not send notifications. */
+(function mentionPicker(root){
+ 'use strict';
+ const doc=root.document,selected=new WeakMap(); let menu=null, owner=null, matches=[], active=0, range=null;
+ const norm=s=>String(s||'').normalize('NFC').toLocaleLowerCase('az-AZ');
+ function close(){if(menu)menu.remove();menu=null;owner=null;matches=[];range=null;}
+ function find(input){
+  if(input.selectionStart!==input.selectionEnd)return null;
+  const pos=input.selectionStart, before=input.value.slice(0,pos), at=before.lastIndexOf('@');
+  if(at<0 || (at>0&&!/[\s(]/u.test(before[at-1])))return null;
+  const query=before.slice(at+1);if(query.length>80||! /^[\p{L}\p{M}\p{N}_. -]*$/u.test(query))return null;
+  const prior=selected.get(input);if(prior&&prior.at===at&&pos>=prior.end&&input.value.slice(at,prior.end)===prior.text)return null;
+  return {at,pos,query};
+ }
+ function paint(input){
+  if(root.ADIBDesktop||input.disabled||!input.isConnected){close();return;}
+  const r=find(input);if(!r){close();return;}
+  if(owner!==input){close();owner=input;active=0;}
+  const q=norm(r.query.trim());matches=(root.ADIBDiscussions?.mentionCandidates?.()||[]).filter(p=>p.name&&norm(p.name).includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'az',{sensitivity:'base'})).slice(0,30);
+  range=r;active=Math.min(active,Math.max(0,matches.length-1));
+  if(!menu){menu=doc.createElement('div');menu.className='adib-mention-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Əməkdaş seçin');input.closest('form').append(menu);}
+  menu.replaceChildren();
+  if(!matches.length){const empty=doc.createElement('div');empty.className='adib-mention-empty';empty.textContent='Əməkdaş tapılmadı';menu.append(empty);return;}
+  matches.forEach((p,i)=>{const button=doc.createElement('button');button.type='button';button.className='adib-mention-option';button.setAttribute('role','option');button.setAttribute('aria-selected',String(i===active));button.textContent=p.name;button.addEventListener('pointerdown',e=>e.preventDefault());button.addEventListener('click',()=>choose(i));menu.append(button);});
+ }
+ function choose(index){
+  const input=owner, item=matches[index], r=input&&find(input);if(!input||!item||!r){close();return;}
+  const insert='@'+item.name+' ';if(input.value.length-(r.pos-r.at)+insert.length>input.maxLength&&input.maxLength>=0)return;
+  input.setRangeText(insert,r.at,r.pos,'end');selected.set(input,{at:r.at,end:r.at+insert.length,text:insert});
+  close();input.focus();input.dispatchEvent(new Event('input',{bubbles:true}));
+ }
+ doc.addEventListener('input',e=>{if(e.target.matches?.('#adibChatOverlay #adibChatInput')&&!e.isComposing)paint(e.target);});
+ doc.addEventListener('compositionend',e=>{if(e.target.matches?.('#adibChatOverlay #adibChatInput'))paint(e.target);});
+ doc.addEventListener('click',e=>{if(e.target.matches?.('#adibChatOverlay #adibChatInput'))paint(e.target);else if(menu&&!menu.contains(e.target))close();});
+ doc.addEventListener('keydown',e=>{if(!menu||e.target!==owner||e.isComposing)return;
+  if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();return;}
+  if(matches.length&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();active=(active+(e.key==='ArrowDown'?1:-1)+matches.length)%matches.length;paint(owner);menu?.children[active]?.scrollIntoView({block:'nearest'});}
+  else if(matches.length&&(e.key==='Enter'||e.key==='Tab')){e.preventDefault();e.stopImmediatePropagation();choose(active);}
+ },true);
+ doc.addEventListener('focusin',e=>{if(menu&&e.target!==owner&&!menu.contains(e.target))close();});
 })(window);
